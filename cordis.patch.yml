@@ -1,0 +1,11 @@
+# oh-my-dsh bundle patch: mounts the omd orchestration plugin into the host
+# composition of a dsh profile. The plugin registers the protocol section,
+# bilingual skills/role cards, /omd-doctor /omd-cancel commands and
+# omd_memory_* tools; the bundled MCP server (omd-state) is mounted
+# dynamically at runtime via cordis ctx.plugin() because a static patch
+# cannot express package-internal absolute paths (see spec §7-1).
+#
+# Install: `dsh plugin --profile <name> add oh-my-dsh` (npm or a local path).
+- insert:
+    - id: oh-my-dsh
+      name: 'oh-my-dsh'
