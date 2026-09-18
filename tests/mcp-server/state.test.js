@@ -59,3 +59,16 @@ test('prompt_echo 超过 1200 字符被截断', async () => {
   const got = await t.read({ cwd, sessionId: 's1', mode: 'ralph' })
   expect(got.prompt_echo.length).toBeLessThanOrEqual(1200)
 })
+
+// ---------- 终审修复 L3：孤儿文件（缺 _meta）报错文案 ----------
+
+test('孤儿 state 文件（缺 _meta）的报错文案显示 <unknown> 而非 undefined', async () => {
+  const { t, cwd } = await tools()
+  const { mkdir, writeFile } = await import('node:fs/promises')
+  // 手工在别的会话目录放一个无 _meta 的孤儿文件
+  await mkdir(join(cwd, '.omd', 'state', 'sessions', 'ghost'), { recursive: true })
+  await writeFile(join(cwd, '.omd', 'state', 'sessions', 'ghost', 'ralph-state.json'),
+    JSON.stringify({ active: true }), 'utf8')
+  await expect(t.write({ cwd, sessionId: 's1', mode: 'ralph', state: { active: true } }))
+    .rejects.toThrow(/<unknown>|ghost/)
+})

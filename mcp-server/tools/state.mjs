@@ -20,9 +20,11 @@ export function makeStateTools(env) {
     try { sids = await readdir(sessionsRoot) } catch { /* 尚无会话目录 */ }
     for (const sid of sids) {
       if (sid === sessionId) continue
-      const other = await readJson(join(sessionsRoot, sid, `${mode}-state.json`))
+      const otherPath = join(sessionsRoot, sid, `${mode}-state.json`)
+      const other = await readJson(otherPath)
       if (other && other._meta?.sessionId !== sessionId)
-        throw new Error(`state is owned by session '${other._meta.sessionId}' and cannot be modified by session '${sessionId}'`)
+        // 孤儿文件（缺 _meta）时显示 <unknown> + 文件路径，不出现 'undefined'（终审 L3）
+        throw new Error(`state is owned by session '${other._meta?.sessionId ?? '<unknown>'}' (file: ${otherPath}) and cannot be modified by session '${sessionId}'`)
     }
     const cur = await readJson(file)
     if (cur && cur._meta.sessionId !== sessionId)
