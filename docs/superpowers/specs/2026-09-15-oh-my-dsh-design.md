@@ -83,6 +83,11 @@ omd 的本质是 **编排协议（系统提示词）+ 资产目录（双语 skil
 | `<remember>` 标签捕获 | PostToolUse hook 解析模型输出文本 | **改为显式工具调用**指令 | dsh 无等价 hook 面；语义从"顺手打标签"变为"显式调用"，如实注明 |
 | 自适应模型路由 | OMC v5.4 全员信号驱动自适应（lexical/structural/context 信号 + 升降档关键词） | **MVP 静态映射，自适应列二期** | 主动简化，非遗漏 |
 | fable 档 / level 字段 / team.roleRouting | 第四档（Opus 上）/ 自主度 1-4 / 外部 CLI worker 路由 | **主动舍弃** | Claude 专属或外部 CLI 专属，dsh 不适用 |
+| autopilot 暂停/跳过旋钮 | `pauseAfterExpansion/pauseAfterPlanning/skipQa/skipValidation/execution` 配置面 | **主动舍弃** | MVP 只保留 3 个数值界限；需要时二期加 |
+| ralph gitGrep 检查与 branchName 信号 | observableChecks 的第三种类型 + stale 分支指针 | **主动舍弃** | MVP 只保留 fileExists/fileContains |
+| ralplan 独立技能 | OMC v5 已把 ralplan 并入 /plan（Deprecation Notice） | **omd 刻意保留独立** | 与关键词注册表一致；plan 的 consensus 段指向 ralplan 文档避免重复 |
+| executor 的 sub-spawn 权限 | OMC 允许 executor 自行 spawn ≤3 个 explore/architect 交叉验证 | **leaf-guard 收编**：改为"报告中请求主会话路由" | omd 叶子纪律优先于自主性 |
+| explore 的外部检索路由 | OMC 路由给 document-specialist 角色 | **降级为 web_search** | document-specialist 不在 MVP 7 角色内，M2 补齐后回改 |
 
 ### MVP 范围（第一期）
 
@@ -388,7 +393,7 @@ probe.js 探测结果渲染进协议 section（模型每轮可见能力边界）
 
 - 宿主版本 vs peerDep 范围
 - inject 服务可用性（核心服务缺失 = 启动已报错，doctor 复核）
-- **注册计数核对**：skill/命令/工具实际注册数 vs 预期数（7 角色 + 10 skill + 2 命令 + 3 omd_memory + MCP 工具数）
+- **注册计数核对**：skill/命令/工具实际注册数 vs 预期数（11 skill 含 omd-doctor、7 角色、2 命令、3 omd_memory、MCP 18 工具）
 - **Config 解析验证**：tiers/roleOverrides 的模型标识符能否在宿主 LLM 服务解析
 - **MCP server spawn 冒烟**（真实握手一次；doctor 不证明端到端可用——E2E 是独立发布门禁）
 - `.omd/` 可写性 + .gitignore 状态
@@ -424,6 +429,7 @@ probe.js 探测结果渲染进协议 section（模型每轮可见能力边界）
 9. ✅ **systemPrompt**：`section({name, order, text})` 与 `context({name, order, text})` 均存在，**order 强制有限数**（omd 用 100/130）；text 函数**同步求值不 await**（实证）；`{{var}}` 严格插值（protocol 输出须避免 `{{` 序列）。
 10. ✅（存在性）`dsh-hooks-claude-code` 是宿主原生包，支持 UserPromptSubmit 等 7 事件 + `additionalContext` 注入；默认未挂载于 profile。二期关键词 hook 走此桥。
 11. ⏳ 压缩后 section/context 保留行为（E2E 观察项）。
+12. ⏳ **叶子 subagent 的 `ask_user_question` 能否真实触达用户**（终审发现：planner 卡的访谈流依赖此能力；若不能，备选方案=问题清单带回主会话代问）（E2E 观察项）。
 
 **实装中暴露并修复的 bug**：apply() 曾用存在性（`if (ctx.storage)`）而非 probe 结论门控记忆工具注册，storage failure 形态下 `domain.open` 抛错导致插件崩溃——已修复为 `probeReport.storage.status === 'ok'` 门控（附回归测试）。
 
