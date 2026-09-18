@@ -411,19 +411,21 @@ probe.js 探测结果渲染进协议 section（模型每轮可见能力边界）
 
 ---
 
-## 7. 实现期验证清单
+## 7. 实现期验证清单（M1 实测结论已回写，2026-09-15）
 
-1. cordis.patch.yml 静态 YAML 中能否引用 omd 包内路径挂 MCP server；不行则 `apply()` 运行时经 cordis API 动态挂载（`__dirname` 消解路径问题）。
-2. 用户改插件 Config 是否触发 cordis 重放插件；否则注册配置监听手动更新 section。
-3. dsh LLM 服务的模型标识符完整格式（provider 前缀？workflow provider/model 参数期待的格式）。
-4. schemastery `Schema.dict` 确切写法。
-5. 二期 `dsh-subagent` 服务 spawn API 签名（model 参数）。
-6. `ctx.tools` 是否有注册表可查（probe 探测工具可用性的具体实现）。
-7. `ctx.storage` 后端可用性的探测方式与异常形态。
-8. 运行时注册 skill 与文件系统 skill 同名冲突时的优先级行为（模式 skill 用非前缀名保证自然调用）。
-9. `ctx.systemPrompt.context()` 的动态上下文注册语义（更新频率、渲染时机——runtime.js 依赖）。
-10. `dsh-hooks-claude-code` 桥是否默认加载于 profile；omd 如何在自己的 cordis.patch.yml 里挂载它并指向包内 hook 脚本（二期关键词检测前置）。
-11. dsh 会话压缩后协议 section 与动态 context() 的保留行为（checkpoint 恢复机制的前提）。
+1. ✅❌ **MCP 挂载**：静态 patch.yml 无法可靠引用包内绝对路径 → **采用运行时动态挂载**：`ctx.plugin({name,inject,Config,apply}, config)`（cordis 源码实证，fiber 生命周期随 omd 回收）。mcp-client 插件名 `mcp-client`，Config 逐字段核验（serverName 正则 `^[A-Za-z0-9_-]{1,32}$`）；工具命名 `mcp__omd-state__<raw>` 实证。
+2. ✅ **Config 变更重放**：cordis `Fiber.update() → restart()` = 完整 dispose + 重跑 apply（源码实证），协议段随配置自动更新；dispose 链支持 async（domain close 安全）。
+3. ⏳ **模型标识符格式**：待 E2E 实测（workflow provider/model 参数期待的格式）。
+4. ✅ **schemastery**（v3.18.2 源码核验）：`z.const/z.natural/z.dict/z.object/z.union/.default/.description` 全部存在；**schema 本身可调用，无 `.parse`**（已加别名）；校验失败抛 `Schema.ValidationError`。
+5. ⏳ `dsh-subagent` 服务 spawn API（二期 `omd_delegate` 前置，M1 未触及）。
+6. ✅（决策变更）**工具枚举**：不做宿主工具注册表探测——inject 保证的服务直接 ok，可选能力用存在性检查 + Config 覆盖兜底。
+7. ✅ **ctx.storage 真实 API**（三包源码核验）：`ctx.storage.domain.open(defineDomain({name, version, tables}))` → `domain.table(name)` → KvTable（`get` 同步、`put/delete` 异步）；**域名/表名正则 `^[a-z][a-z0-9_]*$`（连字符非法）**——omd 用 `oh_my_dsh` 域名 + `memory` 表；Domain 句柄经 `ctx.effect` 注册 close。
+8. ⏳ skill 同名冲突优先级（E2E 观察项）。
+9. ✅ **systemPrompt**：`section({name, order, text})` 与 `context({name, order, text})` 均存在，**order 强制有限数**（omd 用 100/130）；text 函数**同步求值不 await**（实证）；`{{var}}` 严格插值（protocol 输出须避免 `{{` 序列）。
+10. ✅（存在性）`dsh-hooks-claude-code` 是宿主原生包，支持 UserPromptSubmit 等 7 事件 + `additionalContext` 注入；默认未挂载于 profile。二期关键词 hook 走此桥。
+11. ⏳ 压缩后 section/context 保留行为（E2E 观察项）。
+
+**实装中暴露并修复的 bug**：apply() 曾用存在性（`if (ctx.storage)`）而非 probe 结论门控记忆工具注册，storage failure 形态下 `domain.open` 抛错导致插件崩溃——已修复为 `probeReport.storage.status === 'ok'` 门控（附回归测试）。
 
 ## 8. 里程碑
 
