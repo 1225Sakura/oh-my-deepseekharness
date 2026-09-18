@@ -26,8 +26,10 @@
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-commands": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-llm": "0.1.5-rc.1",
     "@deepseek-ai/dsh-skill": "0.1.5-rc.1",
     "@deepseek-ai/dsh-storage": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-storage-domain": "0.1.5-rc.1",
     "@deepseek-ai/dsh-system-prompt": "0.1.5-rc.1",
     "@deepseek-ai/dsh-tools": "0.1.5-rc.1",
     "@deepseek-ai/schemastery": "^3.18.2"
@@ -47,6 +49,12 @@
     },
     "@deepseek-ai/dsh-storage": {
       "optional": true
+    },
+    "@deepseek-ai/dsh-storage-domain": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
     }
   },
   "dependencies": {
@@ -54,6 +62,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/dsh-llm": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-storage-domain": "^0.1.5-rc.1",
     "@deepseek-ai/schemastery": "^3.18.2",
     "vitest": "^3.0.0"
   }
