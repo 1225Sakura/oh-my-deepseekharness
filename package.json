@@ -13,7 +13,8 @@
     "mcp-server",
     "assets",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
@@ -25,15 +26,15 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-commands": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-llm": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-skill": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-storage": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-storage-domain": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-system-prompt": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-tools": "0.1.5-rc.1",
-    "@deepseek-ai/schemastery": "^3.18.2",
-    "@deepseek-ai/dsh-mcp-client": "0.1.5-rc.1 || 0.1.5-rc.2"
+    "@deepseek-ai/dsh-commands": "0.1.5-rc.1 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-llm": "0.1.5-rc.1 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-mcp-client": "0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-skill": "0.1.5-rc.1 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-storage": "0.1.5-rc.1 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-storage-domain": "0.1.5-rc.1 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-system-prompt": "0.1.5-rc.1 || 0.1.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.1.5-rc.1 || 0.1.2-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.2"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-tools": {
@@ -62,11 +63,20 @@
     }
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-attachment": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-http-proxy": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-llm": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-mcp-client": "^0.1.5-rc.2",
+    "@deepseek-ai/dsh-scope": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-storage": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-storage-domain": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-subprocess": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-tools": "^0.1.5-rc.1",
     "@deepseek-ai/schemastery": "^3.18.2",
     "vitest": "^3.0.0"
   }
