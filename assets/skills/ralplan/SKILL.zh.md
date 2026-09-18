@@ -117,9 +117,11 @@ OMC 的 Architect/Critic 环节映射到 omd MVP 名册：
 
 ## 状态契约
 
-- **开始**：第 1 步之前 `mcp__omd-state__state_write(mode="ralplan", active=true, started_at=<ISO 8601>, current_phase="consensus")`。
-- **交接给已批准的执行模式**（team/ralph）：`state_write(mode="ralplan", active=false)`——置为不活跃，**不** clear；计划路径保持可引用。
-- **真正终态退出**（否决、非交互输出、中止）：`state_clear(mode="ralplan")`。
+**调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；模式字段嵌套在 `state` 键下。
+
+- **开始**：第 1 步之前 `mcp__omd-state__state_write({ cwd, sessionId, mode: "ralplan", state: { active: true, started_at: <ISO 8601>, current_phase: "consensus" } })`。
+- **交接给已批准的执行模式**（team/ralph）：`state_write({ cwd, sessionId, mode: "ralplan", state: { active: false } })`——置为不活跃，**不** clear；计划路径保持可引用。
+- **真正终态退出**（否决、非交互输出、中止）：`state_clear({ cwd, sessionId, mode: "ralplan" })`。
 - 中间节点（Critic 批准、达到 5 轮上限）**绝不** clear——用户仍可能要求修改。
 - `.omd/plans/` 下的共识计划任何路径都不删除。
 - **MCP server 不可用**：用普通文件工具对 `.omd/` 做同样读写，并显式说明。

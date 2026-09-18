@@ -12,7 +12,7 @@ autopilot 接收两三行的想法，自治地跑完整生命周期：需求扩�
 
 <Hard_Constraints>
 - **只能主会话启动。** `create_goal` 拒绝 subagent 权限——autopilot 只能由 direct human 在主会话直接启动，禁止把模式启动委派给队员。
-- **MVP 模式互斥。** 启动前必读状态（按模式 `mcp__omd-state__state_read`，或用 `mcp__omd-state__state_list_active` 拿跨会话视图）。任一模式 active 时拒绝启动并如实报告，不得嵌套。
+- **MVP 模式互斥。** 启动前必读状态（按模式 `mcp__omd-state__state_read({ cwd, sessionId, mode })`，或用 `mcp__omd-state__state_list_active({ cwd })` 拿跨会话视图）。任一模式 active 时拒绝启动并如实报告，不得嵌套。
 - **无证据不完成。** 任何"完成"声明必须附新鲜验证命令的原始输出。
 </Hard_Constraints>
 
@@ -87,7 +87,7 @@ Phase 0 检测到 ralplan 共识计划时本阶段跳过。
 
 ## 取消与恢复
 
-- **取消**（`/omd-cancel` 或用户说停）：`update_goal(action="pause")` + `mcp__omd-state__state_clear(mode="autopilot")`。`.omd/plans/` 与 `.omd/specs/` **保留**。
+- **取消**（`/omd-cancel` 或用户说停）：`update_goal(action="pause")` + `mcp__omd-state__state_clear({ cwd, sessionId, mode: "autopilot" })`。`.omd/plans/` 与 `.omd/specs/` **保留**。
 - **恢复**：再次运行 autopilot 即读保留的 plans/specs，从记录的最后一个阶段继续（OMC resume 语义）。超过 2h 未更新的状态视为 stale——报告并与用户确认，不自动续跑。
 
 ## 降级
@@ -96,8 +96,10 @@ Phase 0 检测到 ralplan 共识计划时本阶段跳过。
 
 ## 状态契约
 
-- **开始**：`state_write(mode="autopilot", active=true, started_at=<ISO 8601>, current_phase="expansion", prompt_echo=<原始请求压缩 ≤1200 字符>)`。状态文件：`.omd/state/sessions/{sessionId}/autopilot-state.json`。
-- **阶段转换**：每次转换、每个 goal 轮次结束都 `state_write` 更新 `current_phase`（`expansion|planning|execution|qa|validation`）与进度字段。
-- **完成/取消**：对应 `update_goal` 之后 `state_clear(mode="autopilot")`。`.omd/` 下的 plans、specs、handoffs 永不删除。
+**调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；模式字段嵌套在 `state` 键下。示例：`mcp__omd-state__state_write({ cwd: <工作区>, sessionId: <会话>, mode: "autopilot", state: { ... } })`。
+
+- **开始**：`state_write({ cwd, sessionId, mode: "autopilot", state: { active: true, started_at: <ISO 8601>, current_phase: "expansion", prompt_echo: <原始请求压缩 ≤1200 字符> } })`。状态文件：`.omd/state/sessions/{sessionId}/autopilot-state.json`。
+- **阶段转换**：每次转换、每个 goal 轮次结束都 `state_write` 更新 `state.current_phase`（`expansion|planning|execution|qa|validation`）与进度字段。
+- **完成/取消**：对应 `update_goal` 之后 `state_clear({ cwd, sessionId, mode: "autopilot" })`。`.omd/` 下的 plans、specs、handoffs 永不删除。
 - **异常退出**：状态与 plans 留在盘上；下次启动先读状态；>2h 的 stale 状态只报告不自动续。
 - **MCP server 挂了**：用普通文件工具对 `.omd/` 做同样的读写，并显式说明。

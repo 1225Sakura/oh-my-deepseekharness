@@ -12,7 +12,7 @@ Autopilot takes a 2–3 line idea and autonomously runs the full lifecycle: requ
 
 <Hard_Constraints>
 - **Main session only.** `create_goal` rejects subagent authority — autopilot may only be started by the direct human in the main session. Never delegate mode startup to a teammate.
-- **Modes are mutually exclusive (MVP).** Before starting, read state (`mcp__omd-state__state_read` per mode, or `mcp__omd-state__state_list_active` for the cross-session view). If any mode is active, refuse and report instead of nesting.
+- **Modes are mutually exclusive (MVP).** Before starting, read state (`mcp__omd-state__state_read({ cwd, sessionId, mode })` per mode, or `mcp__omd-state__state_list_active({ cwd })` for the cross-session view). If any mode is active, refuse and report instead of nesting.
 - **No evidence, no completion.** Every "done" claim must be backed by fresh verification command output, quoted raw.
 </Hard_Constraints>
 
@@ -87,7 +87,7 @@ Spawn two independent reviewers in parallel — separate subagent contexts, neve
 
 ## Cancel and resume
 
-- **Cancel** (`/omd-cancel`, or the user says stop): `update_goal(action="pause")` + `mcp__omd-state__state_clear(mode="autopilot")`. `.omd/plans/` and `.omd/specs/` are **preserved**.
+- **Cancel** (`/omd-cancel`, or the user says stop): `update_goal(action="pause")` + `mcp__omd-state__state_clear({ cwd, sessionId, mode: "autopilot" })`. `.omd/plans/` and `.omd/specs/` are **preserved**.
 - **Resume**: invoking autopilot again reads the preserved plans/specs and continues from the last recorded phase (OMC resume semantics). State older than 2h is stale — report and confirm with the user instead of auto-resuming.
 
 ## Degradation
@@ -96,8 +96,10 @@ If `create_goal`/`update_goal` is unavailable, fall back to a manual loop: recor
 
 ## State Contract (状态契约)
 
-- **Start**: `state_write(mode="autopilot", active=true, started_at=<ISO 8601>, current_phase="expansion", prompt_echo=<original request, compressed ≤1200 chars>)`. State file: `.omd/state/sessions/{sessionId}/autopilot-state.json`.
-- **Phase transitions**: `state_write` with updated `current_phase` (`expansion|planning|execution|qa|validation`) plus progress fields — on every transition and at every goal round end.
-- **Complete / cancel**: `state_clear(mode="autopilot")` after the corresponding `update_goal`. Plans, specs and handoffs under `.omd/` are never deleted.
+**Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; mode fields nest under the `state` key. Example: `mcp__omd-state__state_write({ cwd: <workspace>, sessionId: <session>, mode: "autopilot", state: { ... } })`.
+
+- **Start**: `state_write({ cwd, sessionId, mode: "autopilot", state: { active: true, started_at: <ISO 8601>, current_phase: "expansion", prompt_echo: <original request, compressed ≤1200 chars> } })`. State file: `.omd/state/sessions/{sessionId}/autopilot-state.json`.
+- **Phase transitions**: `state_write` with updated `state.current_phase` (`expansion|planning|execution|qa|validation`) plus progress fields — on every transition and at every goal round end.
+- **Complete / cancel**: `state_clear({ cwd, sessionId, mode: "autopilot" })` after the corresponding `update_goal`. Plans, specs and handoffs under `.omd/` are never deleted.
 - **Abnormal exit**: leave state and plans on disk; on the next start, read state first, and treat >2h-old state as stale — report, don't auto-continue.
 - **MCP server down**: perform the same reads/writes with plain file tools against `.omd/` and say so explicitly.

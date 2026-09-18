@@ -115,16 +115,18 @@ Bad — asking what the code already answers ("Where is auth implemented?"); bat
 - [ ] Consensus final: ADR section included
 - [ ] Deliberate: pre-mortem (3 scenarios) + expanded test plan included
 - [ ] `--interactive`: explicit user approval before any execution; non-interactive: `pending approval` output only, no auto-execution
-- [ ] ralplan state deactivated on every exit path — `state_write(active=false)` for execution handoff, `state_clear` for terminal exits
+- [ ] ralplan state deactivated on every exit path — `state_write({ cwd, sessionId, mode: "ralplan", state: { active: false } })` for execution handoff, `state_clear({ cwd, sessionId, mode: "ralplan" })` for terminal exits
 </Final_Checklist>
 
 ## State Contract (状态契约)
 
+**Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; mode fields nest under the `state` key.
+
 - Interview / Direct / Review modes are lightweight: **no mode state is held** — only the plan artifact under `.omd/plans/`.
 - Consensus mode holds `ralplan` mode state (shared with the `ralplan` skill):
-  - **Entry**: `state_write(mode="ralplan", active=true, started_at=<ISO 8601>, current_phase="consensus")` before the first Planner pass.
-  - **Handoff to approved execution** (team/ralph): `state_write(mode="ralplan", active=false)` — deactivate, do NOT clear.
-  - **Terminal exit** (rejection, non-interactive output, error): `state_clear(mode="ralplan")`.
+  - **Entry**: `state_write({ cwd, sessionId, mode: "ralplan", state: { active: true, started_at: <ISO 8601>, current_phase: "consensus" } })` before the first Planner pass.
+  - **Handoff to approved execution** (team/ralph): `state_write({ cwd, sessionId, mode: "ralplan", state: { active: false } })` — deactivate, do NOT clear.
+  - **Terminal exit** (rejection, non-interactive output, error): `state_clear({ cwd, sessionId, mode: "ralplan" })`.
   - Never clear mid-loop (Critic approval, max-iteration presentation).
 - **Abnormal exit**: state and plan stay on disk; on resume, read state first and continue the loop.
 - **MCP server down**: same reads/writes with plain file tools against `.omd/`, announced explicitly.

@@ -34,7 +34,7 @@ Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / 
 
 ### 3. Config model identifier resolvability
 
-- Read the effective omd Config: `tiers.low/medium/high` and any `roleOverrides`.
+- Read the effective omd Config: `tiers.low/medium/high` and any `roleOverrides` — read the effective values from the model routing table in the omd protocol section of the system prompt (the model cannot read plugin Config directly).
 - For each configured value: `inherit` is always valid; anything else must be resolvable as a model identifier by the host LLM service.
 - Unresolvable identifier → ❌ (fix: correct the identifier in the plugin config, or set it to `inherit` to follow the main session model). Note the MVP caveat: model routing is hard only on the `workflow` path; `subagent` inherits the main session (soft routing), so a broken identifier degrades rather than crashes there.
 

@@ -39,13 +39,21 @@ team-plan → team-prd → team-exec → team-verify → team-fix（有界循环
 只活在队长对话里的上下文，在压缩或重启后会丢失。因此**每个完成的阶段必须在下一阶段 spawn 之前写 `.omd/handoffs/<stage>.md`**（经 `mcp__omd-state__handoff_write`；MCP 挂了用普通文件工具）：
 
 ```markdown
-## Handoff: <stage> → <next-stage>
-- **Decided**: 本阶段定下的关键决策
-- **Rejected**: 考虑过但被否决的方案及原因
-- **Risks**: 下一阶段必须知道的风险
-- **Files**: 关键新建/修改文件
-- **Remaining**: 留给下一阶段的事项
+# Handoff: <stage>
+
+## Decided
+本阶段定下的关键决策
+## Rejected
+考虑过但被否决的方案及原因
+## Risks
+下一阶段必须知道的风险
+## Files
+关键新建/修改文件
+## Remaining
+留给下一阶段的事项
 ```
+
+（与 `handoff_write` 工具的产出格式一致：一级标题 + 五个独立小节；五段必填，单段超 20 行会被截断并警告。）
 
 规则：
 
@@ -93,7 +101,7 @@ team-plan → team-prd → team-exec → team-verify → team-fix（有界循环
 dsh 没有定时器承载面，所以 watchdog 是事件驱动的——这是对 OMC 5min/10min 墙钟阈值的刻意改写，如实注明：
 
 - 队长每次活跃时（队员报告送达、阶段转换），跑 `list_agents` 盘点：谁在 running / idle / ready。
-- 队员长时间无消息或卡住 → `send_message` 询问状态；到队长下次活跃仍无回应 → 判定死亡，重分配其任务，必要时补 spawn 替补。
+- 队员长时间无消息或卡住 → `send_message` 询问状态；到队长下次活跃仍无回应 → 先用 `interrupt_agent` 停掉卡死队员，判定死亡，重分配其任务，必要时补 spawn 替补。
 - 连续失败 **2+** 任务的队员 → 停止给它分配新工作。
 - 等待 = yield 并结束当前轮——队员完成会把你唤醒。禁止忙轮询，禁止 sleep 循环。
 
@@ -102,7 +110,7 @@ dsh 没有定时器承载面，所以 watchdog 是事件驱动的——这是对
 1. 核实全部任务已到终态（completed 带证据，或 failed 带记录原因）。
 2. 经 `send_message` 向每个活跃队员发 shutdown 指令。
 3. 等每个队员的确认（以其最后一条消息 / 结算通知形式到达）。
-4. 全部确认或判死之后，才准 `mcp__omd-state__state_clear(mode="team")`。
+4. 全部确认或判死之后，才准 `mcp__omd-state__state_clear({ cwd, sessionId, mode: "team" })`。
 5. 向用户报告总结。
 
 关闭流程未走完之前，绝不清 team 状态。
@@ -126,8 +134,10 @@ dsh 没有定时器承载面，所以 watchdog 是事件驱动的——这是对
 
 ## 状态契约
 
-- **开始**：`state_write(mode="team", active=true, started_at=<ISO 8601>, current_phase="team-plan", prompt_echo=<压缩 ≤1200 字符>, team_name=<slug>, fix_loop_count=0, max_fix_loops=3)`。状态文件：`.omd/state/sessions/{sessionId}/team-state.json`。
-- **阶段转换**：每次阶段变化都 `state_write` 更新 `current_phase`（`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`）、`fix_loop_count` 与阶段历史。
-- **完成/取消**：关闭流程走完之后 `state_clear(mode="team")`。`.omd/handoffs/` 与 `.omd/plans/` 永不删除。
+**调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；模式字段嵌套在 `state` 键下。
+
+- **开始**：`state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <压缩 ≤1200 字符>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`。状态文件：`.omd/state/sessions/{sessionId}/team-state.json`。
+- **阶段转换**：每次阶段变化都 `state_write` 更新 `state.current_phase`（`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`）、`fix_loop_count` 与阶段历史。
+- **完成/取消**：关闭流程走完之后 `state_clear({ cwd, sessionId, mode: "team" })`。`.omd/handoffs/` 与 `.omd/plans/` 永不删除。
 - **异常退出**：状态与 handoffs 留在盘上供 resume；>2h 未更新的状态视为 stale——只报告不自动续。
 - **MCP server 挂了**：用普通文件工具对 `.omd/` 做同样的读写，并显式说明。

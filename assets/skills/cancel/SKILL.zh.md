@@ -43,31 +43,31 @@ when-to-use: 由 `cancelomd` / `stopomd` 关键词或 `/omd-cancel` 命令触发
 
 走 team 关闭协议（规格 §3.4）：
 
-1. `state_read(mode="team")` 读活跃队员名册。
+1. `state_read({ cwd, sessionId, mode: "team" })` 读活跃队员名册。
 2. 用 `send_message` 给每个队员发 shutdown 指令；idle/ready 队员收到消息即唤醒。
 3. 等确认。dsh 是消息驱动（无定时器面），确认是事件驱动的：在下一个模型步骤处理到达的回复，不轮询。
 4. `list_agents` 确认无队员仍在运行；无视 shutdown 的队员用 `interrupt_agent` 打断。
-5. 全部队员确认停止或被 interrupt 之后才 `state_clear(mode="team")`。
+5. 全部队员确认停止或被 interrupt 之后才 `state_clear({ cwd, sessionId, mode: "team" })`。
 6. 无响应队员记入取消报告。
 
 #### autopilot 活跃
 
 1. `update_goal(action="pause")`——暂停 goal 循环；plans/specs 留盘供恢复（OMC resume 语义）。
-2. `state_clear(mode="autopilot")`。
+2. `state_clear({ cwd, sessionId, mode: "autopilot" })`。
 3. 报告："Autopilot 已取消于阶段：{phase}。进度已保留——再次运行 autopilot 即从保留的 plans 继续。"
 
 #### ralph 活跃
 
-1. `state_clear(mode="ralph")`。ralph 工具的前台循环随当前轮结束；`maxRounds` 与 PRD 保持完好。
+1. `state_clear({ cwd, sessionId, mode: "ralph" })`。ralph 工具的前台循环随当前轮结束；`maxRounds` 与 PRD 保持完好。
 2. `.omd/prd/` 产物（prd.json、reconciliation.jsonl、progress.txt）保留——之后 ralph 经 stale 检查后可从它们恢复。
 
 #### ralplan 活跃
 
-`state_clear(mode="ralplan")`。`.omd/plans/ralplan-<slug>.md` 下的共识计划保留。
+`state_clear({ cwd, sessionId, mode: "ralplan" })`。`.omd/plans/ralplan-<slug>.md` 下的共识计划保留。
 
 #### deep-interview 活跃
 
-`state_clear(mode="deep-interview")`。`.omd/specs/` 下已结晶的 spec 保留；若尚未结晶 spec，state 里的访谈 transcript 随之丢弃——在报告中注明。
+`state_clear({ cwd, sessionId, mode: "deep-interview" })`。`.omd/specs/` 下已结晶的 spec 保留；若尚未结晶 spec，state 里的访谈 transcript 随之丢弃——在报告中注明。
 
 #### 无活跃模式
 
@@ -117,4 +117,6 @@ MCP server 不可用时，用普通文件工具对 `.omd/state/sessions/{session
 
 ## 状态契约
 
-cancel 是每个模式状态契约的清理终点：读状态（`state_list_active` / `state_get_status` / `state_read`）→ 执行模式特定的优雅停止（autopilot 暂停 goal、team 走关闭协议）→ 对受影响模式 `state_clear`。cancel 自身不写入新的模式状态。`.omd/` 下产物目录在所有路径中保留。
+**调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；`state_list_active`/`state_get_status` 只传 `{ cwd }`。
+
+cancel 是每个模式状态契约的清理终点：读状态（`state_list_active({ cwd })` / `state_get_status({ cwd })` / `state_read({ cwd, sessionId, mode })`）→ 执行模式特定的优雅停止（autopilot 暂停 goal、team 走关闭协议）→ 对受影响模式 `state_clear`。cancel 自身不写入新的模式状态。`.omd/` 下产物目录在所有路径中保留。

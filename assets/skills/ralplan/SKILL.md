@@ -117,9 +117,11 @@ Any ONE concrete signal passes the gate:
 
 ## State Contract (状态契约)
 
-- **Start**: `mcp__omd-state__state_write(mode="ralplan", active=true, started_at=<ISO 8601>, current_phase="consensus")` before step 1.
-- **Handoff to an approved execution mode** (team/ralph): `state_write(mode="ralplan", active=false)` — deactivate, do NOT clear; the plan path stays referenceable.
-- **True terminal exit** (rejection, non-interactive output, abort): `state_clear(mode="ralplan")`.
+**Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; mode fields nest under the `state` key.
+
+- **Start**: `mcp__omd-state__state_write({ cwd, sessionId, mode: "ralplan", state: { active: true, started_at: <ISO 8601>, current_phase: "consensus" } })` before step 1.
+- **Handoff to an approved execution mode** (team/ralph): `state_write({ cwd, sessionId, mode: "ralplan", state: { active: false } })` — deactivate, do NOT clear; the plan path stays referenceable.
+- **True terminal exit** (rejection, non-interactive output, abort): `state_clear({ cwd, sessionId, mode: "ralplan" })`.
 - **Never** clear at intermediate points (Critic approval, max-iteration presentation) — the user may still request changes.
 - The consensus plan under `.omd/plans/` is never deleted by any path.
 - **MCP server down**: same reads/writes with plain file tools against `.omd/`, announced explicitly.

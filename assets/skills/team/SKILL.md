@@ -39,13 +39,21 @@ team-plan → team-prd → team-exec → team-verify → team-fix (bounded loop)
 Context that lives only in the lead's conversation is lost on compaction or restart. Therefore **every completing stage MUST write `.omd/handoffs/<stage>.md`** (via `mcp__omd-state__handoff_write`; plain file tools if MCP is down) BEFORE the next stage spawns:
 
 ```markdown
-## Handoff: <stage> → <next-stage>
-- **Decided**: key decisions made this stage
-- **Rejected**: alternatives considered and why they were rejected
-- **Risks**: risks the next stage must know
-- **Files**: key files created or modified
-- **Remaining**: items left for the next stage
+# Handoff: <stage>
+
+## Decided
+key decisions made this stage
+## Rejected
+alternatives considered and why they were rejected
+## Risks
+risks the next stage must know
+## Files
+key files created or modified
+## Remaining
+items left for the next stage
 ```
+
+（与 `handoff_write` 工具的产出格式一致：一级标题 + 五个独立小节；五段必填，单段超 20 行会被截断并警告。）
 
 Rules:
 
@@ -94,7 +102,7 @@ blocked to the lead — never half-do it and never mark it completed.
 dsh has no timer surface, so the watchdog is event-driven — a documented, deliberate difference from OMC's 5min/10min wall-clock thresholds:
 
 - On every lead activity (a worker report arrives, a stage transitions), run `list_agents` to reconcile who is running / idle / ready.
-- A worker long silent or stuck → `send_message` asking for status; still nothing by the next lead activity → treat as dead, reassign its tasks, respawn a replacement if needed.
+- A worker long silent or stuck → `send_message` asking for status; still nothing by the next lead activity → stop it with `interrupt_agent` first, treat as dead, reassign its tasks, respawn a replacement if needed.
 - A worker that fails **2+ consecutive tasks** → stop assigning it new work.
 - Waiting means yielding and ending your turn — worker completions wake you. Never busy-poll, never sleep-loop.
 
@@ -103,7 +111,7 @@ dsh has no timer surface, so the watchdog is event-driven — a documented, deli
 1. Verify every task reached a terminal state (completed with evidence, or failed with a recorded reason).
 2. Send each active worker a shutdown instruction via `send_message`.
 3. Wait for each worker's acknowledgement (arrives as its final message / settlement notice).
-4. Only after ALL workers confirmed or were judged dead: `mcp__omd-state__state_clear(mode="team")`.
+4. Only after ALL workers confirmed or were judged dead: `mcp__omd-state__state_clear({ cwd, sessionId, mode: "team" })`.
 5. Report the summary to the user.
 
 Never clear team state before the shutdown pass completes.
@@ -127,8 +135,10 @@ Never clear team state before the shutdown pass completes.
 
 ## State Contract (状态契约)
 
-- **Start**: `state_write(mode="team", active=true, started_at=<ISO 8601>, current_phase="team-plan", prompt_echo=<compressed ≤1200 chars>, team_name=<slug>, fix_loop_count=0, max_fix_loops=3)`. State file: `.omd/state/sessions/{sessionId}/team-state.json`.
-- **Stage transitions**: `state_write` with updated `current_phase` (`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`), `fix_loop_count`, and stage history on EVERY stage change.
-- **Complete / cancel**: `state_clear(mode="team")` AFTER the shutdown pass. `.omd/handoffs/` and `.omd/plans/` are never deleted.
+**Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; mode fields nest under the `state` key.
+
+- **Start**: `state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <compressed ≤1200 chars>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`. State file: `.omd/state/sessions/{sessionId}/team-state.json`.
+- **Stage transitions**: `state_write` with updated `state.current_phase` (`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`), `fix_loop_count`, and stage history on EVERY stage change.
+- **Complete / cancel**: `state_clear({ cwd, sessionId, mode: "team" })` AFTER the shutdown pass. `.omd/handoffs/` and `.omd/plans/` are never deleted.
 - **Abnormal exit**: state + handoffs remain for resume; state untouched for >2h is stale — report, don't auto-resume.
 - **MCP server down**: same reads/writes with plain file tools against `.omd/`, announced explicitly.

@@ -114,16 +114,18 @@ Q3 "优化 p50 还是 p99？" → …
 - [ ] 共识最终输出：含 ADR 段
 - [ ] deliberate：含 pre-mortem（3 场景）+ 扩展测试计划
 - [ ] `--interactive`：执行前有显式用户批准；非交互：仅输出 `pending approval`，不自动执行
-- [ ] 每条退出路径都停用 ralplan state——执行交接用 `state_write(active=false)`，终态退出用 `state_clear`
+- [ ] 每条退出路径都停用 ralplan state——执行交接用 `state_write({ cwd, sessionId, mode: "ralplan", state: { active: false } })`，终态退出用 `state_clear({ cwd, sessionId, mode: "ralplan" })`
 </收尾清单>
 
 ## 状态契约
 
+**调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；模式字段嵌套在 `state` 键下。
+
 - Interview / Direct / Review 模式是轻量流程：**不持模式状态**——只有 `.omd/plans/` 下的计划产物。
 - Consensus 模式持有 `ralplan` 模式状态（与 `ralplan` 技能共享）：
-  - **进入**：首个 Planner 环节之前 `state_write(mode="ralplan", active=true, started_at=<ISO 8601>, current_phase="consensus")`。
-  - **交接给已批准执行**（team/ralph）：`state_write(mode="ralplan", active=false)`——置不活跃，**不** clear。
-  - **终态退出**（否决、非交互输出、出错）：`state_clear(mode="ralplan")`。
+  - **进入**：首个 Planner 环节之前 `state_write({ cwd, sessionId, mode: "ralplan", state: { active: true, started_at: <ISO 8601>, current_phase: "consensus" } })`。
+  - **交接给已批准执行**（team/ralph）：`state_write({ cwd, sessionId, mode: "ralplan", state: { active: false } })`——置不活跃，**不** clear。
+  - **终态退出**（否决、非交互输出、出错）：`state_clear({ cwd, sessionId, mode: "ralplan" })`。
   - 循环中间（Critic 批准、达到 5 轮上限）绝不 clear。
 - **异常退出**：状态与计划留盘；恢复时先读状态再继续循环。
 - **MCP server 不可用**：用普通文件工具对 `.omd/` 做同样读写，并显式说明。
