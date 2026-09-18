@@ -1,0 +1,17 @@
+{
+  "topic": "",
+  "revision": 1,
+  "createdAt": "",
+  "stories": [
+    {
+      "id": "S1",
+      "title": "",
+      "passes": false,
+      "architectVerified": false,
+      "acceptanceCriteria": [
+        { "id": "C1", "text": "可执行的验证命令 + 预期结果（禁止泛化条目）", "revision": 1 }
+      ],
+      "criterionAmendments": []
+    }
+  ]
+}
