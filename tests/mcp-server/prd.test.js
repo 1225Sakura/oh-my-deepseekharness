@@ -61,3 +61,37 @@ test('status 渲染 markdown 视图含勾选状态', async () => {
   await t.check({ cwd, topic: 'demo', storyId: 'S1', evidence: 'done' })
   expect((await t.status({ cwd, topic: 'demo' })).markdown).toContain('- [x] S1')
 })
+
+// ---------- 终审修复：authority 参数 + 台账孤儿校验 ----------
+
+test('amend 支持可选 authority 参数并写入台账；缺省为 user', async () => {
+  const { t, cwd } = await tools()
+  await t.amend({ cwd, topic: 'demo', storyId: 'S1', criterionId: 'C1', kind: 'superseded', newText: 'v2', reason: 'r', evidence: 'e', authority: 'verifier' })
+  let prd = (await t.status({ cwd, topic: 'demo' })).raw
+  expect(prd.stories[0].criterionAmendments[0].authority).toBe('verifier')
+  await t.amend({ cwd, topic: 'demo', storyId: 'S1', criterionId: 'C1', kind: 'replaced', newText: 'v3', reason: 'r2', evidence: 'e2' })
+  prd = (await t.status({ cwd, topic: 'demo' })).raw
+  expect(prd.stories[0].criterionAmendments[1].authority).toBe('user')
+})
+
+test('status 返回 warnings 字段：正常 PRD 为空数组', async () => {
+  const { t, cwd } = await tools()
+  const s = await t.status({ cwd, topic: 'demo' })
+  expect(s.warnings).toEqual([])
+})
+
+test('孤儿 amendment（引用的 criterion 已不存在）在 status 中产生 warning', async () => {
+  const { t, cwd } = await tools()
+  const { readFile, writeFile } = await import('node:fs/promises')
+  const file = join(cwd, '.omd', 'prd', 'demo.json')
+  const prd = JSON.parse(await readFile(file, 'utf8'))
+  // 手工构造矛盾台账：amendment 引用 C99，acceptanceCriteria 里没有
+  prd.stories[0].criterionAmendments.push({
+    kind: 'superseded', criterionId: 'C99', originalText: 'ghost', newText: 'x',
+    reason: 'r', evidence: 'e', authority: 'user', at: new Date().toISOString(),
+  })
+  await writeFile(file, JSON.stringify(prd, null, 2), 'utf8')
+  const s = await t.status({ cwd, topic: 'demo' })
+  expect(s.warnings.length).toBeGreaterThan(0)
+  expect(s.warnings[0]).toContain('C99')
+})
