@@ -30,15 +30,15 @@ function makeCtx() {
   }
 }
 
-test('注册三个工具且 output schema 不含可空字段陷阱', () => {
+test('注册三个工具且 output schema 不含可空字段陷阱', async () => {
   const { ctx, tools } = makeCtx()
-  registerMemoryTools(ctx, (x) => x)
+  await registerMemoryTools(ctx, (x) => x)
   expect(tools.map(t => t.name).sort()).toEqual(['omd_memory_delete', 'omd_memory_get', 'omd_memory_set'])
 })
 
 test('set/get/delete 按项目路径哈希分键', async () => {
   const { ctx, tools } = makeCtx()
-  registerMemoryTools(ctx, (x) => x)
+  await registerMemoryTools(ctx, (x) => x)
   const [set, get, del] = ['omd_memory_set', 'omd_memory_get', 'omd_memory_delete']
     .map(n => tools.find(t => t.name === n).execute)
   await set({ projectPath: 'D:\\omd', key: 'preference', value: '中文输出' })
