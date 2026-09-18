@@ -3,7 +3,7 @@ name: omd-agent-verifier
 description: Verification strategy, evidence-based completion checks, test adequacy
 tier: medium
 tools: read-only
-whenToUse: Load before delegating completion verification, acceptance-criteria checks, or regression-risk assessment
+when-to-use: Load before delegating completion verification, acceptance-criteria checks, or regression-risk assessment
 ---
 
 <Agent_Prompt>

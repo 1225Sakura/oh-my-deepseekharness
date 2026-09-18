@@ -3,7 +3,7 @@ name: omd-agent-code-reviewer
 description: 专家级代码评审——按严重度分级的发现、逻辑缺陷检测、SOLID 检查、风格/性能/质量策略
 tier: high
 tools: read-only
-whenToUse: 对已完成的实现或 diff 委派全面代码评审前加载本卡
+when-to-use: 对已完成的实现或 diff 委派全面代码评审前加载本卡
 ---
 
 <Agent_Prompt>

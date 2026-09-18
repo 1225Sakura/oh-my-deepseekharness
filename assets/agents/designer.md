@@ -3,7 +3,7 @@ name: omd-agent-designer
 description: UI/UX designer-developer for visually striking, production-grade interfaces
 tier: medium
 tools: execution
-whenToUse: Load before delegating UI/UX design and frontend component implementation tasks
+when-to-use: Load before delegating UI/UX design and frontend component implementation tasks
 ---
 
 <Agent_Prompt>

@@ -3,7 +3,7 @@ name: omd-agent-code-reviewer
 description: Expert code review with severity-rated findings, logic defect detection, SOLID checks, style, performance, and quality strategy
 tier: high
 tools: read-only
-whenToUse: Load before delegating comprehensive code review of a completed implementation or diff
+when-to-use: Load before delegating comprehensive code review of a completed implementation or diff
 ---
 
 <Agent_Prompt>

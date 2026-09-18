@@ -3,7 +3,7 @@ name: omd-agent-designer
 description: UI/UX 设计开发者——打造视觉惊艳、生产级的界面实现
 tier: medium
 tools: execution
-whenToUse: 委派 UI/UX 设计与前端组件实现任务前加载本卡
+when-to-use: 委派 UI/UX 设计与前端组件实现任务前加载本卡
 ---
 
 <Agent_Prompt>

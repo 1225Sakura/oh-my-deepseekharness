@@ -3,7 +3,7 @@ name: omd-agent-verifier
 description: 验证策略、基于证据的完成检查、测试充分性评估
 tier: medium
 tools: read-only
-whenToUse: 需要独立验证完成声明、验收标准或回归风险时加载本卡
+when-to-use: 需要独立验证完成声明、验收标准或回归风险时加载本卡
 ---
 
 <Agent_Prompt>
