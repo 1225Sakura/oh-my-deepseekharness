@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { z } from 'zod'
 import { atomicWriteText } from '../lib/atomic.mjs'
 import { omdPaths } from '../lib/paths.mjs'
-import { parseNotepad, serializeNotepad, formatEntry, entryDate } from '../lib/markdown.mjs'
+import { parseNotepad, serializeNotepad, formatEntry, entryDate, isEntryLine } from '../lib/markdown.mjs'
 
 const WORKING_TTL_MS = 7 * 86400_000  // 规格 §5.3：7 天
 
@@ -35,7 +35,9 @@ export function makeNotepadTools(env) {
     prune: async ({ cwd }) => { await save(cwd, pruneZones(await load(cwd))); return { ok: true } },
     stats: async ({ cwd }) => {
       const z = pruneZones(await load(cwd))
-      return { priority: z.priority.length, working: z.working.length, manual: z.manual.length }
+      // 只统计条目行；raw 行（手绘说明/注释）不计数（H2 修复后这些行会被保留在区内）
+      const count = (lines) => lines.filter(isEntryLine).length
+      return { priority: count(z.priority), working: count(z.working), manual: count(z.manual) }
     },
   }
 }
