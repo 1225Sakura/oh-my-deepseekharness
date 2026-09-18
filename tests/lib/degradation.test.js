@@ -81,23 +81,13 @@ test('storage unavailable：apply 不崩，协议含降级行 + 运行时降级�
   expect(reg.tools).toHaveLength(0)
 })
 
-// ⚠️ 已知真实 bug（任务 17 步骤 1 暴露，如实记录而非绕过）：
-// lib/index.js:85 用 `if (ctx.storage)`（存在性）门控 registerMemoryTools，而非 probe 结论
-// （report.storage.status === 'ok'）。storage 处于 failure 态（domain 缺失/抛错/非 domain API
-// 形态）时，lib/memory.js:29 的 ctx.storage.domain.open(MemoryDomain) 必同步抛错 → apply 崩溃，
-// 与规格 §6.1「可选服务降级不阻断插件」矛盾。修复方向：门控改为 probe 通过才注册记忆工具。
-// test.fails：当前因 bug 按预期失败；bug 修复后本测试翻红，届时去掉 .fails 转正。
-test.fails('storage failure（domain 访问抛错）：apply 不崩，协议含 failure 行', async () => {
+// storage failure 降级（bug 已修复：门控改为 probeReport.storage.status === 'ok'，
+// storage 处于 failure 态时跳过记忆工具注册，apply 降级不崩）。
+test('storage failure（domain 访问抛错）：apply 不崩，协议含 failure 行', async () => {
   const { ctx, reg } = mockCtx({ storage: { get domain() { throw new Error('backend down') } } })
   await apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
   expect(protocolText(reg)).toContain('| storage | failure |')
-})
-
-// bug 现状快照（bug 修复后应删除）：apply 当前在记忆工具注册处崩溃，而非降级
-test('storage failure 现状：apply 在 registerMemoryTools 处崩溃（已知 bug 快照）', async () => {
-  const { ctx } = mockCtx({ storage: { get domain() { throw new Error('backend down') } } })
-  await expect(apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() }))
-    .rejects.toThrow('backend down')
+  expect(reg.tools).toHaveLength(0)   // failure 态不注册记忆工具
 })
 
 test('storage timeout：探测超时归 timeout 态，apply 不崩，协议含 timeout 行', async () => {
