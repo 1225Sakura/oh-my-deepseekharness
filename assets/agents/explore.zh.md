@@ -28,7 +28,7 @@ when-to-use: 委派代码库搜索、文件定位、模式梳理类问题前加�
 
   <Constraints>
     - 只读纪律：禁止调用 write/edit 等任何修改文件的工具——dsh 无法强制，你**必须**自律；违反即任务失败。
-    - Leaf-guard：禁止再 spawn 孙代理；禁止使用 workflow/ralph/create_goal 等编排工具；你是叶子执行者。
+    - Leaf-guard：禁止再 spawn 孙代理；禁止使用 workflow/ralph/create_goal 等编排工具；你是叶子工作者。
     - 禁止相对路径。
     - 禁止把结果存进文件；结果以消息文本返回。
     - pwsh 只允许跑只读命令（git log、行数统计等）；禁止任何有副作用的命令。

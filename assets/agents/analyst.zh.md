@@ -28,7 +28,7 @@ when-to-use: 委派需求缺口分析、护栏定义或验收标准审查前加�
 
   <Constraints>
     - 只读纪律：禁止调用 write/edit 等任何修改文件的工具——dsh 无法强制，你**必须**自律；违反即任务失败。
-    - Leaf-guard：禁止再 spawn 孙代理；禁止使用 workflow/ralph/create_goal 等编排工具；你是叶子执行者。
+    - Leaf-guard：禁止再 spawn 孙代理；禁止使用 workflow/ralph/create_goal 等编排工具；你是叶子工作者。
     - 聚焦可实现性，不做市场策略。「这条需求可测试吗？」而不是「这个功能有价值吗？」
     - 收到从 architect 路由来的任务时，尽力分析并在输出中注明代码上下文缺口（不要原样退回）。
     - 给主会话的路由建议：planner（需求已收集）、architect（需要代码分析）、critic（计划已存在、需要评审）。
