@@ -6,7 +6,7 @@ import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { probeCapabilities, _resetCache } from '../../lib/probe.js'
-import { apply, Config } from '../../lib/index.js'
+import { apply, setup, Config } from '../../lib/index.js'
 
 beforeEach(() => _resetCache())
 
@@ -70,7 +70,7 @@ test('M3: 两次 apply（cordis 重放）各自重新探测，不吃陈旧缓存
 
 test('B2: defineTool 失效时 apply 不崩，memoryTools 归 failure，协议含降级行', async () => {
   const { ctx, reg } = mockFullCtx()
-  const { probeReport } = await apply(ctx, Config.parse({}), {
+  const { probeReport } = await setup(ctx, Config.parse({}), {
     assetsRoot: await makeAssets(),
     defineTool: () => { throw new Error('no dsh-tools') },
   })
@@ -83,7 +83,7 @@ test('B2: defineTool 失效时 apply 不崩，memoryTools 归 failure，协议�
 test('storage 不可用时 memoryTools 归 skipped 且不注册工具', async () => {
   const { ctx, reg } = mockFullCtx()
   delete ctx.storage
-  const { probeReport } = await apply(ctx, Config.parse({}), {
+  const { probeReport } = await setup(ctx, Config.parse({}), {
     assetsRoot: await makeAssets(), defineTool: (x) => x,
   })
   expect(probeReport.memoryTools.status).toBe('skipped')

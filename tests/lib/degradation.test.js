@@ -9,7 +9,7 @@ import { test, expect, beforeEach } from 'vitest'
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { apply, Config } from '../../lib/index.js'
+import { apply, setup, Config } from '../../lib/index.js'
 import { probeCapabilities, _resetCache } from '../../lib/probe.js'
 import { renderProtocol } from '../../lib/protocol.js'
 
@@ -134,7 +134,7 @@ test('mcpClient/hooksBridge 可用时归 ok（存在性检查，不做深度实�
 
 test('MCP server 挂载失败不阻断 apply：能力矩阵追加 mcpServer failure 行', async () => {
   const { ctx, reg } = mockCtx({ storage: undefined })
-  const { probeReport } = await apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
+  const { probeReport } = await setup(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
   expect(probeReport.mcpServer.status).toBe('failure')
   expect(protocolText(reg)).toContain('| mcpServer | failure |')
 })
