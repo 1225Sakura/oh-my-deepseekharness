@@ -153,3 +153,90 @@ test('--zh 多文件：两 cjk 列逐行 + total 累计', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('单文件 --json：JSON.parse 可解析且四字段为数值', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'wczh-'));
+  try {
+    const file = join(dir, 'a.txt');
+    await writeFile(file, 'one two three\n');
+    const r = await wczh(['--json', file]);
+    assert.equal(r.code, 0);
+    const parsed = JSON.parse(r.stdout);
+    for (const field of ['lines', 'words', 'chars', 'bytes']) {
+      assert.equal(typeof parsed[field], 'number');
+    }
+    assert.deepEqual(
+      { lines: parsed.lines, words: parsed.words, chars: parsed.chars, bytes: parsed.bytes },
+      { lines: 1, words: 3, chars: 14, bytes: 14 });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('多文件 --json：输出数组且每项含 file 字段', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'wczh-'));
+  try {
+    const a = join(dir, 'a.txt');
+    const b = join(dir, 'b.txt');
+    await writeFile(a, 'x y\n');
+    await writeFile(b, 'z\n');
+    const r = await wczh(['--json', a, b]);
+    assert.equal(r.code, 0);
+    const parsed = JSON.parse(r.stdout);
+    assert.ok(Array.isArray(parsed));
+    assert.equal(parsed.length, 3); // 两文件 + total
+    for (const item of parsed) {
+      assert.equal(typeof item.file, 'string');
+      assert.equal(typeof item.lines, 'number');
+    }
+    assert.deepEqual(parsed.map((item) => item.file), [a, b, 'total']);
+    assert.equal(parsed[2].lines, 2);
+    // total 全字段累计（含默认未选中的 chars），且与文件项字段 schema 一致
+    assert.deepEqual(
+      { lines: parsed[2].lines, words: parsed[2].words, chars: parsed[2].chars, bytes: parsed[2].bytes },
+      { lines: 2, words: 3, chars: 6, bytes: 6 });
+    for (const item of parsed) {
+      assert.deepEqual(Object.keys(item).sort(),
+        ['bytes', 'chars', 'file', 'lines', 'words']);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('列选择 flag 与 --json 组合：仍输出全字段计数', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'wczh-'));
+  try {
+    const a = join(dir, 'a.txt');
+    const b = join(dir, 'b.txt');
+    await writeFile(a, 'x y\n');
+    await writeFile(b, 'z\n');
+    const r = await wczh(['-l', '--json', a, b]);
+    assert.equal(r.code, 0);
+    const parsed = JSON.parse(r.stdout);
+    assert.ok(Array.isArray(parsed));
+    for (const item of parsed) {
+      for (const field of ['lines', 'words', 'chars', 'bytes']) {
+        assert.equal(typeof item[field], 'number');
+      }
+    }
+    assert.deepEqual(
+      { lines: parsed[2].lines, words: parsed[2].words, chars: parsed[2].chars, bytes: parsed[2].bytes },
+      { lines: 2, words: 3, chars: 6, bytes: 6 });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('默认输出回归：同文件加不加 --json 之外行为逐字节不变', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'wczh-'));
+  try {
+    const file = join(dir, 'a.txt');
+    await writeFile(file, 'one two three\n');
+    const r = await wczh([file]);
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout, `1 3 14 ${file}\n`);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

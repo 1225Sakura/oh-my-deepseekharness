@@ -11,6 +11,7 @@ export const HELP = `wczh — wc 兼容字数统计，附中文感知模式
   -c          统计字节数（UTF-8）
   -m          统计字符数（Unicode 码点）
   --zh        追加 cjk_chars 与 cjk_words 两列（每个 CJK 字计 1 词）
+  --json      以单行 JSON 输出计数（多文件时为数组，每项含 file 字段）
   --help      显示本帮助
   --version   显示版本号
 无文件参数或文件为 "-" 时读标准输入；无计数选项时默认 -l -w -c。
@@ -24,10 +25,12 @@ export function parseArgs(argv) {
   const files = [];
   let help = false;
   let version = false;
+  let json = false;
   for (const arg of argv) {
     if (arg === '--help') { help = true; continue; }
     if (arg === '--version') { version = true; continue; }
     if (arg === '--zh') { flags.zh = true; continue; }
+    if (arg === '--json') { json = true; continue; }
     if (arg === '-' || !arg.startsWith('-')) { files.push(arg); continue; }
     if (arg.startsWith('--')) return { error: `wczh: unrecognized option '${arg}'` };
     for (const ch of arg.slice(1)) {
@@ -35,7 +38,7 @@ export function parseArgs(argv) {
       flags[ch] = true;
     }
   }
-  return { flags, files, help, version };
+  return { flags, files, help, version, json };
 }
 
 export function selectedColumns(flags) {
@@ -95,7 +98,12 @@ export async function run(argv, io) {
   const sources = parsed.files.length > 0 ? parsed.files : ['-'];
 
   const rows = [];
-  const total = { lines: 0, words: 0, chars: 0, bytes: 0, cjkChars: 0, cjkWords: 0 };
+  // 按 countText 实际返回的字段集初始化 total：zh 开含两 cjk 列，关则不含，
+  // 保证 total 与文件项字段 schema 一致，且全字段（含未选中列）都被累计。
+  const countKeys = flags.zh
+    ? ['lines', 'words', 'chars', 'bytes', 'cjkChars', 'cjkWords']
+    : ['lines', 'words', 'chars', 'bytes'];
+  const total = Object.fromEntries(countKeys.map((key) => [key, 0]));
   let failed = false;
   for (const source of sources) {
     let text;
@@ -108,9 +116,19 @@ export async function run(argv, io) {
     }
     const counts = countText(text, { zh: flags.zh });
     rows.push({ counts, name: source === '-' ? null : source });
-    for (const col of cols) total[col] += counts[col];
+    for (const key of countKeys) total[key] += counts[key];
   }
   if (sources.length > 1) rows.push({ counts: total, name: 'total' });
-  if (rows.length > 0) io.stdout(formatTable(rows, cols));
+  if (parsed.json) {
+    // 单文件输出单个对象；多文件输出数组，每项含 file 字段（total 行 name 即 'total'）。
+    if (rows.length > 0) {
+      const payload = sources.length === 1
+        ? { ...rows[0].counts }
+        : rows.map((row) => ({ file: row.name, ...row.counts }));
+      io.stdout(JSON.stringify(payload) + '\n');
+    }
+  } else if (rows.length > 0) {
+    io.stdout(formatTable(rows, cols));
+  }
   return failed ? 1 : 0;
 }
