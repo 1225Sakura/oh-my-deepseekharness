@@ -4,10 +4,10 @@ import { KEYWORD_REGISTRY, RETIRED_KEYWORDS } from '../../lib/keywords.js'
 import { renderProtocol } from '../../lib/protocol.js'
 import { Config } from '../../lib/config.js'
 
-test('注册表覆盖 MVP 模式且 cancel 优先级最高、只匹配专有词', () => {
+test('注册表覆盖模式与 M2 关键词且 cancel 优先级最高、只匹配专有词', () => {
   expect(KEYWORD_REGISTRY[0].target).toBe('cancel')
   expect(KEYWORD_REGISTRY[0].triggers).toEqual(['cancelomd', 'stopomd'])
-  for (const e of KEYWORD_REGISTRY) expect(e.target).toMatch(/^(cancel|ralph|autopilot|ralplan|deep-interview|review)$/)
+  for (const e of KEYWORD_REGISTRY) expect(e.target).toMatch(/^(cancel|ralph|autopilot|ralplan|deep-interview|review|ai-slop-cleaner|wiki)$/)
 })
 
 test('退役词表包含 ultrawork 系列', () => {

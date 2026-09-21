@@ -8,7 +8,7 @@ when-to-use: 任务带视觉保真要求（布局、间距、字体排印、组�
 
 把生成的 UI 截图与参考图对比，返回驱动下一轮编辑迭代的严格 JSON 裁决。
 
-**工具映射（dsh 现实面）。** 截图来自 **browser-skill 插件**（`browser_*` 工具——用托管 Agent Window 打开页面并截图）或用户提供的文件。参考图与生成图都用 **`read_image` 工具**查看（PNG/JPEG/WebP/GIF）。OMC 的调用形态（`/oh-my-claudecode:visual-verdict`、pixelmatch 叠加工具）映射为：本技能的循环 + 用户装有图像工具时经 `pwsh` 的可选像素 diff（仅次要调试手段——内置 diff 工具属二期）。
+**工具映射（dsh 现实面）。** 截图来自 **browser-skill 插件**（`browser_*` 工具——用托管 Agent Window 打开页面并截图）或用户提供的文件；**browser-skill 未安装时（它是可选第三方插件，omd 不硬依赖）直接走用户截图/文件路径**。参考图与生成图都用 **`read_image` 工具**查看（PNG/JPEG/WebP/GIF）。OMC 的调用形态（`/oh-my-claudecode:visual-verdict`、pixelmatch 叠加工具）映射为：本技能的循环 + 用户装有图像工具时经 `pwsh` 的可选像素 diff（仅次要调试手段——内置 diff 工具属二期）。
 
 ## 输入
 

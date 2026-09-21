@@ -109,6 +109,8 @@ omd 的本质是 **编排协议（系统提示词）+ 资产目录（双语 skil
 
 ### MVP 范围（第一期）
 
+> 注：本节为 M1 历史快照——**M2 已完成全量移植（19 角色 / 40 skill）**，见 §8 里程碑。
+
 插件骨架 + 协议层 + 执行模式 3 件套 + 核心角色 **7** 个 + 核心 skill **10** 个 + 模型路由 Config + `/omd-doctor` + `/omd-cancel` + 自带 MCP server + `omd_memory_*`。
 
 **MVP 7 角色**（源码 frontmatter 已核对）：`explore`(low)、`planner`(high)、`analyst`(high)、`executor`(medium)、`verifier`(medium)、`code-reviewer`(high)、`designer`(medium)。
@@ -411,7 +413,7 @@ probe.js 探测结果渲染进协议 section（模型每轮可见能力边界）
 
 - 宿主版本 vs peerDep 范围
 - inject 服务可用性（核心服务缺失 = 启动已报错，doctor 复核）
-- **注册计数核对**：skill/命令/工具实际注册数 vs 预期数（11 skill 含 omd-doctor、7 角色、2 命令、3 omd_memory、MCP 18 工具）
+- **注册计数核对**：skill/命令/工具实际注册数 vs 预期数（40 skill 含 omd-doctor、19 角色卡、2 命令、3 omd_memory、MCP 18 工具）
 - **Config 解析验证**：tiers/roleOverrides 的模型标识符能否在宿主 LLM 服务解析
 - **MCP server spawn 冒烟**（真实握手一次；doctor 不证明端到端可用——E2E 是独立发布门禁）
 - `.omd/` 可写性 + .gitignore 状态

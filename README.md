@@ -8,7 +8,7 @@ Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepse
 - [oh-my-claudecode (OMC)](https://github.com/Yeachan-Heo/oh-my-claudecode) — Claude Code 编排层
 - [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) — Codex 编排层
 
-omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 40 个 skill（19 个为 `omd-agent-*` 委派角色卡）与 2 个斜杠命令、挂载内置 MCP server 提供状态/记忆工具。三种执行模式（autopilot / ralph / team）覆盖从一句话需求到多智能体流水线的完整光谱。
+omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 40 个 skill + 19 个 `omd-agent-*` 角色卡（共 59 个技能目录条目）与 2 个斜杠命令、挂载内置 MCP server 提供状态/记忆工具。三种执行模式（autopilot / ralph / team）覆盖从一句话需求到多智能体流水线的完整光谱。
 
 ---
 

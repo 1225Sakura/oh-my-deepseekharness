@@ -8,7 +8,7 @@ when-to-use: The task has visual fidelity requirements (layout, spacing, typogra
 
 Compare generated UI screenshots against reference images and return a strict JSON verdict that drives the next edit iteration.
 
-**Tool mapping (dsh reality).** Screenshots come from the **browser-skill plugin** (`browser_*` tools — navigate the managed Agent Window to the page and capture a screenshot) or any user-supplied file. Both reference and generated images are inspected with the **`read_image` tool** (PNG/JPEG/WebP/GIF). OMC's invocation form (`/oh-my-claudecode:visual-verdict`, pixelmatch overlay tooling) maps to: this skill's loop + optional pixel-diff helpers via `pwsh` when the user has image tooling installed (secondary debug aid only — phase-2 for a bundled diff tool).
+**Tool mapping (dsh reality).** Screenshots come from the **browser-skill plugin** (`browser_*` tools — navigate the managed Agent Window to the page and capture a screenshot) or any user-supplied file; **when browser-skill is not installed (it is an optional third-party plugin — omd has no hard dependency on it), fall back to the user-screenshot/file path**. Both reference and generated images are inspected with the **`read_image` tool** (PNG/JPEG/WebP/GIF). OMC's invocation form (`/oh-my-claudecode:visual-verdict`, pixelmatch overlay tooling) maps to: this skill's loop + optional pixel-diff helpers via `pwsh` when the user has image tooling installed (secondary debug aid only — phase-2 for a bundled diff tool).
 
 ## Inputs
 
