@@ -15,8 +15,8 @@ omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 4
 ## 安装 / Install
 
 ```bash
-# 发布后（npm 包名 oh-my-deepseekharness）
-dsh plugin --profile <name> add oh-my-deepseekharness
+# 发布后（npm 包名 @sakura12/oh-my-deepseekharness）
+dsh plugin --profile <name> add @sakura12/oh-my-deepseekharness
 
 # 本地开发（指向本仓库路径）
 dsh plugin --profile web add D:\omd

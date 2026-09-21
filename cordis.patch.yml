@@ -8,4 +8,4 @@
 # Install: `dsh plugin --profile <name> add oh-my-deepseekharness` (npm or a local path).
 - insert:
     - id: oh-my-dsh
-      name: 'oh-my-deepseekharness'
+      name: '@sakura12/oh-my-deepseekharness'
