@@ -30,7 +30,7 @@ Count what is actually visible in this session and compare with expectations:
 | Plugin tools | **3** (`omd_memory_set`, `omd_memory_get`, `omd_memory_delete`) | tool list |
 | MCP tools | **18** `mcp__omd-state__*` (state×5, notepad×6, prd×4, handoff×3) | tool list prefix count |
 
-Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / `assets/agents` shipped intact and the loader registered them with `source: 'oh-my-dsh'`; check cordis.patch.yml mount).
+Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / `assets/agents` shipped intact and the loader registered them with `source: 'oh-my-dsh'`; check cordis.patch.yml mount). **When the memory tools (omd_memory_*) are missing**: check that omd's `inject` declaration includes `storage` and that the current profile is base-backed (dsh-base mounts the dsh-storage trio — a non-base profile missing storage is expected degradation) — this is an omd-declaration/profile-layer matter, not a host defect.
 
 ### 3. Config model identifier resolvability
 
@@ -50,24 +50,21 @@ Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / 
 
 ### 6. Probe four-state overview
 
-Render the capability probe results (protocol layer probe.js) as a table — one row per probe item with its four-state result:
+Render the capability probe results (protocol-layer probe.js + apply-time additions) as a table — one row per item with its four-state result:
 
 | Probe item | ok / unavailable / failure / timeout |
 |---|---|
-| `create_goal` / `update_goal` | … |
-| `ralph` tool | … |
-| `subagent` / `workflow` | … |
-| `ask_user_question` | … |
-| `ctx.storage` backend | … |
-| `dsh-mcp-client` service | … |
-| `dsh-hooks-claude-code` bridge (phase-2 relevance only) | … |
-| host version vs peerDep | … |
+| core (four inject services) | … |
+| `ctx.storage` backend (domain-API shape check) | … |
+| hooksBridge (phase-2 prerequisite, M3 keyword hooks — unavailable is NOT a degradation) | … |
+| mcpServer (apply-time dynamic mount result: mounted/failure) | … |
+| memoryTools / commands (registration outcome) | … |
 
-Anything not `ok` → ⚠️ with the degradation path it triggers (spec §6.1 matrix). Core inject services (`tools`/`systemPrompt`) missing would have failed startup already — if reachable here, note it as ❌ "should have been a startup error".
+Note: host tools like goal/ralph/subagent/workflow/ask_user_question are **not statically probed** (spec §7-6) — treat their actual invocation results as authoritative; try calling them if verification is needed. Core services (`tools`/`skills`/`systemPrompt`/`commands`) missing would have failed startup already — if reachable here, mark ❌ "should have been a startup error". Any non-`ok` that triggers a degradation → ⚠️ with the degradation path (spec §6.1 matrix).
 
 ### 7. Profile patch layering (best effort)
 
-- If `dsh --dump-config` is runnable, verify the omd bundle patch expanded correctly (plugin instance + MCP mount present, config values landed).
+- If `dsh --profile <name> --dump-config` is runnable, verify the omd bundle patch expanded correctly (plugin instance present, config values landed; the MCP server is mounted dynamically at apply() runtime and won't appear in the patch — that's normal, item 4's smoke check is authoritative). Note: bare `dsh --dump-config` without a profile errors out (exit code 1, observed).
 - Not runnable in-session → mark "not checked (manual step)" rather than guessing.
 
 ## Output format

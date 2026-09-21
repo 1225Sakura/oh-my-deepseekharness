@@ -30,7 +30,7 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 | 插件内工具 | **3**（`omd_memory_set`、`omd_memory_get`、`omd_memory_delete`） | 工具列表 |
 | MCP 工具 | **18** 个 `mcp__omd-state__*`（state×5、notepad×6、prd×4、handoff×3） | 工具列表前缀计数 |
 
-任何缺口 → ❌ 并列出缺失名字（修复：检查 `assets/skills` / `assets/agents` 是否完整随包发布、加载器注册是否带 `source: 'oh-my-dsh'`；检查 cordis.patch.yml 挂载）。
+任何缺口 → ❌ 并列出缺失名字（修复：检查 `assets/skills` / `assets/agents` 是否完整随包发布、加载器注册是否带 `source: 'oh-my-dsh'`；检查 cordis.patch.yml 挂载）。**记忆工具（omd_memory_*）缺失时**：检查 omd 的 `inject` 声明是否含 `storage`、当前 profile 是否 base-backed（dsh-base 挂载了 dsh-storage 三件套——非 base profile 缺 storage 属预期降级）——这是 omd 声明/profile 层问题，不是宿主缺陷。
 
 ### 3. Config 各档模型标识符可解析性
 
@@ -50,24 +50,21 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 
 ### 6. probe 四态一览
 
-把能力探测结果（协议层 probe.js）渲染成表——每个探测项一行、标四态：
+把能力探测结果（协议层 probe.js + apply 追加项）渲染成表——每项一行、标四态：
 
 | 探测项 | ok / unavailable / failure / timeout |
 |---|---|
-| `create_goal` / `update_goal` | … |
-| `ralph` 工具 | … |
-| `subagent` / `workflow` | … |
-| `ask_user_question` | … |
-| `ctx.storage` 后端 | … |
-| `dsh-mcp-client` 服务 | … |
-| `dsh-hooks-claude-code` 桥（仅二期相关） | … |
-| 宿主版本 vs peerDep | … |
+| core（inject 四服务） | … |
+| `ctx.storage` 后端（domain API 形态校验） | … |
+| hooksBridge（二期前置，M3 关键词 hook——unavailable 不算降级） | … |
+| mcpServer（apply 动态挂载结果：mounted/failure） | … |
+| memoryTools / commands（注册结果） | … |
 
-任何非 `ok` → ⚠️ 并注明触发的降级路径（规格 §6.1 矩阵）。核心 inject 服务（`tools`/`systemPrompt`）缺失本应在启动就报错——若在 doctor 才发现，标 ❌"这本该是启动错误"。
+说明：goal/ralph/subagent/workflow/ask_user_question 等宿主工具**不做静态探测**（规格 §7-6），以实际调用结果为准；如需验证请直接试调。核心服务（`tools`/`skills`/`systemPrompt`/`commands`）缺失本应在启动就报错——若在 doctor 才发现，标 ❌"这本该是启动错误"。任何触发降级的非 `ok` → ⚠️ 并注明降级路径（规格 §6.1 矩阵）。
 
 ### 7. profile patch 分层正确性（尽力而为）
 
-- 能跑 `dsh --dump-config` 就验证 omd bundle patch 展开正确（插件实例 + MCP 挂载存在、config 值落地）。
+- 能跑 `dsh --profile <name> --dump-config` 就验证 omd bundle patch 展开正确（插件实例存在、config 值落地；MCP server 是 apply() 运行时动态挂载，patch 里看不到属正常——以检查项 4 的冒烟为准）。注意：裸 `dsh --dump-config` 不带 profile 会报错（退出码 1，实测）。
 - 会话内跑不了 → 标"未检查（手动步骤）"，不猜。
 
 ## 输出格式

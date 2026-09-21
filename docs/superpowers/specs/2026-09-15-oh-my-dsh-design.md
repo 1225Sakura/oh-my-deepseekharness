@@ -155,7 +155,7 @@ oh-my-dsh/                        # npm 包名 oh-my-dsh
 
 - 每次探测**有超时**（默认 3s）+ **有界输出**（≤4KB / ≤8 行）+ **模块级缓存**（同进程不重复探测）。
 - 结果四态分类：`ok / unavailable / failure / timeout`，降级矩阵按态分支。
-- 探测项：goal/ralph/subagent/workflow/ask_user_question 工具可用性、`ctx.storage` 后端、宿主版本 vs peerDep、`dsh-mcp-client` 服务、`dsh-hooks-claude-code` 桥可用性（为二期关键词 hook 探路）。
+- 探测项：`ctx.storage` 后端（domain API 形态校验）、宿主版本 vs peerDep、`dsh-hooks-claude-code` 桥可用性（M3 二期前置，不算降级）。goal/ralph/subagent/workflow/ask_user_question 等宿主工具不做静态探测（§7-6 决策），以实际调用为准；MCP 真实信号是 apply 动态挂载结果（mcpServer），`ctx.mcpClient` 服务不存在、不探测（M1.1 删除固有假阴性行）。
 - 双输出：渲染进协议 section（模型可见）+ `/omd-doctor`（人可见）。不做成模型工具。
 
 ### 开发规范（来自本机踩坑记录，硬性要求）
@@ -397,7 +397,7 @@ probe.js 探测结果渲染进协议 section（模型每轮可见能力边界）
 | `ralph` | → goal 驱动循环 → 纯 PRD + 人工推进 |
 | `subagent`/`workflow` | team → 主会话顺序执行；模型路由整体失效，协议标注"单代理模式" |
 | `ask_user_question` | 澄清提问 → 纯文本提问 |
-| `ctx.storage` 后端异常 | 项目记忆 → `.omd/memory.json`（丢失 profile 级共享，协议注明） |
+| `ctx.storage` 不可用（非 base profile；base 已由 patch 实证保证存在） | 项目记忆 → `.omd/memory.json`（丢失 profile 级共享，协议注明）；M1.1 起 storage 在 inject 中声明，缺失属预期降级而非误判 |
 | MCP server 启动失败 | state/notepad/prd/handoff 缺失 → 协议教模型用普通文件工具直接操作 `.omd/` |
 | `dsh-hooks-claude-code` 桥不可用 | 仅影响二期关键词 hook；MVP 无感 |
 | 宿主版本低于 peerDep 下限 | warning 日志 + doctor 标红，不拒绝加载（尽力而为） |
@@ -445,7 +445,7 @@ probe.js 探测结果渲染进协议 section（模型每轮可见能力边界）
 4. ✅ **schemastery**（v3.18.2 源码核验）：`z.const/z.natural/z.dict/z.object/z.union/.default/.description` 全部存在；**schema 本身可调用，无 `.parse`**（已加别名）；校验失败抛 `Schema.ValidationError`。
 5. ⏳ `dsh-subagent` 服务 spawn API（二期 `omd_delegate` 前置，M1 未触及）。
 6. ✅（决策变更）**工具枚举**：不做宿主工具注册表探测——inject 保证的服务直接 ok，可选能力用存在性检查 + Config 覆盖兜底。
-7. ✅ **ctx.storage 真实 API**（三包源码核验）：`ctx.storage.domain.open(defineDomain({name, version, tables}))` → `domain.table(name)` → KvTable（`get` 同步、`put/delete` 异步）；**域名/表名正则 `^[a-z][a-z0-9_]*$`（连字符非法）**——omd 用 `oh_my_dsh` 域名 + `memory` 表；Domain 句柄经 `ctx.effect` 注册 close。
+7. ✅ **ctx.storage 真实 API**（三包源码核验）：`ctx.storage.domain.open(defineDomain({name, version, tables}))` → `domain.table(name)` → KvTable（`get` 同步、`put/delete` 异步）；**域名/表名正则 `^[a-z][a-z0-9_]*$`（连字符非法）**——omd 用 `oh_my_dsh` 域名 + `memory` 表；Domain 句柄经 `ctx.effect` 注册 close。**M1.1 补充实测（2026-09-20）**：storage **必须进 inject**——cordis 对未 inject 服务的访问抛错（B1），probe tryGet 会捕获并误判 unavailable，导致 omd_memory_* 永不注册（doctor 实跑暴露，原报告误诊为宿主问题）；dsh-base 的 cordis.patch.yml 挂载了 dsh-storage/dsh-storage-json/dsh-storage-domain 三件套（patch 实证），任何 base-backed profile 都保证 storage 存在；probe 对 storage 只做形态校验（`domain.open` 存在性），**不做深度 open**——避免真实打开/创建 storages 文件的副作用。
 8. ⏳ skill 同名冲突优先级（E2E 观察项）。
 9. ✅ **systemPrompt**：`section({name, order, text})` 与 `context({name, order, text})` 均存在，**order 强制有限数**（omd 用 100/130）；text 函数**同步求值不 await**（实证）；`{{var}}` 严格插值（protocol 输出须避免 `{{` 序列）。
 10. ✅（存在性）`dsh-hooks-claude-code` 是宿主原生包，支持 UserPromptSubmit 等 7 事件 + `additionalContext` 注入；默认未挂载于 profile。二期关键词 hook 走此桥。
