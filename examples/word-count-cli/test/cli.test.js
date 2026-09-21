@@ -240,3 +240,51 @@ test('默认输出回归：同文件加不加 --json 之外行为逐字节不变
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('单文件 --csv：header 行 + 数据行，数值正确', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'wczh-'));
+  try {
+    const file = join(dir, 'a.txt');
+    await writeFile(file, 'one two three\n');
+    const r = await wczh(['--csv', file]);
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout,
+      `file,lines,words,chars,bytes\n${file},1,3,14,14\n`);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('多文件 --csv：逐文件行 + total 全字段累计正确', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'wczh-'));
+  try {
+    const a = join(dir, 'a.txt');
+    const b = join(dir, 'b.txt');
+    await writeFile(a, 'x y\n');
+    await writeFile(b, 'z\n');
+    const r = await wczh(['--csv', a, b]);
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout,
+      'file,lines,words,chars,bytes\n' +
+      `${a},1,2,4,4\n` +
+      `${b},1,1,2,2\n` +
+      'total,2,3,6,6\n');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('默认输出回归（--csv 加入后）：无 --csv 时文本输出逐字节不变', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'wczh-'));
+  try {
+    const a = join(dir, 'a.txt');
+    const b = join(dir, 'b.txt');
+    await writeFile(a, 'x y\n');
+    await writeFile(b, 'z\n');
+    const r = await wczh(['-l', a, b]);
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout, `1 ${a}\n1 ${b}\n2 total\n`);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

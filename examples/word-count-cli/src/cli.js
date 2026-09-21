@@ -12,6 +12,7 @@ export const HELP = `wczh — wc 兼容字数统计，附中文感知模式
   -m          统计字符数（Unicode 码点）
   --zh        追加 cjk_chars 与 cjk_words 两列（每个 CJK 字计 1 词）
   --json      以单行 JSON 输出计数（多文件时为数组，每项含 file 字段）
+  --csv       以 CSV 输出计数（header 行 + 数据行，多文件含 total 行）
   --help      显示本帮助
   --version   显示版本号
 无文件参数或文件为 "-" 时读标准输入；无计数选项时默认 -l -w -c。
@@ -26,11 +27,13 @@ export function parseArgs(argv) {
   let help = false;
   let version = false;
   let json = false;
+  let csv = false;
   for (const arg of argv) {
     if (arg === '--help') { help = true; continue; }
     if (arg === '--version') { version = true; continue; }
     if (arg === '--zh') { flags.zh = true; continue; }
     if (arg === '--json') { json = true; continue; }
+    if (arg === '--csv') { csv = true; continue; }
     if (arg === '-' || !arg.startsWith('-')) { files.push(arg); continue; }
     if (arg.startsWith('--')) return { error: `wczh: unrecognized option '${arg}'` };
     for (const ch of arg.slice(1)) {
@@ -38,7 +41,7 @@ export function parseArgs(argv) {
       flags[ch] = true;
     }
   }
-  return { flags, files, help, version, json };
+  return { flags, files, help, version, json, csv };
 }
 
 export function selectedColumns(flags) {
@@ -56,6 +59,14 @@ export function formatTable(rows, cols) {
     return row.name === null ? nums : `${nums} ${row.name}`;
   });
   return lines.length === 0 ? '' : lines.join('\n') + '\n';
+}
+
+// CSV 输出：列与 countKeys 全字段集一致（file 打头），与 --json 同样不受列选择 flag 影响。
+export function formatCsv(rows, countKeys) {
+  const header = ['file', ...countKeys].join(',');
+  const lines = rows.map((row) =>
+    [row.name ?? '', ...countKeys.map((key) => row.counts[key])].join(','));
+  return [header, ...lines].join('\n') + '\n';
 }
 
 // wc 风格的错误文案：按 errno 映射，不把所有读取失败都叫 "No such file or directory"。
@@ -126,6 +137,11 @@ export async function run(argv, io) {
         ? { ...rows[0].counts }
         : rows.map((row) => ({ file: row.name, ...row.counts }));
       io.stdout(JSON.stringify(payload) + '\n');
+    }
+  } else if (parsed.csv) {
+    // header + 每行一条记录；total 行复用 countKeys 全字段累计结果（同 --json 模式）。
+    if (rows.length > 0) {
+      io.stdout(formatCsv(rows, countKeys));
     }
   } else if (rows.length > 0) {
     io.stdout(formatTable(rows, cols));
