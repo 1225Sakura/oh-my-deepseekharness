@@ -52,13 +52,21 @@ Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / 
 
 Render the capability probe results (protocol-layer probe.js + apply-time additions) as a table — one row per item with its four-state result:
 
-| Probe item | ok / unavailable / failure / timeout |
-|---|---|
-| core (four inject services) | … |
-| `ctx.storage` backend (domain-API shape check) | … |
-| hooksBridge (phase-2 prerequisite, M3 keyword hooks — unavailable is NOT a degradation) | … |
-| mcpServer (apply-time dynamic mount result: mounted/failure) | … |
-| memoryTools / commands (registration outcome) | … |
+| Probe item | ok / unavailable / failure / timeout | Detail |
+|---|---|---|
+| core (four inject services) | … | … |
+| `ctx.storage` backend (domain-API shape check) | … | … |
+| hooksBridge (phase-2 prerequisite, M3 keyword hooks — unavailable is NOT a degradation) | … | … |
+| mcpServer (apply-time dynamic mount result: mounted/failure) | … | … |
+| memoryTools / commands (registration outcome) | … | see "memoryTools render gate" below — **registration alone is NOT sufficient** |
+
+#### memoryTools render gate (registration ≠ callable)
+
+`memoryTools:ok` only proves `defineTool({...})` returned a tool whose `output` passed the registry's `typeof output.render === 'function'` gate. The host `defineTool` (lib/types/schema.js, near the userRender closure) actually captures `options.output.render` into a closure named `userRender`; registration sees the outer wrapper function (typeof passes) but at runtime `tool.output.render(args, value)` calls `userRender(args, value)`. When `options.output.render` was undefined, the captured `userRender` is undefined → first invoke throws `output.render failed: userRender is not a function`. To verify the gate is real, each of `omd_memory_set`, `omd_memory_get`, `omd_memory_delete` must additionally show a callable `render present & callable` check (e.g. `tool.output.render(sampleArgs, sampleValue)` returns a non-empty ContentBlock without throwing). Failure here → ❌ with the specific tool name(s); fix per "Host render contract" below.
+
+#### Host render contract (≤120 words)
+
+The host `defineTool(options)` reads `options.output.render` once at registration, captures it into the closure as `userRender`, and replaces `tool.output.render(args, value)` with a wrapper calling `userRender(args, value)`. The capture happens before the registry's `typeof output.render === 'function'` gate runs, so an undefined render slips past registration (the wrapper itself is a function). The contract for plugin authors: every tool's `output` MUST carry `render: (args, value) => ContentBlock[]` returning at least one `{ type: 'text', text: <string> }` block; never share one `output` object across multiple `defineTool` calls (factory pattern), otherwise all three tools capture the same broken closure. Fix: `output: { schema: <json-schema>, render: (args, value) => [{ type: 'text', text: '...' }] }`.
 
 Note: host tools like goal/ralph/subagent/workflow/ask_user_question are **not statically probed** (spec §7-6) — treat their actual invocation results as authoritative; try calling them if verification is needed. Core services (`tools`/`skills`/`systemPrompt`/`commands`) missing would have failed startup already — if reachable here, mark ❌ "should have been a startup error". Any non-`ok` that triggers a degradation → ⚠️ with the degradation path (spec §6.1 matrix).
 

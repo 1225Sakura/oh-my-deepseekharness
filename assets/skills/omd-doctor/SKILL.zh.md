@@ -52,13 +52,21 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 
 把能力探测结果（协议层 probe.js + apply 追加项）渲染成表——每项一行、标四态：
 
-| 探测项 | ok / unavailable / failure / timeout |
-|---|---|
-| core（inject 四服务） | … |
-| `ctx.storage` 后端（domain API 形态校验） | … |
-| hooksBridge（二期前置，M3 关键词 hook——unavailable 不算降级） | … |
-| mcpServer（apply 动态挂载结果：mounted/failure） | … |
-| memoryTools / commands（注册结果） | … |
+| 探测项 | ok / unavailable / failure / timeout | 细节 |
+|---|---|---|
+| core（inject 四服务） | … | … |
+| `ctx.storage` 后端（domain API 形态校验） | … | … |
+| hooksBridge（二期前置，M3 关键词 hook——unavailable 不算降级） | … | … |
+| mcpServer（apply 动态挂载结果：mounted/failure） | … | … |
+| memoryTools / commands（注册结果） | … | 见下方"memoryTools render 闸"——**注册成功不等于可调用** |
+
+#### memoryTools render 闸（注册 ≠ 可调用）
+
+`memoryTools:ok` 只说明 `defineTool({...})` 返回的工具其 `output` 通过了注册中心 `typeof output.render === 'function'` 的闸。但宿主 `defineTool`（lib/types/schema.js 的 userRender 闭包附近）实际把 `options.output.render` 捕获进名为 `userRender` 的闭包；注册时看见的是外层包装函数（typeof 通过），运行时 `tool.output.render(args, value)` 调的是 `userRender(args, value)`。当 `options.output.render` 是 undefined 时，捕获到的 `userRender` 就是 undefined → 第一次调用抛 `output.render failed: userRender is not a function`。要确认闸真的通过，`omd_memory_set`、`omd_memory_get`、`omd_memory_delete` 三个工具**每个**都得额外做一次"render present & callable"校验（如 `tool.output.render(sampleArgs, sampleValue)` 返回非空 ContentBlock 且不抛错）。这一步失败 → ❌ 并点出具体哪个工具名；修法见下方"宿主 render 契约"。
+
+#### 宿主 render 契约（≤120 词）
+
+宿主 `defineTool(options)` 注册时读一次 `options.output.render`、把它捕获进闭包 `userRender`，再把 `tool.output.render(args, value)` 替换成调 `userRender(args, value)` 的包装函数。捕获动作发生在注册中心 `typeof output.render === 'function'` 闸**之前**，于是 undefined 的 render 反而躲过注册（包装本身是个函数）。插件作者契约：每个工具的 `output` 必须带 `render: (args, value) => ContentBlock[]`，至少返回一个 `{ type: 'text', text: <string> }` 块；多个 `defineTool` 之间**不要**共享同一个 `output` 对象（用工厂），否则三工具都会捕获同一份坏闭包。修法：`output: { schema: <json-schema>, render: (args, value) => [{ type: 'text', text: '...' }] }`。
 
 说明：goal/ralph/subagent/workflow/ask_user_question 等宿主工具**不做静态探测**（规格 §7-6），以实际调用结果为准；如需验证请直接试调。核心服务（`tools`/`skills`/`systemPrompt`/`commands`）缺失本应在启动就报错——若在 doctor 才发现，标 ❌"这本该是启动错误"。任何触发降级的非 `ok` → ⚠️ 并注明降级路径（规格 §6.1 矩阵）。
 
