@@ -18,7 +18,7 @@ when-to-use: A design question stalls in prose (rephrased repeatedly, still unse
 Do **not** loft when:
 
 - the question is answerable from repo evidence or by asking the captain (that is interviewing, not lofting)
-- the destination itself is unclear (that is fog — omd has no navigator skill; converge the destination with `deep-interview` or `plan` first)
+- the destination itself is unclear (that is fog — hand it to `ask-navigator` to chart a decision-ticket map, or converge the destination with `deep-interview`/`plan` first)
 - the answer already lives in an ADR (do not re-loft settled decisions)
 - the "design question" is actually a bug (that is the debugger's jurisdiction — `omd-agent-debugger`)
 

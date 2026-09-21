@@ -38,7 +38,7 @@ Launch 是**omd 既有生命周期之上的无状态组合**——它不拥有�
 - omd `team` 技能拥有队员协调、交接与取消；Launch 绝不在 team 契约之外改动 team 状态。
 - canonical `plan` → `execute` → `review` → `verify` 各面拥有自己的既有生命周期行为。Launch  authored 的工件限于 `.omd/specs/<feature-slug>/`、`CONTEXT.md`、`docs/adr/`、`docs/business/`——外加 C5 批准之后、Phase 5 槽位表点名的沉淀槽。
 - Launch 没有自动续跑。中断后重读工件与当前 team 状态，但只能经一次新的显式 Launch 调用、且上一轮 team 跑程已到达关闭边界之后才继续。绝不推断人类批准、绝不重放进行中的 worker。
-- 起雾的工程不归 launch 管：雾闸拦停时，本次运行从未开始——无工件、无半成品状态。omd 没有 navigator 技能；用 `deep-interview` 或 `plan` 收敛目的地，带着磨锐的使命简报回来。
+- 起雾的工程不归 launch 管：雾闸拦停时，本次运行从未开始——无工件、无半成品状态。雾气场景交给 `ask-navigator` 绘图，或用 `deep-interview`/`plan` 收敛目的地，带着磨锐的使命简报回来。
 - Launch 不增加自己的批准回执、修订计数器、重放日志、取消路径、回滚机制或清理生命周期。
 
 本技能里任何持久性声明都是关于磁盘文件的声明，不是关于隐藏运行时的。`.omd/specs/` 存 launch 产出的规格/ticket；当团队想把 paper trail 进 git 时，把它当可提交工件面（与 `.omd/skills/` 并列）对待——`.omd/` 其余部分仍是被忽略的运行状态。
