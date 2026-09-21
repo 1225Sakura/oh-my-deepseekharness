@@ -87,7 +87,25 @@ omd 的本质是 **编排协议（系统提示词）+ 资产目录（双语 skil
 | ralph gitGrep 检查与 branchName 信号 | observableChecks 的第三种类型 + stale 分支指针 | **主动舍弃** | MVP 只保留 fileExists/fileContains |
 | ralplan 独立技能 | OMC v5 已把 ralplan 并入 /plan（Deprecation Notice） | **omd 刻意保留独立** | 与关键词注册表一致；plan 的 consensus 段指向 ralplan 文档避免重复 |
 | executor 的 sub-spawn 权限 | OMC 允许 executor 自行 spawn ≤3 个 explore/architect 交叉验证 | **leaf-guard 收编**：改为"报告中请求主会话路由" | omd 叶子纪律优先于自主性 |
-| explore 的外部检索路由 | OMC 路由给 document-specialist 角色 | **降级为 web_search** | document-specialist 不在 MVP 7 角色内，M2 补齐后回改 |
+| explore 的外部检索路由 | OMC 路由给 document-specialist 角色 | **降级为 web_search** | document-specialist 不在 MVP 7 角色内（M2 已补齐该角色） |
+
+### M2 全量移植期新增分歧（各批次实测决策）
+
+| 分歧点 | OMC 做法 | omd 决策 | 理由 |
+|---|---|---|---|
+| ask / ask-navigator 的外部顾问 | 调 codex/gemini 等外部 CLI | **spawn 独立 subagent 取第二意见**（换角色卡换视角） | 零外部依赖约束 |
+| autoresearch 循环载体 | OMC 自运转 + cron | **dsh goal 机制**（max_goal_rounds 熔断 + 状态时间戳复核墙钟）；cron 列二期；--autoresearch 访谈标志未移植 | 宿主无 cron 原语 |
+| graph | 独立进程运行时（OCC journal/sealed descriptor） | **模型驱动执行**（command→pwsh、审批→ask_user_question、journal 落盘 .omd/graph-runs/），硬保证降级为约定；运行时列二期 | MVP 边界 |
+| hud | Claude statusLine 脚本 | **M2 退化为状态可见性顾问**（/omd-doctor + state_get_status）；GUI 面板列 M3 | dsh 无 statusLine 面 |
+| configure-notifications | 会话 hook 通知体系 | **不移植**（dsh 无会话事件通知面）；skill 为替代路径文档（看守脚本/自建 MCP/webhook） | 宿主无对应面 |
+| omc-doctor / omc-setup | OMC 安装诊断 / CLI setup | omc-doctor 保留为 **deprecated 迁移体检**（OMC→omd 迁移用户）；omc-setup 改名 **omd-setup**（插件安装/配置指引） | 诊断职责归 omd-doctor |
+| wiki | wiki_* 7 个 MCP 工具 | **方法论先行**（纯文件：.omd/wiki/ 布局 + grep 综合）；MCP 后端列二期 | YAGNI |
+| visual-verdict | OMC 截图/pixel-diff 工具链 | browser_* 插件截图 + read_image 裁决；pixel-diff 捆绑工具列二期 | dsh 现实面 |
+| project-session-manager | tmux/teleport/sessions.json | 保留「一任务=一 worktree=一会话」方法论 + per-worktree .omd-psm-session.json；tmux/teleport 列二期 | 宿主差异 |
+| self-improve | resolve-paths.mjs import OMC 内部模块 | **内联重写**为自包含解析；`OMC_SESSION_ID`→`OMD_SESSION_ID`；bash/python 脚本在 Windows 需 git-bash/WSL（已注明回退） | omd 无宿主仓库内部模块 |
+| skillify 习得技能目录 | `.omc/skills/`（可提交例外） | **`.dsh/skills/` 或 `~/.dsh/skills/`**（dsh 原生技能扫描根） | dsh 技能系统语义 |
+| `.omd/skills/` 与 `.omd/specs/` | OMC 惯例 `.omc/skills/**` 可提交 | drydock/launch 把这两个目录当**可提交工件面**，`.omd/` 其余保持忽略 | 与 OMC 惯例对齐 |
+| trace/debug 的 trace_* 工具 | trace_timeline/trace_summary MCP | 二期；等价物为 .omd/ 状态文件 + git log + pwsh 复现 | MVP 边界 |
 
 ### MVP 范围（第一期）
 

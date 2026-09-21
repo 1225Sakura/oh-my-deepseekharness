@@ -24,8 +24,8 @@ Count what is actually visible in this session and compare with expectations:
 
 | Item | Expected | How to count |
 |---|---|---|
-| Skills | **11** (autopilot, ralph, team, deep-interview, ralplan, plan, execute, verify, review, cancel, omd-doctor) | session skill catalog |
-| Role cards | **7** `omd-agent-*` (explore, planner, analyst, executor, verifier, code-reviewer, designer) | skill catalog entries prefixed `omd-agent-` |
+| Skills | **40** (full roster in `tests/assets/skills.test.js` EXPECTED) | session skill catalog |
+| Role cards | **19** `omd-agent-*` (roster in `tests/assets/agents.test.js` TIERS) | skill catalog entries prefixed `omd-agent-` |
 | Commands | **2** (`/omd-doctor`, `/omd-cancel`) | command list |
 | Plugin tools | **3** (`omd_memory_set`, `omd_memory_get`, `omd_memory_delete`) | tool list |
 | MCP tools | **18** `mcp__omd-state__*` (state×5, notepad×6, prd×4, handoff×3) | tool list prefix count |
@@ -80,7 +80,7 @@ omd doctor — <date>
 | # | Check | Status | Detail |
 |---|-------|--------|--------|
 | 1 | Host version vs peerDep (0.1.5-rc.1) | ✅/⚠️/❌ | host=<v> |
-| 2 | Registration counts (11/7/2/3/18) | … | missing: … |
+| 2 | Registration counts (40/19/2/3/18) | … | missing: … |
 | 3 | Config model identifiers | … | … |
 | 4 | MCP smoke (state_get_status) | … | … |
 | 5 | .omd/ writable + .gitignore | … | … |

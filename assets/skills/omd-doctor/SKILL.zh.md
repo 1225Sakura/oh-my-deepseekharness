@@ -24,8 +24,8 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 
 | 项 | 预期 | 怎么数 |
 |---|---|---|
-| skill | **11**（autopilot、ralph、team、deep-interview、ralplan、plan、execute、verify、review、cancel、omd-doctor） | 会话技能目录 |
-| 角色卡 | **7** 个 `omd-agent-*`（explore、planner、analyst、executor、verifier、code-reviewer、designer） | 技能目录中 `omd-agent-` 前缀条目 |
+| skill | **40**（完整名册见 `tests/assets/skills.test.js` 的 EXPECTED） | 会话技能目录 |
+| 角色卡 | **19** 个 `omd-agent-*`（名册见 `tests/assets/agents.test.js` 的 TIERS） | 技能目录中 `omd-agent-` 前缀条目 |
 | 命令 | **2**（`/omd-doctor`、`/omd-cancel`） | 命令列表 |
 | 插件内工具 | **3**（`omd_memory_set`、`omd_memory_get`、`omd_memory_delete`） | 工具列表 |
 | MCP 工具 | **18** 个 `mcp__omd-state__*`（state×5、notepad×6、prd×4、handoff×3） | 工具列表前缀计数 |
@@ -80,7 +80,7 @@ omd doctor — <日期>
 | # | 检查项 | 状态 | 细节 |
 |---|-------|------|------|
 | 1 | 宿主版本 vs peerDep（0.1.5-rc.1） | ✅/⚠️/❌ | host=<v> |
-| 2 | 注册计数（11/7/2/3/18） | … | 缺失：… |
+| 2 | 注册计数（40/19/2/3/18） | … | 缺失：… |
 | 3 | Config 模型标识符 | … | … |
 | 4 | MCP 冒烟（state_get_status） | … | … |
 | 5 | .omd/ 可写 + .gitignore | … | … |

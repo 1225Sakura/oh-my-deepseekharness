@@ -5,9 +5,21 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const SKILLS = join(dirname(fileURLToPath(import.meta.url)), '../../assets/skills')
-const EXPECTED = ['autopilot', 'ralph', 'team', 'deep-interview', 'ralplan', 'plan', 'execute', 'verify', 'review', 'cancel', 'omd-doctor']
+// 40 skill 全量名册：M1 11 + M2 S1 8 + S2 7 + S3 7 + S4 7
+const EXPECTED = [
+  // M1：3 模式 + 7 辅助 + omd-doctor（原创）
+  'autopilot', 'ralph', 'team', 'deep-interview', 'ralplan', 'plan', 'execute', 'verify', 'review', 'cancel', 'omd-doctor',
+  // M2 S1 分析研究类
+  'debug', 'research', 'autoresearch', 'external-context', 'trace', 'graph', 'ask', 'ask-navigator',
+  // M2 S2 质量与记忆类
+  'ai-slop-cleaner', 'minimal-code-discipline', 'agent-doc-discipline', 'self-improve', 'skillify', 'skill', 'remember',
+  // M2 S3 基础设施类
+  'deepinit', 'drydock', 'harbor', 'loft', 'launch', 'hud', 'configure-notifications',
+  // M2 S4 元与发布类（omc-setup 已改名 omd-setup；omc-doctor 保留为 deprecated 迁移体检）
+  'omc-doctor', 'omd-setup', 'project-session-manager', 'release', 'ultragoal', 'visual-verdict', 'wiki',
+]
 
-test('11 个 skill 目录 × 双语文件齐全', async () => {
+test('40 个 skill 目录 × 双语文件齐全', async () => {
   const dirs = await readdir(SKILLS)
   for (const s of EXPECTED) {
     expect(dirs).toContain(s)
@@ -15,6 +27,8 @@ test('11 个 skill 目录 × 双语文件齐全', async () => {
     expect(files).toContain('SKILL.md')
     expect(files).toContain('SKILL.zh.md')
   }
+  // 名册外不得有多余 skill 目录（防漂移）
+  for (const d of dirs) expect(EXPECTED).toContain(d)
 })
 
 test('每个 frontmatter 有 name 和 description', async () => {

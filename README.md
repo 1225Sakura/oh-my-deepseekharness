@@ -8,7 +8,7 @@ Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepse
 - [oh-my-claudecode (OMC)](https://github.com/Yeachan-Heo/oh-my-claudecode) — Claude Code 编排层
 - [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) — Codex 编排层
 
-omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 11 个 skill 与 2 个斜杠命令、挂载内置 MCP server 提供状态/记忆工具。三种执行模式（autopilot / ralph / team）覆盖从一句话需求到多智能体流水线的完整光谱。
+omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 40 个 skill（19 个为 `omd-agent-*` 委派角色卡）与 2 个斜杠命令、挂载内置 MCP server 提供状态/记忆工具。三种执行模式（autopilot / ralph / team）覆盖从一句话需求到多智能体流水线的完整光谱。
 
 ---
 
@@ -53,9 +53,9 @@ dsh plugin --profile web add D:\omd
 
 | 维度 | 内容 |
 |---|---|
-| 执行模式 | **3** 种：autopilot（goal 循环）/ ralph（PRD 迭代）/ team（AgentTeams 流水线），模式互斥 + 触发守卫防误触发 |
-| 角色 | **7** 个委派角色：`omd-agent-explore` / `planner` / `analyst` / `executor` / `verifier` / `code-reviewer` / `designer`，各带档位（low/medium/high）与职责资产 |
-| Skills | **11** 个：autopilot、ralph、team、ralplan、plan、execute、verify、review、deep-interview、cancel、omd-doctor（中英双语资产） |
+| 执行模式 | **3** 种：autopilot（goal 循环）/ ralph（PRD 迭代）/ team（五阶段流水线），模式互斥 + 触发守卫防误触发 |
+| 角色 | **19** 个委派角色卡（`omd-agent-*`：explore / planner / analyst / executor / verifier / code-reviewer / designer / architect / debugger / tracer / security-reviewer / test-engineer / qa-tester / scientist / critic / writer / git-master / document-specialist / code-simplifier），各带档位（low 2 / medium 10 / high 7）与职责资产 |
+| Skills | **40** 个（中英双语资产）：3 执行模式 + 规划（ralplan/plan/deep-interview/ask-navigator）+ 质量（execute/verify/review/ai-slop-cleaner/minimal-code-discipline/agent-doc-discipline）+ 研究（research/autoresearch/external-context/trace/debug/graph）+ 记忆（remember/skillify/skill/self-improve/wiki）+ 基础设施与元（deepinit/drydock/harbor/loft/launch/hud/configure-notifications/omd-setup/project-session-manager/release/ultragoal/visual-verdict/ask/cancel/omd-doctor/omc-doctor） |
 | MCP 工具 | **18** 个（内置 `omd-state` MCP server）：`state_*`（模式状态，5）/ `notepad_*`（三区记事本，6）/ `prd_*`（需求台账，4）/ `handoff_*`（阶段交接，3） |
 | 跨会话记忆 | `omd_memory_set` / `omd_memory_get` / `omd_memory_delete`（宿主 storage domain 承载，按项目哈希键隔离） |
 
@@ -130,7 +130,7 @@ oh-my-dsh:
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（75 tests）
+npm test            # vitest 全量（96 tests）
 npm run test:watch
 ```
 
