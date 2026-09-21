@@ -65,6 +65,12 @@ Follow the team shutdown protocol (spec §3.4):
 
 `state_clear({ cwd, sessionId, mode: "ralplan" })`. The consensus plan under `.omd/plans/ralplan-<slug>.md` is preserved.
 
+#### autoresearch active
+
+1. If the loop is goal-backed: `get_goal` for goal_id/revision → `update_goal(action="pause")`.
+2. `state_clear({ cwd, sessionId, mode: "autoresearch" })`.
+3. Audit artifacts under `.omd/autoresearch/` and `.omd/logs/autoresearch/` are preserved — resumable later after stale-check.
+
 #### deep-interview active
 
 `state_clear({ cwd, sessionId, mode: "deep-interview" })`. Any spec under `.omd/specs/` is preserved; if no spec was crystallized yet, the interview transcript in state is discarded — note this in the report.

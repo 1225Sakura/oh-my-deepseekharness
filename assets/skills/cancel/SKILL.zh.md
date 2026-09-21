@@ -65,6 +65,12 @@ when-to-use: 由 `cancelomd` / `stopomd` 关键词或 `/omd-cancel` 命令触发
 
 `state_clear({ cwd, sessionId, mode: "ralplan" })`。`.omd/plans/ralplan-<slug>.md` 下的共识计划保留。
 
+#### autoresearch 活跃
+
+1. 若循环由 goal 承载：`get_goal` 取 goal_id/revision → `update_goal(action="pause")`。
+2. `state_clear({ cwd, sessionId, mode: "autoresearch" })`。
+3. `.omd/autoresearch/` 与 `.omd/logs/autoresearch/` 的审计产物保留——之后可经 stale 检查恢复。
+
 #### deep-interview 活跃
 
 `state_clear({ cwd, sessionId, mode: "deep-interview" })`。`.omd/specs/` 下已结晶的 spec 保留；若尚未结晶 spec，state 里的访谈 transcript 随之丢弃——在报告中注明。

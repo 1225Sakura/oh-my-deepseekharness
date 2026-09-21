@@ -8,11 +8,7 @@ when-to-use: An effort is wrapped in fog — the destination cannot be stated in
 
 Ask-navigator is the **navigator**: it takes an effort wrapped in fog — the way from here to the destination isn't visible yet — and charts it as a **map of decision tickets**, then works the frontier one ticket per session until the route is clear. It produces **decisions, never deliverables**: when the way is clear it hands off, it doesn't build.
 
-> **Port note.** OMC's original belongs to the Shipyard family (`drydock`, `launch`, `loft`, `harbor`), which is **not ported to omd (phase-2 or later)**. Substitutions used here, stated honestly:
-> - `drydock --check` yard audit → skipped; if the yard is unlaid (no `CONTEXT.md`, no `docs/adr/`) the navigator notes it once and proceeds.
-> - `loft` ticket type → the navigator spawns `omd-agent-executor` to build the throwaway artifact that settles the question.
-> - `launch` handoff → omd has no launch; the mission brief is handed to **autopilot** (or team) as the delivery mode.
-> - `harbor` intake → fuzzy requests simply enter here as loose ideas.
+> **Port note.** OMC's original belongs to the Shipyard family (`drydock`, `launch`, `loft`, `harbor`) — **all four are ported to omd**, so cross-references are live. One honest substitution remains:
 > - Issue tracker (GitHub/GitLab) → omd is zero-external-dependency: **local markdown is the default map home**; a tracker-backed map is optional only when the user explicitly has `gh`/`glab` available and asks for it.
 
 **The role contract.** The captain (the human) signs the destination (W1) and the chart (W2); the navigator drafts everything else and **never answers a question that belongs to the captain** — a grilling session in which the agent answers its own questions has broken the role, not just the process. Facts are the navigator's job; decisions are the captain's.
@@ -40,7 +36,7 @@ Map and ticket prose follow the repo's document language: read `documentLanguage
 
 Invoked with a loose idea (or residual questions). Charting is one session's work; it hand-resolves nothing.
 
-1. **Yard check, defer the findings.** OMC's `drydock --check` audit is not ported — instead: if the yard is not laid (no `CONTEXT.md`, no `docs/adr/`), note it once in the map's Notes under `Deferred sediment` and proceed; never block charting on it.
+1. **Yard check, defer the findings.** Optionally run the `drydock` skill's `--check` audit first; if the yard is not laid (no `CONTEXT.md`, no `docs/adr/`), note it once in the map's Notes under `Deferred sediment` and proceed; never block charting on it.
 2. **W1 — name the destination.** Load the `deep-interview` skill and pin down what this map is finding its way to: the spec, decision, or change. The destination fixes the scope, so it is settled first. **W1 is a captain signature: present the destination statement and get explicit confirmation.** If the captain cannot state a destination even with the interview's help, that is not an error — present the best candidates ranked and let the captain pick one to chart toward or park the effort.
 3. **Map the frontier.** Grill again with `deep-interview`, **breadth-first**: fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear and the journey fits one session — no map is needed: stop and recommend direct delivery (autopilot/team).
 4. **W2 — sign the chart.** Present the proposed map: destination, initial tickets with types and blocking edges, and the fog sketch. **W2 is a captain signature**: granularity wrong here wastes every later session. Iterate until signed.
@@ -67,7 +63,7 @@ Every ticket is **HITL** (worked with the captain, who speaks for themselves) or
 | Type | Mode | Resolved by | Use when |
 |---|---|---|---|
 | `research` | AFK | Background `subagent`: investigate against primary sources (official docs, source code, specs), leave a cited Markdown file at `docs/research/<ticket-slug>.md` (or the repo's existing notes convention when one exists), link it from the ticket | A decision waits on knowledge outside the current working directory |
-| `loft` | HITL | Spawn `omd-agent-executor` to build a throwaway artifact that answers the ticket's question — a pure logic module in a runnable shell, or structurally different UI variants behind one route; the captain reacts, the answer folds into the resolution, the artifact stays on a `loft/<name>` branch (OMC's dedicated `loft` skill is not ported; the discipline is the same) | The question is precise but prose cannot settle it — it needs to be seen or clicked, not described |
+| `loft` | HITL | Load the `loft` skill to build a throwaway artifact that answers the ticket's question — a pure logic module in a runnable shell, or structurally different UI variants behind one route; the captain reacts, the answer folds into the resolution, the artifact stays on a `loft/<name>` branch | The question is precise but prose cannot settle it — it needs to be seen or clicked, not described |
 | `grilling` | HITL | Load the `deep-interview` skill; the captain decides each round | Conversation is the resolution — the default case |
 | `task` | HITL or AFK | The navigator drives it alone where it can; otherwise hands the captain a precise checklist | Manual work that unblocks a decision (sign up for a service, provision access, move data so its shape can be seen) — it earns its place by unblocking a decision, not by delivering the destination |
 
@@ -116,7 +112,7 @@ When the yard is not laid, **defer, don't skip**: record each pending landing as
 The map is done when no open tickets remain and **Not yet specified** is empty. Then:
 
 1. Collapse **Decisions so far** into a **mission brief**: objective, scope boundary, non-goals — writable now because the way is clear. Write it to `.omd/wayfinder/<map-slug>/brief.md` so the handoff passes a pointer, not content.
-2. Recommend: "The way is clear. Run `autopilot` (or `team`) with the brief at `.omd/wayfinder/<map-slug>/brief.md`." (OMC's `/launch` is not ported; autopilot/team is the omd delivery surface.) The map stays as the effort's logbook.
+2. Recommend: "The way is clear. Run `launch` (or `autopilot`/`team`) with the brief at `.omd/wayfinder/<map-slug>/brief.md`." The map stays as the effort's logbook.
 
 ## Scope and non-goals
 

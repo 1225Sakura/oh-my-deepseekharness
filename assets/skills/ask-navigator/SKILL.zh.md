@@ -8,11 +8,7 @@ when-to-use: 一项工作裹在雾里——目的地无法用一句话说清，�
 
 ask-navigator 是**领航员**：它接过一项裹在雾里的工作——从这里到目的地的路还看不见——把它绘制成一张**决策票地图**，然后每会话推进一张前沿票，直到路线清晰。它产出**决策，永远不是交付物**：路清晰了就交接，不建造。
 
-> **移植说明。** OMC 原版属于 Shipyard 家族（`drydock`、`launch`、`loft`、`harbor`），**未移植到 omd（二期或更晚）**。本文使用的替代方案，如实声明：
-> - `drydock --check` 场地审计 → 跳过；场地未铺设（无 `CONTEXT.md`、无 `docs/adr/`）时领航员记一笔即继续。
-> - `loft` 票型 → 领航员 spawn `omd-agent-executor` 建造能回答该问题的一次性 artifact。
-> - `launch` 交接 → omd 无 launch；mission brief 交给 **autopilot**（或 team）作为交付模式。
-> - `harbor` 入口 → 模糊请求直接作为松散想法进入本通道。
+> **移植说明。** OMC 原版属于 Shipyard 家族（`drydock`、`launch`、`loft`、`harbor`）——**四件套已全部移植到 omd**，交叉引用均为活体。仅存的如实替代：
 > - issue tracker（GitHub/GitLab）→ omd 零外部依赖：**local markdown 是默认地图之家**；仅当用户显式要求且有 `gh`/`glab` 可用时才用 tracker-backed 地图。
 
 **角色契约。** 船长（人类）签署目的地（W1）与海图（W2）；领航员起草其余一切，**绝不回答属于船长的问题**——一场 agent 自问自答的拷问会，破坏的是角色而不只是流程。事实是领航员的职责；决策是船长的。
@@ -40,7 +36,7 @@ ask-navigator 是**领航员**：它接过一项裹在雾里的工作——从�
 
 带松散想法（或残余问题）调用。绘图是一个会话的工作；它手工解决不了任何票。
 
-1. **场地检查，发现延后。** OMC 的 `drydock --check` 审计未移植——改为：场地未铺设（无 `CONTEXT.md`、无 `docs/adr/`）时在地图 Notes 的 `Deferred sediment` 下记一笔即继续；绝不因场地阻塞绘图。
+1. **场地检查，发现延后。** 可先选跑 `drydock` skill 的 `--check` 审计；场地未铺设（无 `CONTEXT.md`、无 `docs/adr/`）时在地图 Notes 的 `Deferred sediment` 下记一笔即继续；绝不因场地阻塞绘图。
 2. **W1——命名目的地。** 加载 `deep-interview` skill，敲定这张地图要找的路通向什么：规格、决策或变更。目的地定死范围，所以最先敲定。**W1 是船长签署：呈现目的地陈述并拿到显式确认。** 如果船长连访谈帮助也给不出目的地，那不是错误——呈现排序后的最佳候选，让船长挑一个作为绘图方向，或把这项工作停泊。
 3. **绘制前沿。** 再用 `deep-interview` 拷问，**广度优先**：在整个空间上扇开，而不是在单条线上深挖，浮出悬而未决的决策与现在就能迈出的第一步。**若此举没有发现雾**——通往目的地的路已清晰且一趟会话走得完——不需要地图：停下并建议直接交付（autopilot/team）。
 4. **W2——签署海图。** 呈现拟议地图：目的地、带类型与阻塞边的初始票、雾的草图。**W2 是船长签署**：这里的粒度错了会浪费之后每个会话。迭代到签署为止。
@@ -67,7 +63,7 @@ ask-navigator 是**领航员**：它接过一项裹在雾里的工作——从�
 | 类型 | 模式 | 解决方式 | 何时用 |
 |---|---|---|---|
 | `research` | AFK | 后台 `subagent`：对着一手来源（官方文档、源码、规格）调查，把带引用的 Markdown 留在 `docs/research/<ticket-slug>.md`（或仓库既有笔记约定），从票链接过去 | 决策卡在超出当前工作目录的知识上 |
-| `loft` | HITL | spawn `omd-agent-executor` 建造一次性 artifact 回答票的问题——可运行外壳里的纯逻辑模块，或一条路由后的结构性不同 UI 变体；船长反应，答案折进决议，artifact 留在 `loft/<name>` 分支（OMC 的专用 `loft` skill 未移植；纪律相同） | 问题精确但 prose 定不了——需要被看见、被点开，而不是被描述 |
+| `loft` | HITL | 加载 `loft` skill 建造一次性 artifact 回答票的问题——可运行外壳里的纯逻辑模块，或一条路由后的结构性不同 UI 变体；船长反应，答案折进决议，artifact 留在 `loft/<name>` 分支 | 问题精确但 prose 定不了——需要被看见、被点开，而不是被描述 |
 | `grilling` | HITL | 加载 `deep-interview` skill；每轮由船长定夺 | 对话即决议——默认情形 |
 | `task` | HITL 或 AFK | 领航员能独立做就独立做；否则交给船长一份精确 checklist | 解锁决策的手工活（注册服务、开通权限、搬动数据以看清形状）——它凭解锁决策赢得位置，不靠交付目的地 |
 
@@ -116,7 +112,7 @@ ask-navigator 是**领航员**：它接过一项裹在雾里的工作——从�
 没有打开的票且 **Not yet specified** 为空时，地图完成。然后：
 
 1. 把 **Decisions so far** 坍缩成一份 **mission brief**：目标、范围边界、non-goals——现在写得出来，因为路已清晰。写到 `.omd/wayfinder/<map-slug>/brief.md`，让交接传递指针而非内容。
-2. 建议："路已清晰。用 `autopilot`（或 `team`）携带 `.omd/wayfinder/<map-slug>/brief.md` 的 brief 交付。"（OMC 的 `/launch` 未移植；autopilot/team 是 omd 的交付面。）地图留作这项工作的航行日志。
+2. 建议："路已清晰。用 `launch`（或 `autopilot`/`team`）携带 `.omd/wayfinder/<map-slug>/brief.md` 的 brief 交付。"地图留作这项工作的航行日志。
 
 ## 范围与 non-goals
 
