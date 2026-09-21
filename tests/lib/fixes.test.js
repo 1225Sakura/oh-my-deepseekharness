@@ -22,7 +22,8 @@ test('B1: 可选服务属性访问抛错时 probe 归 unavailable 而不崩', as
   const report = await probeCapabilities(ctx)
   expect(report.core.status).toBe('ok')
   expect(report.storage.status).toBe('unavailable')
-  expect(report.mcpClient.status).toBe('unavailable')
+  // M1.1：mcpClient 探测行已删除（ctx.mcpClient 服务不存在，固有假阴性）
+  expect('mcpClient' in report).toBe(false)
   expect(report.hooksBridge.status).toBe('unavailable')
 })
 
