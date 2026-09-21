@@ -17,6 +17,7 @@ Meta-skill for managing dsh skills through CLI-like subcommands (`skill list`, `
   - **Project**: `.dsh/skills/` — committable with the repo, shared with the team
 - **Invocation**: skills registered by dsh are user-invocable and model-invocable by name; there is no OMC-style plugin marketplace or generated command directory — adding a skill is just writing its directory into a scan root.
 - **No quality/usage stats**: OMC's mnemosyne-derived quality scores and usage counters do not exist in omd; do not fabricate them.
+- **Template field differences**: OMC skill-template frontmatter fields like `id`/`source`/`quality`/`triggers` have no dsh counterpart and are dropped — omd templates keep only `name`/`description`/`when-to-use` (trigger keywords live in omd's keyword registry, not in the skill file).
 
 ## Subcommands
 

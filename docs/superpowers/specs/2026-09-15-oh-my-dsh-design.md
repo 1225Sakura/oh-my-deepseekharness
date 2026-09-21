@@ -104,8 +104,9 @@ omd 的本质是 **编排协议（系统提示词）+ 资产目录（双语 skil
 | project-session-manager | tmux/teleport/sessions.json | 保留「一任务=一 worktree=一会话」方法论 + per-worktree .omd-psm-session.json；tmux/teleport 列二期 | 宿主差异 |
 | self-improve | resolve-paths.mjs import OMC 内部模块 | **内联重写**为自包含解析；`OMC_SESSION_ID`→`OMD_SESSION_ID`；bash/python 脚本在 Windows 需 git-bash/WSL（已注明回退） | omd 无宿主仓库内部模块 |
 | skillify 习得技能目录 | `.omc/skills/`（可提交例外） | **`.dsh/skills/` 或 `~/.dsh/skills/`**（dsh 原生技能扫描根） | dsh 技能系统语义 |
-| `.omd/skills/` 与 `.omd/specs/` | OMC 惯例 `.omc/skills/**` 可提交 | drydock/launch 把这两个目录当**可提交工件面**，`.omd/` 其余保持忽略 | 与 OMC 惯例对齐 |
+| 技能沉淀面（drydock/launch C5） | OMC 惯例 `.omc/skills/**` 可提交 | **技能沉淀用 `.dsh/skills/`（项目级，dsh 原生扫描根）或 `~/.dsh/skills/`（用户级）**——dsh 默认不扫描 `.omd/skills/`；`.omd/specs/` 保持可提交工件面，`.omd/` 其余保持忽略 | dsh 技能扫描根语义驱动 |
 | trace/debug 的 trace_* 工具 | trace_timeline/trace_summary MCP | 二期；等价物为 .omd/ 状态文件 + git log + pwsh 复现 | MVP 边界 |
+| ultragoal per-story goal 模式 | OMC 每 story 一个 goal + `--claude-goal-json` 快照对账 | **未移植**——omd 版为单 goal + `.omd/ultragoal/` 文件台账（append-only）；最终门禁点名 ai-slop-cleaner + verify + omd-agent-code-reviewer 三件套 | dsh goal 状态机直接可管可查，无需对账 |
 
 ### MVP 范围（第一期）
 

@@ -8,7 +8,7 @@ when-to-use: 创建或编辑任何 agent 要读来行动的文档——AGENTS.md
 
 在创建或编辑任何 agent 要读来行动的文档时应用本纪律：agent 向文档（`AGENTS.md`、`CLAUDE.md`、`CONTEXT.md`、`docs/standards/`）、spec、ticket、技能文件（`.dsh/skills/`）。文档必须通过的测试：**一个全新的 agent 会话只靠阅读它就能行动。**
 
-说明：在 OMC 里这套纪律在船厂流程中是强制的（drydock 种子生成、launch C5 sediment pass）；这些流程未移植到 omd，因此本纪律在 omd 中为按需使用——但任何对 agent 向文档的编辑都应该经得起这些规则。同样，OMC 的 `.omc/skills/` 习得技能面映射为 dsh 技能根（项目 `.dsh/skills/`、用户 `~/.dsh/skills/`）。
+说明：在 OMC 里这套纪律在船厂流程中是强制的（drydock 种子生成、launch C5 sediment pass）；drydock/launch 已移植到 omd（见同名技能），本纪律在其种子生成与 C5 沉淀 pass 中同样为强制，其余 agent 向文档编辑按需使用——但任何对 agent 向文档的编辑都应该经得起这些规则。同样，OMC 的 `.omc/skills/` 习得技能面映射为 dsh 技能根（项目 `.dsh/skills/`、用户 `~/.dsh/skills/`）。
 
 ## 何时不用
 

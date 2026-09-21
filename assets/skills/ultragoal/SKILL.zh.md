@@ -57,7 +57,7 @@ story 带证据完成时，在 `plan.md` 里打勾并追加 checkpoint 事件。
 
 最后一个 story 打勾后，工程**仍未**完成，直到三关全过：
 
-1. **review** 技能过一遍整体 diff（slop、可简化点、风险）
+1. **ai-slop-cleaner** 技能过一遍整体 diff（slop、重复、死代码、边界违规——writer/reviewer 通道分离，高影响清理的评审委派 `omd-agent-code-reviewer`）
 2. **verify** 技能——跑验证命令，读真实输出
 3. 独立**代码评审**——委派 `omd-agent-code-reviewer`（新鲜 subagent 上下文；绝不在写作上下文里自批）
 

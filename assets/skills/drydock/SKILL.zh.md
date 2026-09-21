@@ -14,12 +14,12 @@ when-to-use: 开一个人类与 agent 共建的仓库；知识只存在于人脑
 |---|---|
 | 上下文（共享背景） | `CONTEXT.md`（术语表）+ `docs/business/` + `docs/adr/` + omd notepad 记忆 |
 | 规则（边界） | `CLAUDE.md`（薄入口：约定、原则、索引；dsh 把 CLAUDE.md/AGENTS.md 当项目规则读）+ `docs/standards/` |
-| 工具（可组合能力） | `.omd/skills/`（项目技能——`.omd/` 内刻意的可提交例外）+ `scripts/` |
+| 工具（可组合能力） | `.dsh/skills/`（项目技能——dsh 原生扫描根，随仓库提交即全员共享）+ `scripts/` |
 | 标准（船级社） | `design-system/`（tokens、组件、模式）+ `docs/standards/` |
 
 隐喻对照：船坞是共享设施；船级社（`docs/standards/` + `design-system/`）定船只适航必须通过的规则；drydock 铺龙骨；launch 把船送下水。
 
-**dsh 适配说明**：OMC 的 `.mcp.json` 承载面在 dsh 下没有仓库内等价物——MCP server 集成声明在 dsh profile 的 cordis patch / 插件配置里，不在仓库里。因此工具柱在仓库内由 `.omd/skills/` + `scripts/` 构成；profile 级 MCP 接线改记到 `docs/standards/process.md`。
+**dsh 适配说明**：OMC 的 `.mcp.json` 承载面在 dsh 下没有仓库内等价物——MCP server 集成声明在 dsh profile 的 cordis patch / 插件配置里，不在仓库里。因此工具柱在仓库内由 `.dsh/skills/` + `scripts/` 构成；profile 级 MCP 接线改记到 `docs/standards/process.md`。
 
 ## 何时使用
 
@@ -39,7 +39,7 @@ when-to-use: 开一个人类与 agent 共建的仓库；知识只存在于人脑
 写任何东西之前先盘点（用 `glob`/`read`，不靠 shell 猜）：
 
 - `CLAUDE.md` 在吗？`AGENTS.md` 在吗？（规则：任一存在就原地扩展；把缺失的那个建成一行指针指向另一个；**绝不两个都新建**）
-- `CONTEXT.md`、`docs/adr/`、`docs/standards/`、`docs/business/`、`design-system/`、`.omd/skills/`、`scripts/`、`.gitattributes`——哪些在、哪些缺？
+- `CONTEXT.md`、`docs/adr/`、`docs/standards/`、`docs/business/`、`design-system/`、`.dsh/skills/`、`scripts/`、`.gitattributes`——哪些在、哪些缺？
 - omd 插件装了吗？——只在 omd 会话内值得查（看系统提示词的 omd 协议段和 `mcp__omd-state__*` 工具）；不在就静默跳过（有没有 omd，harness 都能跑）
 
 先报告地图，再动手。
@@ -99,7 +99,7 @@ docs/standards/process.md
 docs/business/README.md        # seed D
 design-system/README.md        # seed E（仅 UI 仓库；否则 stub）
 design-system/tokens/README.md
-.omd/skills/README.md          # seed F
+.dsh/skills/README.md          # seed F
 scripts/README.md
 ```
 
@@ -133,7 +133,7 @@ Seed A — CLAUDE.md, en（薄入口；文件已存在则原地扩展）：
 ## Agent guide
 - Delivery follows the canonical workflow plan → execute → review → verify; the `launch` skill is an optional governed delivery pipeline (opt-in, invoke explicitly)
 - On term conflicts CONTEXT.md wins; new terms are recorded the moment they settle
-- Reusable capability goes to .omd/skills/; UI patterns go to design-system/
+- Reusable capability goes to .dsh/skills/; UI patterns go to design-system/
 ```
 <!-- shipyard-seed-a:en:end -->
 
@@ -163,7 +163,7 @@ Seed A — zh-Hans companion（结构一致，二选一按文档语言渲染）�
 ## Agent 指南
 - 交付遵循 canonical 工作流 plan → execute → review → verify；`launch` 技能是可选的受治理交付管道（opt-in，需要时显式调用）
 - 术语冲突以 CONTEXT.md 为准；新术语当场补录
-- 可复用能力沉淀到 .omd/skills/；UI 模式沉淀到 design-system/
+- 可复用能力沉淀到 .dsh/skills/；UI 模式沉淀到 design-system/
 ```
 <!-- shipyard-seed-a:zh-Hans:end -->
 
@@ -193,7 +193,7 @@ Seed A — zh-Hant companion（結構一致，只渲染此版本）：
 ## Agent 指南
 - 交付遵循 canonical 工作流 plan → execute → review → verify；`launch` 技能是可選的治理交付管道（opt-in，必須明確呼叫）
 - 術語衝突以 CONTEXT.md 為準；新術語確定時立即補錄
-- 可重用能力沉澱到 .omd/skills/；UI 模式沉澱到 design-system/
+- 可重用能力沉澱到 .dsh/skills/；UI 模式沉澱到 design-system/
 ```
 <!-- shipyard-seed-a:zh-Hant:end -->
 
@@ -287,13 +287,13 @@ Seed E — design-system/README.md：
 ## patterns/  Interaction patterns (forms, feedback, loading, empty states — sediment reused patterns)
 ```
 
-Seed F — .omd/skills/README.md：
+Seed F — .dsh/skills/README.md：
 
 ````markdown
 # Project Skills
 
 Reusable capabilities sedimented by this project: specialized tools, prompt templates, specialized practices.
-One skill per directory `.omd/skills/<name>/SKILL.md` (bilingual projects add `SKILL.zh.md`), frontmatter must contain
+One skill per directory `.dsh/skills/<name>/SKILL.md` (bilingual projects add `SKILL.zh.md`), frontmatter must contain
 `name` + `description` + `when-to-use` (dsh skill loader requirement: frontmatter keys are `[A-Za-z-]+` only):
 
 ```markdown
@@ -312,7 +312,7 @@ Bar for admission: if it can be Googled in 5 minutes it is not a skill;
 write "this project's specific decision discipline", not generic tutorials.
 ````
 
-`.omd/skills/` 是 `.omd/` 内**刻意的可提交例外**——`.omd/` 下其余一切（state、plans、handoffs）都是被忽略的运行产物。`.gitignore` 里忽略 `.omd/` 时用 `!.omd/skills/` 把技能面重新包含回来。
+`.dsh/skills/` 是 dsh 的**项目级技能扫描根**——沉进去的技能下次会话自动出现在技能目录里，随仓库提交即全员共享（用户级技能放 `~/.dsh/skills/`）。注意：dsh 默认**不扫描** `.omd/skills/`——技能面永远不要放进 `.omd/`（那里全是被忽略的运行产物）。
 
 ### 4. 接好治理回路（这才是船坞，而不是一堆文件夹）
 
@@ -320,7 +320,7 @@ write "this project's specific decision discipline", not generic tutorials.
 
 - **launch** 在决策敲定时写 CONTEXT.md 词汇、ADR、docs/business/（paper trail）
 - **launch C5 沉淀 / review** 把反复出现的纠正沉淀进 docs/standards/ 与 CLAUDE.md 原则
-- **任何人**都能往 .omd/skills/ 加项目技能——门槛是质量门，不是权限
+- **任何人**都能往 .dsh/skills/ 加项目技能——门槛是质量门，不是权限
 - **omd notepad**（`mcp__omd-state__notepad_write_priority` / `notepad_write_working`）复利会话知识；被引用两次的东西晋升进 docs/business/
 
 让"先动手"不失对齐的规则：**开工不需要许可；落地必须落进船坞的某个槽位。** 一个改动说不出落哪个槽（或显式声明无槽），就是坏味道。
@@ -338,4 +338,4 @@ write "this project's specific decision discipline", not generic tutorials.
 
 ## 状态契约
 
-drydock **不持模式状态**：无 `state_write`/`state_clear`。交付物是用户所有的仓库文件（CLAUDE.md、CONTEXT.md、docs/、design-system/、.omd/skills/ 种子）——对 `.omd/` 的唯一触碰是可提交的技能面；不创建任何运行时状态。`--check` 严格只读。中断后重跑即可：探测幂等，绝不覆盖已有文件。
+drydock **不持模式状态**：无 `state_write`/`state_clear`。交付物是用户所有的仓库文件（CLAUDE.md、CONTEXT.md、docs/、design-system/、.dsh/skills/ 种子）——完全不触碰 `.omd/`；不创建任何运行时状态。`--check` 严格只读。中断后重跑即可：探测幂等，绝不覆盖已有文件。

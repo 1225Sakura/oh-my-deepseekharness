@@ -198,6 +198,109 @@ AGENTS.md 已存在时：
 - [ ] 断掉的父引用
 - [ ] 漏掉重要文件
 
+## 示例输出
+
+Root 与 Nested 两层 AGENTS.md 的产出格式参照（模板 token——`Purpose`/`Key Files`/`Subdirectories`/`For AI Agents`/`Dependencies`/注释标记——在任何语言中逐字节稳定；正文散文跟随仓库文档语言）：
+
+### Root AGENTS.md
+```markdown
+<!-- Generated: 2024-01-15 | Updated: 2024-01-15 -->
+
+# my-project
+
+## Purpose
+A web application for managing user tasks with real-time collaboration features.
+
+## Key Files
+| File | Description |
+|------|-------------|
+| `package.json` | Project dependencies and scripts |
+| `tsconfig.json` | TypeScript configuration |
+| `.env.example` | Environment variable template |
+
+## Subdirectories
+| Directory | Purpose |
+|-----------|---------|
+| `src/` | Application source code (see `src/AGENTS.md`) |
+| `docs/` | Documentation (see `docs/AGENTS.md`) |
+| `tests/` | Test suites (see `tests/AGENTS.md`) |
+
+## For AI Agents
+
+### Working In This Directory
+- Always install dependencies after modifying the project manifest
+- Use TypeScript strict mode
+- Follow ESLint rules
+
+### Testing Requirements
+- Run tests before committing
+- Ensure >80% coverage
+
+### Common Patterns
+- Use barrel exports (index.ts)
+- Prefer functional components
+
+## Dependencies
+
+### External
+- React 18.x - UI framework
+- TypeScript 5.x - Type safety
+- Vite - Build tool
+
+<!-- MANUAL: Custom project notes can be added below -->
+```
+
+### Nested AGENTS.md
+```markdown
+<!-- Parent: ../AGENTS.md -->
+<!-- Generated: 2024-01-15 | Updated: 2024-01-15 -->
+
+# components
+
+## Purpose
+Reusable React components organized by feature and complexity.
+
+## Key Files
+| File | Description |
+|------|-------------|
+| `index.ts` | Barrel export for all components |
+| `Button.tsx` | Primary button component |
+| `Modal.tsx` | Modal dialog component |
+
+## Subdirectories
+| Directory | Purpose |
+|-----------|---------|
+| `forms/` | Form-related components (see `forms/AGENTS.md`) |
+| `layout/` | Layout components (see `layout/AGENTS.md`) |
+
+## For AI Agents
+
+### Working In This Directory
+- Each component has its own file
+- Use CSS modules for styling
+- Export via index.ts
+
+### Testing Requirements
+- Unit tests in `__tests__/` subdirectory
+- Use React Testing Library
+
+### Common Patterns
+- Props interfaces defined above component
+- Use forwardRef for DOM-exposing components
+
+## Dependencies
+
+### Internal
+- `src/hooks/` - Custom hooks used by components
+- `src/utils/` - Utility functions
+
+### External
+- `clsx` - Conditional class names
+- `lucide-react` - Icons
+
+<!-- MANUAL: -->
+```
+
 ## 触发更新模式
 
 在已有 AGENTS.md 的代码库上运行时：

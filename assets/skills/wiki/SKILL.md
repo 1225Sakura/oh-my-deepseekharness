@@ -58,7 +58,7 @@ Use `[[page-slug]]` wiki-link syntax between pages. Keep slugs stable — a rena
 
 ## Auto-capture (phase-2)
 
-OMC auto-captured significant discoveries as `session-log` pages at session end via a hook. dsh has no hook bridge in the MVP (`dsh-hooks-claude-code` relevance is phase-2), so **capture is manual**: when something significant is learned, wiki-add it immediately rather than waiting for session end. A deterministic session-end capture hook is a phase-2 item.
+OMC auto-captured significant discoveries as `session-log` pages at session end via a hook. omd's MVP does not wire the hooks bridge (`dsh-hooks-claude-code` is a host-native package, to be wired in phase 2), so **capture is manual**: when something significant is learned, wiki-add it immediately rather than waiting for session end. A deterministic session-end capture hook is a phase-2 item.
 
 ## State Contract (状态契约)
 

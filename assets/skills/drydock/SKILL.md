@@ -14,12 +14,12 @@ The four pillars and where they physically live:
 |---|---|
 | Context (shared background) | `CONTEXT.md` (glossary) + `docs/business/` + `docs/adr/` + omd notepad memory |
 | Rules (boundaries) | `CLAUDE.md` (thin entry: conventions, principles, index; dsh reads CLAUDE.md/AGENTS.md as project rules) + `docs/standards/` |
-| Tools (composable capability) | `.omd/skills/` (project skills — the intentional committable exception inside `.omd/`) + `scripts/` |
+| Tools (composable capability) | `.dsh/skills/` (project skills — dsh's native scan root; committing it to the repo shares it with everyone) + `scripts/` |
 | Standards (the classification society) | `design-system/` (tokens, components, patterns) + `docs/standards/` |
 
 Metaphor map: the shipyard is the shared facility; the classification society (`docs/standards/` + `design-system/`) sets the rules a ship must pass to be seaworthy; drydock lays the keel; launch ships it.
 
-**dsh adaptation note:** OMC's `.mcp.json` surface has no in-repo equivalent under dsh — MCP server integrations are declared in the dsh profile's cordis patch / plugin configuration, not in the repository. The Tools pillar in-repo therefore consists of `.omd/skills/` + `scripts/`; record any profile-level MCP wiring in `docs/standards/process.md` instead.
+**dsh adaptation note:** OMC's `.mcp.json` surface has no in-repo equivalent under dsh — MCP server integrations are declared in the dsh profile's cordis patch / plugin configuration, not in the repository. The Tools pillar in-repo therefore consists of `.dsh/skills/` + `scripts/`; record any profile-level MCP wiring in `docs/standards/process.md` instead.
 
 ## When to Use
 
@@ -39,7 +39,7 @@ Metaphor map: the shipyard is the shared facility; the classification society (`
 Inventory what exists before writing anything (use `glob`/`read`, not shell guesses):
 
 - `CLAUDE.md` present? `AGENTS.md` present? (rule: if either exists, extend it in place; create the missing one as a one-line pointer to the other; **never create both fresh**)
-- `CONTEXT.md`, `docs/adr/`, `docs/standards/`, `docs/business/`, `design-system/`, `.omd/skills/`, `scripts/`, `.gitattributes` — which exist, which are missing?
+- `CONTEXT.md`, `docs/adr/`, `docs/standards/`, `docs/business/`, `design-system/`, `.dsh/skills/`, `scripts/`, `.gitattributes` — which exist, which are missing?
 - omd plugin installed? — only worth checking when running inside an omd-equipped session (look for the omd protocol section and `mcp__omd-state__*` tools); outside one, skip this check silently (the harness works with or without omd)
 
 Report the map first, then act.
@@ -99,7 +99,7 @@ docs/standards/process.md
 docs/business/README.md        # seed D
 design-system/README.md        # seed E (UI repos only; stub otherwise)
 design-system/tokens/README.md
-.omd/skills/README.md          # seed F
+.dsh/skills/README.md          # seed F
 scripts/README.md
 ```
 
@@ -133,7 +133,7 @@ Seed A — CLAUDE.md, en (thin entry; extend in place if the file exists):
 ## Agent guide
 - Delivery follows the canonical workflow plan → execute → review → verify; the `launch` skill is an optional governed delivery pipeline (opt-in, invoke explicitly)
 - On term conflicts CONTEXT.md wins; new terms are recorded the moment they settle
-- Reusable capability goes to .omd/skills/; UI patterns go to design-system/
+- Reusable capability goes to .dsh/skills/; UI patterns go to design-system/
 ```
 <!-- shipyard-seed-a:en:end -->
 
@@ -163,7 +163,7 @@ Seed A — zh-Hans companion (结构一致，二选一按文档语言渲染):
 ## Agent 指南
 - 交付遵循 canonical 工作流 plan → execute → review → verify；`launch` 技能是可选的受治理交付管道（opt-in，需要时显式调用）
 - 术语冲突以 CONTEXT.md 为准；新术语当场补录
-- 可复用能力沉淀到 .omd/skills/；UI 模式沉淀到 design-system/
+- 可复用能力沉淀到 .dsh/skills/；UI 模式沉淀到 design-system/
 ```
 <!-- shipyard-seed-a:zh-Hans:end -->
 
@@ -193,7 +193,7 @@ Seed A — zh-Hant companion（結構一致，只渲染此版本）:
 ## Agent 指南
 - 交付遵循 canonical 工作流 plan → execute → review → verify；`launch` 技能是可選的治理交付管道（opt-in，必須明確呼叫）
 - 術語衝突以 CONTEXT.md 為準；新術語確定時立即補錄
-- 可重用能力沉澱到 .omd/skills/；UI 模式沉澱到 design-system/
+- 可重用能力沉澱到 .dsh/skills/；UI 模式沉澱到 design-system/
 ```
 <!-- shipyard-seed-a:zh-Hant:end -->
 
@@ -287,13 +287,13 @@ Seed E — design-system/README.md:
 ## patterns/  Interaction patterns (forms, feedback, loading, empty states — sediment reused patterns)
 ```
 
-Seed F — .omd/skills/README.md:
+Seed F — .dsh/skills/README.md:
 
 ````markdown
 # Project Skills
 
 Reusable capabilities sedimented by this project: specialized tools, prompt templates, specialized practices.
-One skill per directory `.omd/skills/<name>/SKILL.md` (bilingual projects add `SKILL.zh.md`), frontmatter must contain
+One skill per directory `.dsh/skills/<name>/SKILL.md` (bilingual projects add `SKILL.zh.md`), frontmatter must contain
 `name` + `description` + `when-to-use` (dsh skill loader requirement: frontmatter keys are `[A-Za-z-]+` only):
 
 ```markdown
@@ -312,7 +312,7 @@ Bar for admission: if it can be Googled in 5 minutes it is not a skill;
 write "this project's specific decision discipline", not generic tutorials.
 ````
 
-`.omd/skills/` is the **intentional committable exception** inside `.omd/` — everything else under `.omd/` (state, plans, handoffs) stays ignored operational artifacts. Keep `.omd/skills/` out of the `.gitignore` blanket rule (e.g. ignore `.omd/` but re-include `!.omd/skills/`).
+`.dsh/skills/` is dsh's **project-level skill scan root** — sedimented skills appear in the skill catalog on the next session, and committing the directory shares them with everyone (user-level skills go to `~/.dsh/skills/`). Note: dsh does **not** scan `.omd/skills/` by default — never put the skills surface under `.omd/` (that tree is ignored operational artifacts).
 
 ### 4. Wire the governance loop (this is what makes it a shipyard, not a folder)
 
@@ -320,7 +320,7 @@ Tell the user, and rely on these flows to fill the skeleton:
 
 - **launch** writes CONTEXT.md vocabulary, ADRs, and docs/business/ as decisions settle (paper trail)
 - **launch C5 sediment / review** sediment recurring corrections into docs/standards/ and CLAUDE.md principles
-- **anyone** can add a project skill to .omd/skills/ — the barrier is the quality gate, not permission
+- **anyone** can add a project skill to .dsh/skills/ — the barrier is the quality gate, not permission
 - **omd notepad** (`mcp__omd-state__notepad_write_priority` / `notepad_write_working`) compounds session knowledge; promote anything referenced twice into docs/business/
 
 The rule that keeps 先动手 aligned: **starting needs no permission; landing goes into a shipyard slot.** A change that cannot say which slot it lands in (or explicitly none) is the smell.
@@ -338,4 +338,4 @@ Diff actual repo state against the shipyard map; report: missing surfaces, a mis
 
 ## State Contract (状态契约)
 
-drydock **holds no mode state**: no `state_write`/`state_clear`. Its deliverables are user-owned repo files (CLAUDE.md, CONTEXT.md, docs/, design-system/, .omd/skills/ seeds) — the only `.omd/` touch is the committable skills surface; no runtime state is created. `--check` mode is strictly read-only. On interruption, re-run: detection is idempotent and never clobbers existing files.
+drydock **holds no mode state**: no `state_write`/`state_clear`. Its deliverables are user-owned repo files (CLAUDE.md, CONTEXT.md, docs/, design-system/, .dsh/skills/ seeds) — it never touches `.omd/`; no runtime state is created. `--check` mode is strictly read-only. On interruption, re-run: detection is idempotent and never clobbers existing files.

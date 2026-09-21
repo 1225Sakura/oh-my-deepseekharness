@@ -61,7 +61,7 @@ The artifact is evidence, not a landing. When the captain reacts:
 ## Scope and non-goals
 
 - Loft produces **answers, not deliverables**: no runtime, no state files, nothing always-on.
-- It does not diagnose (`omd-agent-debugger`), does not chart fog (use `deep-interview`/`plan`), does not approve its own answer (the captain's reaction is the only acceptance).
+- It does not diagnose (`omd-agent-debugger`), does not chart fog (hand to `ask-navigator` (preferred) / `deep-interview`/`plan` (fallback)), does not approve its own answer (the captain's reaction is the only acceptance).
 - It does not replace seam approval: a lofted UI shows the shape; the test seams for it are still approved at launch's C2.
 
 ## Completion definition

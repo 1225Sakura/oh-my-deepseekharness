@@ -57,7 +57,7 @@ When a story completes with evidence, tick it in `plan.md` and append the checkp
 
 After the last story ticks, the initiative is **not** done until all three pass:
 
-1. **review** skill pass over the whole diff (slop, simplification, risks)
+1. **ai-slop-cleaner** skill pass over the whole diff (slop, duplication, dead code, boundary violations — writer/reviewer lane separation; high-impact cleanup review delegates to `omd-agent-code-reviewer`)
 2. **verify** skill pass — run the verification commands, read real output
 3. Independent **code review** — delegate to `omd-agent-code-reviewer` (a fresh subagent context; never self-approve in the authoring context)
 

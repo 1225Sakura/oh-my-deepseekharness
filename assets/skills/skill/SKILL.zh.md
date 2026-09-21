@@ -17,6 +17,7 @@ when-to-use: 用户想管理技能——查看已安装的技能、创建新技�
   - **项目**：`.dsh/skills/`——随仓库 commit，与团队共享
 - **调用方式**：dsh 注册的技能按名字 user-invocable 且 model-invocable；没有 OMC 式的插件市场或生成的命令目录——添加技能就是把它的目录写进某个扫描根。
 - **没有质量/用量统计**：OMC 基于 mnemosyne 的质量分与使用计数在 omd 中不存在；不要编造。
+- **模板字段差异**：OMC 技能模板的 `id`/`source`/`quality`/`triggers` 等 frontmatter 字段在 dsh 无对应物，舍弃——omd 模板只保留 `name`/`description`/`when-to-use`（触发词由 omd 关键词注册表承担，不写进技能文件）。
 
 ## 子命令
 

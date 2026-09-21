@@ -60,7 +60,7 @@ Config 设在 profile 的插件实例上（cordis Config 层）。全部键与�
 /omd-doctor
 ```
 
-预期全绿：宿主版本落在 peerDep 范围；注册计数（skill / 7 个 `omd-agent-*` 角色卡 / 2 个命令 / 3 个 `omd_memory_*` 工具 / 18 个 `mcp__omd-state__*` 工具）；Config 标识符可解析；MCP 冒烟（`state_get_status` 有响应）；`.omd/` 可写。任何 ❌/⚠️ 行都由 doctor 自带修复建议。
+预期全绿：宿主版本落在 peerDep 范围；注册计数（40 个 skill / 19 个 `omd-agent-*` 角色卡 / 2 个命令 / 3 个 `omd_memory_*` 工具 / 18 个 `mcp__omd-state__*` 工具）；Config 标识符可解析；MCP 冒烟（`state_get_status` 有响应）；`.omd/` 可写。任何 ❌/⚠️ 行都由 doctor 自带修复建议。
 
 记住：doctor 只证明安装与接线健康——**端到端可用性是独立的 E2E 门禁**（autopilot / ralph / team 各真实跑通一次，规格 §6.4）。
 

@@ -8,7 +8,7 @@ when-to-use: Creating or editing any document an agent reads to act — AGENTS.m
 
 Use this skill to apply a writing-time discipline while creating or editing any document an agent consumes to act: agent-facing docs (`AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `docs/standards/`), specs, tickets, and skill files (`.dsh/skills/`). The test a document must pass: **a fresh agent session can act on it by reading alone.**
 
-Note: in OMC this discipline was mandatory inside the shipyard flows (drydock seed generation, launch C5 sediment pass). Those flows are not ported to omd; here the discipline is opt-in — but any edit to an agent-facing document should survive these rules. Likewise, OMC's `.omc/skills/` learned-skill surface maps to the dsh skill roots (`.dsh/skills/` project, `~/.dsh/skills/` user).
+Note: in OMC this discipline was mandatory inside the shipyard flows (drydock seed generation, launch C5 sediment pass). drydock/launch are ported to omd (see the same-named skills), and this discipline is likewise mandatory in their seed generation and C5 sediment pass; other agent-facing doc edits apply it on demand — but any edit to an agent-facing document should survive these rules. Likewise, OMC's `.omc/skills/` learned-skill surface maps to the dsh skill roots (`.dsh/skills/` project, `~/.dsh/skills/` user).
 
 ## When Not to Use
 

@@ -61,7 +61,7 @@ when-to-use: 设计问题在散文里打转（反复重述仍无法定夺）；�
 ## 范围与非目标
 
 - loft 产**答案，不产交付物**：无运行时、无状态文件、无常驻物。
-- 不诊断（`omd-agent-debugger`）、不导航雾气（用 `deep-interview`/`plan`）、不自我批准答案（船长的反应是唯一验收）。
+- 不诊断（`omd-agent-debugger`）、不导航雾气（交给 `ask-navigator`（首选）/`deep-interview`/`plan`（替代））、不自我批准答案（船长的反应是唯一验收）。
 - 不替代 seam 批准：放样 UI 展示形状；它的测试 seam 仍在 launch 的 C2 批准。
 
 ## 完成定义

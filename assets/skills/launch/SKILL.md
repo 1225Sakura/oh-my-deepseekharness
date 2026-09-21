@@ -1,7 +1,7 @@
 ---
 name: launch
-description: Shipyard's governed delivery pipeline — converge the mission, synthesize a durable spec, decompose vertical-slice tickets with blocking edges, run the frontier in parallel via team, close with verification, and report with a full decision log. Two entry gates — the yard gate (drydock audit) and the fog gate (an effort whose destination is unclear is routed to deep-interview/plan before this pipeline starts). Humans own the checkpoints where there is no unique answer or the error cost is severe; agents continuously run everything repeatable and acceptable-by-evidence.
-when-to-use: A mission brief or existing spec needs governed end-to-end delivery with human checkpoints (C1-C5) and a full paper trail. Requires the drydock shipyard to exist (yard gate hard-blocks otherwise). Not for single-point fixes (hand to execute), not for foggy efforts with no statable destination (converge first with deep-interview/plan). Opt-in; invoke explicitly.
+description: Shipyard's governed delivery pipeline — converge the mission, synthesize a durable spec, decompose vertical-slice tickets with blocking edges, run the frontier in parallel via team, close with verification, and report with a full decision log. Two entry gates — the yard gate (drydock audit) and the fog gate (an effort whose destination is unclear is routed to ask-navigator (preferred) / deep-interview/plan (fallback) before this pipeline starts). Humans own the checkpoints where there is no unique answer or the error cost is severe; agents continuously run everything repeatable and acceptable-by-evidence.
+when-to-use: A mission brief or existing spec needs governed end-to-end delivery with human checkpoints (C1-C5) and a full paper trail. Requires the drydock shipyard to exist (yard gate hard-blocks otherwise). Not for single-point fixes (hand to execute), not for foggy efforts with no statable destination (chart with ask-navigator first (preferred), or converge with deep-interview/plan (fallback)). Opt-in; invoke explicitly.
 ---
 
 # Launch
@@ -41,7 +41,7 @@ Launch is a **stateless composition over omd's existing lifecycle** — it owns 
 - Foggy efforts are not launch's jurisdiction: when the fog gate stops the run, the run never started — no artifacts, no partial state. Hand fog to `ask-navigator` for charting, or converge the destination with `deep-interview`/`plan`, and come back with a sharpened mission brief.
 - Launch adds no approval receipt, revision counter, replay log, cancellation path, rollback mechanism, or cleanup lifecycle of its own.
 
-Any durability claim in this skill is a claim about the files on disk, not about a hidden runtime. `.omd/specs/` holds launch-authored specs/tickets; treat it as a committable artifact surface (alongside `.omd/skills/`) when the team wants the paper trail in git — the rest of `.omd/` stays ignored runtime state.
+Any durability claim in this skill is a claim about the files on disk, not about a hidden runtime. `.omd/specs/` holds launch-authored specs/tickets; treat it as a committable artifact surface (alongside `.dsh/skills/`) when the team wants the paper trail in git — the rest of `.omd/` stays ignored runtime state.
 
 ## Phase 0 — Entry
 
@@ -50,7 +50,8 @@ A run reaches this phase only through a clean yard gate. Before reading a suppli
 Localize prose and human-facing labels/localizable scalar values only. Paths, flags, code fences, placeholders, frontmatter keys and machine-semantic values, YAML/JSON keys, lifecycle tokens (`plan`, `execute`, `review`, `verify`), status enums (`pending`, `in_progress`, `completed`, `failed`, `ready-for-agent`), IDs, ticket `blockedBy`, and all parser/control tokens remain byte-for-byte stable. Reference language companions are mutually exclusive: emit exactly one selected rendering, never bilingual duplicate headings or labels.
 
 - Brief self-check before anything else: does the brief name an objective, a scope boundary, and non-goals? If two or more are missing, say so and ask for one sharpening pass — running the pipeline on a soft brief converts ambiguity into confident-looking output.
-- **Fog gate**: after the sharpening pass, apply the fog test — **Q1**: can the destination be stated in one sentence (the spec, decision, or change this effort is finding its way to)? **Q2**: can the first three decisions be stated precisely right now, even though none can be answered yet? Either answer no → the run never starts: state that plainly, note that no artifacts were produced, and recommend converging with `deep-interview` or `plan` first. Hand over the residual questions and any vocabulary already settled, so the interview does not re-ask them.
+- **Fog gate**: after the sharpening pass, apply the fog test — **Q1**: can the destination be stated in one sentence (the spec, decision, or change this effort is finding its way to)? **Q2**: can the first three decisions be stated precisely right now, even though none can be answered yet? Either answer no → the run never starts: state that plainly, note that no artifacts were produced, and recommend `ask-navigator` (preferred — the shipyard's navigator charts fog as a map of decision tickets and hands back a mission brief) or converging with `deep-interview`/`plan` (fallback). Hand over the residual questions and any vocabulary already settled, so the navigator's W1 does not re-ask them.
+- **Map check**: before reading a supplied spec or entering Phase 1, look for an open navigator map (under `.omd/wayfinder/`, or a tracker issue labelled `navigator:map`). One exists and this invocation supplies no new brief → recommend `ask-navigator` to work the next decision on that map, and stop. One exists and a new brief is supplied → ask one question — continue the open map, or start a new effort — before proceeding.
 - Spec path supplied → read it, jump to Phase 2.
 - Mission brief → Phase 1.
 - Single-point fix → hand off to `execute`, exit.
@@ -64,7 +65,7 @@ Paper trail, written the moment each item settles:
 - decisions passing the ADR test (hard to reverse, surprising without context, real tradeoff) → `docs/adr/NNNN-<slug>.md`
 - business rules and background discovered during convergence → `docs/business/` (one article per business question, opening paragraph states why it matters)
 
-Non-convergence here is normal work, not a failure: if the frontier will not empty, present the residual questions ranked — this is C2's input, not an error. If the residual questions themselves cannot be stated precisely (fog test Q2 fails), the destination itself is unsettled and that is beyond C2's authority: stop, note what already settled (vocabulary in `CONTEXT.md`, answered questions), recommend `deep-interview`/`plan`, and exit — the pipeline never invents a destination.
+Non-convergence here is normal work, not a failure: if the frontier will not empty, present the residual questions ranked — this is C2's input, not an error. If the residual questions themselves cannot be stated precisely (fog test Q2 fails), the destination itself is unsettled and that is beyond C2's authority: stop, note what already settled (vocabulary in `CONTEXT.md`, answered questions), recommend `ask-navigator` (preferred) / `deep-interview`/`plan` (fallback), and exit — the pipeline never invents a destination.
 
 **Loft detour.** A residual question that is precise but cannot settle in prose — it needs to be seen or clicked, not described (how the UI should look, whether a state model feels right) — is answered with an artifact, not more questions: call the `skill` tool with `loft`, let the captain react, and fold that reaction back into the interview. The lofted artifact is C2's input; the captain signs what they saw, not what they were told.
 
@@ -136,7 +137,7 @@ On a later explicit Launch invocation, first confirm the previous team run is fu
   | hard-to-reverse decisions | `docs/adr/` (C4 answers already land here) |
   | business rules / background | `docs/business/` |
   | UI patterns / component contracts | `design-system/` |
-  | reusable craft | `.omd/skills/` (through the quality gate) |
+  | reusable craft | `.dsh/skills/` (through the quality gate) |
   | repeatedly needed automation / integrations | `scripts/` (or the dsh profile's cordis patch for MCP wiring — recorded in docs/standards/process.md) |
   | no slot fits | decline explicitly with the reason |
 

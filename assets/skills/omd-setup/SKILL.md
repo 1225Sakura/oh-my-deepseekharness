@@ -60,7 +60,7 @@ In a fresh session of the configured profile, run:
 /omd-doctor
 ```
 
-Expected green items: host version within peerDep range; registration counts (skills / 7 `omd-agent-*` role cards / 2 commands / 3 `omd_memory_*` tools / 18 `mcp__omd-state__*` tools); Config identifiers resolvable; MCP smoke (`state_get_status` answers); `.omd/` writable. Any ❌/⚠️ row comes with a fix suggestion from the doctor itself.
+Expected green items: host version within peerDep range; registration counts (40 skills / 19 `omd-agent-*` role cards / 2 commands / 3 `omd_memory_*` tools / 18 `mcp__omd-state__*` tools); Config identifiers resolvable; MCP smoke (`state_get_status` answers); `.omd/` writable. Any ❌/⚠️ row comes with a fix suggestion from the doctor itself.
 
 Remember: doctor proves installation and wiring health only — **end-to-end usability is the separate E2E gate** (run autopilot / ralph / team once for real, spec §6.4).
 

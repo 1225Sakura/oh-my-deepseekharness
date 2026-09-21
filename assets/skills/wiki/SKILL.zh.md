@@ -58,7 +58,7 @@ updated: <ISO-8601>
 
 ## 自动捕获（二期）
 
-OMC 靠 hook 在会话结束时把重大发现自动捕获为 `session-log` 页。dsh MVP 没有 hook 桥（`dsh-hooks-claude-code` 的相关性在二期），所以**捕获是手动的**：学到重要东西时立刻 wiki-add，别等会话结束。确定性的会话结束捕获 hook 是二期项。
+OMC 靠 hook 在会话结束时把重大发现自动捕获为 `session-log` 页。omd MVP 未接线 hooks 桥（`dsh-hooks-claude-code` 是宿主原生包，二期接入），所以**捕获是手动的**：学到重要东西时立刻 wiki-add，别等会话结束。确定性的会话结束捕获 hook 是二期项。
 
 ## 状态契约
 
