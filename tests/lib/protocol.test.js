@@ -23,8 +23,14 @@ test('renderProtocol 输出包含路由表、文本守卫、能力矩阵、委�
   const probe = { core: { status: 'ok' }, storage: { status: 'unavailable' } }
   const roles = [{ name: 'omd-agent-explore', tier: 'low' }, { name: 'omd-agent-planner', tier: 'high' }]
   const text = renderProtocol({ config, probeReport: probe, roles })
-  for (const s of ['cancelomd', 'ralph', '什么是', '能力矩阵', 'unavailable', 'omd-agent-explore', 'deepseek-chat', 'inherit', 'leaf-guard', 'state_write', '互斥'])
+  for (const s of ['cancelomd', 'ralph', '什么是', '能力矩阵', 'unavailable', 'omd-agent-explore', 'glm-5.3-flash', 'inherit', 'leaf-guard', 'state_write', '互斥'])
     expect(text).toContain(s)
+})
+
+test('S8-C1/C2：协议路由表注记 omd_delegate 硬路由语义（档位钳制+不可用 id 显式报错）', () => {
+  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
+  expect(text).toContain('omd_delegate')
+  expect(text).toContain('不静默继承')
 })
 
 test('renderProtocol 是同步函数且输出有界（<8000 字符）', () => {

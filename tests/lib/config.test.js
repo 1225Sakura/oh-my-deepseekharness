@@ -2,10 +2,10 @@
 import { test, expect } from 'vitest'
 import { Config, resolveModel } from '../../lib/config.js'
 
-test('默认值符合规格 §4.3', () => {
+test('默认值符合规格 §4.3（S8-C1：档位 id 对齐部署 LLM 服务，S1 差分证据 glm-5.3-flash 可解析）', () => {
   const c = Config.parse({})
   expect(c.language).toBe('zh')
-  expect(c.tiers).toEqual({ low: 'deepseek-chat', medium: 'deepseek-chat', high: 'deepseek-reasoner' })
+  expect(c.tiers).toEqual({ low: 'glm-5.3-flash', medium: 'glm-5.3-flash', high: 'glm-5.3-flash' })
   expect(c.stateDir).toBe('.omd')
   expect(c.autopilot).toEqual({ maxIterations: 10, maxQaCycles: 5, maxValidationRounds: 3 })
 })
