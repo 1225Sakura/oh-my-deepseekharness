@@ -15,6 +15,13 @@ test('deepInterview 默认值（终审修复 #3：deep-interview skill 引用的
   expect(c.deepInterview).toEqual({ ambiguityThreshold: 0.2, maxRounds: 20, softWarningRounds: 10 })
 })
 
+test('routing.defaultTier 默认 medium（c3 会话默认档）；非法档位拒绝', () => {
+  const c = Config.parse({})
+  expect(c.routing.defaultTier).toBe('medium')
+  expect(Config.parse({ routing: { defaultTier: 'low' } }).routing.defaultTier).toBe('low')
+  expect(() => Config.parse({ routing: { defaultTier: 'ultra' } })).toThrow()
+})
+
 test('deepInterview 可覆盖且非法值拒绝', () => {
   const c = Config.parse({ deepInterview: { ambiguityThreshold: 0.5 } })
   expect(c.deepInterview.ambiguityThreshold).toBe(0.5)

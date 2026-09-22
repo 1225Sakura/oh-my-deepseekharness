@@ -80,3 +80,16 @@ test('终审修复 #6：mcpServer 状态 ok 渲染为 mounted（挂载成功≠s
   expect(text).toContain('| mcpServer | mounted |')
   expect(text).not.toContain('| mcpServer | ok |')
 })
+
+test('c3 自适应路由段：4 特征+表钳制+1:1 日志+fallback 语义入协议（会话默认档跟随 Config）', () => {
+  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
+  expect(text).toContain('c3 自适应路由')
+  expect(text).toContain('taskType=routine/standard/critical')
+  expect(text).toContain('表上限权威')
+  expect(text).toContain('禁止运行中重路由')
+  expect(text).toContain('[routing] dispatch=<id>')
+  expect(text).toContain('fallback:true')
+  expect(text).toContain('会话默认档 medium')
+  const custom = renderProtocol({ config: Config.parse({ routing: { defaultTier: 'low' } }), probeReport: {}, roles: [] })
+  expect(custom).toContain('会话默认档 low')
+})
