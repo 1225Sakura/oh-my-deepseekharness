@@ -66,6 +66,8 @@ export function makeStateTools(env) {
       modes: active.map(s => ({
         mode: s._meta.mode, sessionId: s._meta.sessionId,
         current_phase: s.current_phase, iteration: s.iteration,
+        // c4 HUD 五要素之二：加性透传（现成读面零新宿主槽位；缺席=undefined，消费方自兜底）
+        current_story: s.current_story, active_agents: s.active_agents,
         updatedAt: s._meta.updatedAt,
         stale: Date.now() - Date.parse(s._meta.updatedAt) > 2 * 3600_000,  // 规格 §5.4 stale 2h
       })),

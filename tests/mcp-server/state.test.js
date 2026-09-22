@@ -62,6 +62,21 @@ test('prompt_echo 超过 1200 字符被截断', async () => {
 
 // ---------- 终审修复 L3：孤儿文件（缺 _meta）报错文案 ----------
 
+// ---------- c4 HUD 数据面：getStatus 投影透传（加性，现成读面零新宿主槽位） ----------
+
+test('getStatus 投影透传 current_story 与 active_agents；缺席为 undefined', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 's1', mode: 'ralph',
+    state: { active: true, iteration: 2, current_story: 'S4', active_agents: ['worker-1'] } })
+  const st = await t.getStatus({ cwd })
+  expect(st.activeCount).toBe(1)
+  expect(st.modes[0]).toMatchObject({ mode: 'ralph', iteration: 2, current_story: 'S4', active_agents: ['worker-1'] })
+  await t.write({ cwd, sessionId: 's1', mode: 'ralph', state: { active: true, iteration: 3 } })
+  const st2 = await t.getStatus({ cwd })
+  expect(st2.modes[0].current_story).toBeUndefined()
+  expect(st2.modes[0].active_agents).toBeUndefined()
+})
+
 test('孤儿 state 文件（缺 _meta）的报错文案显示 <unknown> 而非 undefined', async () => {
   const { t, cwd } = await tools()
   const { mkdir, writeFile } = await import('node:fs/promises')
