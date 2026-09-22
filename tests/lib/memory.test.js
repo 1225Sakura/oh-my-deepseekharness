@@ -3,7 +3,7 @@ import { test, expect, beforeAll, afterAll } from 'vitest'
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
-import { registerMemoryTools, projectKey } from '../../lib/memory.js'
+import { registerMemoryTools, projectKey, memoryRecordSchema } from '../../lib/memory.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..', '..')
@@ -207,5 +207,22 @@ test('宿主 defineTool 包裹后调 render 不抛 TypeError: userRender（修�
     expect(blocks.length).toBeGreaterThanOrEqual(1)
     expect(blocks[0].type).toBe('text')
     expect(blocks[0].text.length).toBeGreaterThan(0)
+  }
+})
+
+// F3 热修回归（2026-09-21）：schemastery z.string() 在部署环境缺 .parse，导致
+// dsh-storage-domain 域加载路径对任何非空 memory 表 fatal（S2 spike 判别实验：
+// 17 字符 ASCII 记录即炸；写路径不校验，只在重启时引爆）。
+// memory 记录 schema 必须自带 domain 加载路径所需的 parse。
+test('F3 回归：memoryRecordSchema 提供 domain 加载路径所需的 parse（字符串放行/非字符串拒绝）', () => {
+  const schema = memoryRecordSchema()
+  expect(typeof schema.parse).toBe('function')
+  // 字符串放行：ASCII、CJK、转义引号、长串（M8 记录量级）全部原样返回
+  for (const v of ['short ascii', '测试中文记录', '含"转义引号"的值', 'A'.repeat(448)]) {
+    expect(schema.parse(v)).toBe(v)
+  }
+  // 非字符串拒绝：domain 层包装为 invalid-record（不静默）
+  for (const bad of [42, null, undefined, { v: 'x' }, ['x']]) {
+    expect(() => schema.parse(bad)).toThrow(TypeError)
   }
 })

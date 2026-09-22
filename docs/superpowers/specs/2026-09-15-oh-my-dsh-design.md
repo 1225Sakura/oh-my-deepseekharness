@@ -441,14 +441,14 @@ probe.js 探测结果渲染进协议 section（模型每轮可见能力边界）
 
 1. ✅❌ **MCP 挂载**：静态 patch.yml 无法可靠引用包内绝对路径 → **采用运行时动态挂载**：`ctx.plugin({name,inject,Config,apply}, config)`（cordis 源码实证，fiber 生命周期随 omd 回收）。mcp-client 插件名 `mcp-client`，Config 逐字段核验（serverName 正则 `^[A-Za-z0-9_-]{1,32}$`）；工具命名 `mcp__omd-state__<raw>` 实证。
 2. ✅ **Config 变更重放**：cordis `Fiber.update() → restart()` = 完整 dispose + 重跑 apply（源码实证），协议段随配置自动更新；dispose 链支持 async（domain close 安全）。
-3. ⏳ **模型标识符格式**：待 E2E 实测（workflow provider/model 参数期待的格式）。
-4. ✅ **schemastery**（v3.18.2 源码核验）：`z.const/z.natural/z.dict/z.object/z.union/.default/.description` 全部存在；**schema 本身可调用，无 `.parse`**（已加别名）；校验失败抛 `Schema.ValidationError`。
-5. ⏳ `dsh-subagent` 服务 spawn API（二期 `omd_delegate` 前置，M1 未触及）。
+3. ✅（2026-09-21 S1 spike 实测）**模型标识符格式**：workflow `{model}` 参数消费部署 LLM 服务的模型 id——glm-5.3-flash ✅ 返回非空；deepseek-chat/deepseek-reasoner ✗（子代理创建失败，provider:"deepseek" 变体亦 ✗）。本部署 LLM 为 GLM 系：omd Config 档位 id 必须对齐部署，不可用 id 须显式报错。
+4. ✅ **schemastery**（v3.18.2 源码核验）：`z.const/z.natural/z.dict/z.object/z.union/.default/.description` 全部存在；**schema 本身可调用，无 `.parse`**（已加别名）；校验失败抛 `Schema.ValidationError`。**F3 补充（2026-09-21 S2 spike + 热修）**：域加载路径（dsh-storage-domain L371）对 valueSchema 调 `.parse(raw)`，部署 schemastery 无此方法 → omd 0.2.1 memory 表非空时实例启动即 fatal（任何记录，含纯 ASCII 短串；写路径不校验故只在重启引爆）。已热修：`lib/memory.js` memoryRecordSchema shim（zod 兼容 parse）+ 回归测试；集成验证 PASS（真实域加载路径，负对照复现/修复组 3 记录全读）。
+5. ✅（存在性+条件，2026-09-21 S1 spike 实证）`dsh-subagent`/workflow `agent()` spawn 硬路由：model 覆盖**差分证据可用**（见上第 3 条），`omd_delegate`（M3）据此实现，前置=Config 档位 id 对齐部署。
 6. ✅（决策变更）**工具枚举**：不做宿主工具注册表探测——inject 保证的服务直接 ok，可选能力用存在性检查 + Config 覆盖兜底。
 7. ✅ **ctx.storage 真实 API**（三包源码核验）：`ctx.storage.domain.open(defineDomain({name, version, tables}))` → `domain.table(name)` → KvTable（`get` 同步、`put/delete` 异步）；**域名/表名正则 `^[a-z][a-z0-9_]*$`（连字符非法）**——omd 用 `oh_my_dsh` 域名 + `memory` 表；Domain 句柄经 `ctx.effect` 注册 close。**M1.1 补充实测（2026-09-20）**：storage **必须进 inject**——cordis 对未 inject 服务的访问抛错（B1），probe tryGet 会捕获并误判 unavailable，导致 omd_memory_* 永不注册（doctor 实跑暴露，原报告误诊为宿主问题）；dsh-base 的 cordis.patch.yml 挂载了 dsh-storage/dsh-storage-json/dsh-storage-domain 三件套（patch 实证），任何 base-backed profile 都保证 storage 存在；probe 对 storage 只做形态校验（`domain.open` 存在性），**不做深度 open**——避免真实打开/创建 storages 文件的副作用。
 8. ⏳ skill 同名冲突优先级（E2E 观察项）。
 9. ✅ **systemPrompt**：`section({name, order, text})` 与 `context({name, order, text})` 均存在，**order 强制有限数**（omd 用 100/130）；text 函数**同步求值不 await**（实证）；`{{var}}` 严格插值（protocol 输出须避免 `{{` 序列）。
-10. ✅（存在性）`dsh-hooks-claude-code` 是宿主原生包，支持 UserPromptSubmit 等 7 事件 + `additionalContext` 注入；默认未挂载于 profile。二期关键词 hook 走此桥。
+10. ✅（挂载+事件触发，2026-09-21 S2 spike 实证）`dsh-hooks-claude-code`@0.0.1-rc.5 是宿主原生 **CC 方言兼容桥**（npm restricted 可装）：临时 profile 挂载 → UserPromptSubmit → 钩子消费 322B CC payload（session_id/transcript_path/cwd/prompt）全链路打通。包 README 明示**自研逻辑应写为原生拦截点插件**（agent/pre-step 等 canonical seams），桥仅兼容路径——M3 关键词 hook 据此裁决走原生插件（T4②-B），桥保留为兼容回退。另：profile 已 bundle 的 `dsh-plugin-hooks` 是 PreToolUse/PostToolUse 工具生命周期钩子，与关键词 hook 不重叠。
 11. ⏳ 压缩后 section/context 保留行为（E2E 观察项）。
 12. ⏳ **叶子 subagent 的 `ask_user_question` 能否真实触达用户**（终审发现：planner 卡的访谈流依赖此能力；若不能，备选方案=问题清单带回主会话代问）（E2E 观察项）。
 
@@ -458,4 +458,5 @@ probe.js 探测结果渲染进协议 section（模型每轮可见能力边界）
 
 - **M1（MVP）**：工程骨架 + 协议层（静态 section + 动态 context + 关键词注册表）+ 3 模式（含 team 五阶段流水线、ralph 结构化 PRD + verifier 独立评审、autopilot 数值界限与双评审门）+ 7 角色（11 段格式 + 档位 overlay）+ 10 skill + Config + /omd-doctor + /omd-cancel + 自带 MCP server（state 5 + notepad 6 + prd 4 + handoff 3）+ omd_memory_* + 测试体系 + 本机实装冒烟。
 - **M2**：其余 29 skill / 12 角色全量移植（双语）；sunset 技能继任机制；triage 建议路由。
-- **M3**：`omd_delegate` 硬路由工具；hooks 桥确定性关键词检测 + 状态写入；自适应路由；HUD 面板；team worktree 隔离与确定性任务状态文件；CAS 状态写；组合模式（linked_ralph 类）；`.omd-workspace`/`$OMD_STATE_DIR`；skillify 经验提炼。
+- **M3**（2026-09-21 深度访谈 di-m3-advance-001 裁决修订，7 项；台账 `.omd/prd/m3-advance`）：`omd_delegate` 硬路由工具；hooks 桥确定性关键词检测 + 状态写入；自适应路由；HUD 面板；team worktree 隔离与确定性任务状态文件；CAS 状态写；`.omd-workspace`/`$OMD_STATE_DIR` 多仓锚定。
+- **M4+（推迟池，同日裁决）**：组合模式（linked_ralph 类）——依 L76 分歧表口径移出 M3；skillify 经验提炼（mnemosyne 式注入）——手动 `/skillify` + ralph PRD 台账已覆盖路径，等 hooks 桥等运行时前提成熟（R2/R4 裁决）。
