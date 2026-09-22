@@ -94,6 +94,20 @@ test('c3 自适应路由段：4 特征+表钳制+1:1 日志+fallback 语义入�
   expect(custom).toContain('会话默认档 low')
 })
 
+test('c6 run-state 镜像契约段：七字段+队长独占写+双时机+CAS 冲突语义入协议（路径跟随 stateDir）', () => {
+  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
+  expect(text).toContain('c6 run-state 镜像契约')
+  expect(text).toContain('mode/round/current_story/active_agents/todo')
+  expect(text).toContain('队长独占写')
+  expect(text).toContain('expectUpdatedAt')
+  expect(text).toContain('重试 ≤3 次')
+  expect(text).toContain('覆盖写')
+  expect(text).toContain('warning 日志行')
+  expect(text).toContain('.omd/state/run-state.json')
+  const custom = renderProtocol({ config: Config.parse({ stateDir: '.custom' }), probeReport: {}, roles: [] })
+  expect(custom).toContain('.custom/state/run-state.json')
+})
+
 test('c5 worktree 隔离段：每运行一树+两阶段拆除+取消列差异+孤儿绝不自动删入协议（路径跟随 stateDir）', () => {
   const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
   expect(text).toContain('c5 team worktree 隔离')
