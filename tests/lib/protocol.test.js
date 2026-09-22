@@ -125,6 +125,15 @@ test('c5 worktree 隔离段：每运行一树+两阶段拆除+取消列差异+�
   expect(custom).toContain('.custom/worktrees/{run-id}')
 })
 
+test('c2 关键词 hook 段：原生拦截点+预写状态+MAGIC KEYWORD 激活块+未命中直通入协议', () => {
+  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
+  expect(text).toContain('关键词 hook')
+  expect(text).toContain('agent/pre-step')
+  expect(text).toContain('[MAGIC KEYWORD')
+  expect(text).toContain('零成本直通')
+  expect(text).toContain('expectUpdatedAt=<注入块 updatedAt>')
+})
+
 test('c8 多仓锚定段：树内懒建+豁免向上 marker+残渣随树丢弃入协议（路径跟随 stateDir）', () => {
   const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
   expect(text).toContain('c8 多仓锚定')
