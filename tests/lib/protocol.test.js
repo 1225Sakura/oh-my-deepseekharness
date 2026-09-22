@@ -93,3 +93,14 @@ test('c3 自适应路由段：4 特征+表钳制+1:1 日志+fallback 语义入�
   const custom = renderProtocol({ config: Config.parse({ routing: { defaultTier: 'low' } }), probeReport: {}, roles: [] })
   expect(custom).toContain('会话默认档 low')
 })
+
+test('c5 worktree 隔离段：每运行一树+两阶段拆除+取消列差异+孤儿绝不自动删入协议（路径跟随 stateDir）', () => {
+  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
+  expect(text).toContain('c5 team worktree 隔离')
+  expect(text).toContain('.omd/worktrees/{run-id}')
+  expect(text).toContain('绝不自动删')
+  expect(text).toContain('CAS 写 disposed 终态')
+  expect(text).toContain('只提示不阻塞')
+  const custom = renderProtocol({ config: Config.parse({ stateDir: '.custom' }), probeReport: {}, roles: [] })
+  expect(custom).toContain('.custom/worktrees/{run-id}')
+})
