@@ -118,3 +118,16 @@ test('c5 worktree 隔离段：每运行一树+两阶段拆除+取消列差异+�
   const custom = renderProtocol({ config: Config.parse({ stateDir: '.custom' }), probeReport: {}, roles: [] })
   expect(custom).toContain('.custom/worktrees/{run-id}')
 })
+
+test('c8 多仓锚定段：树内懒建+豁免向上 marker+残渣随树丢弃入协议（路径跟随 stateDir）', () => {
+  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
+  expect(text).toContain('c8 多仓锚定')
+  expect(text).toContain('首次写才懒创建')
+  expect(text).toContain('基线 hash 前后一致')
+  expect(text).toContain('豁免向上 marker')
+  expect(text).toContain('不截胡树内状态')
+  expect(text).toContain('残渣随树丢弃')
+  expect(text).toContain('留执行期')
+  const custom = renderProtocol({ config: Config.parse({ stateDir: '.custom' }), probeReport: {}, roles: [] })
+  expect(custom).toContain('`.custom/`') // 树内状态目录路径跟随 stateDir
+})
