@@ -1,12 +1,12 @@
 ---
 name: hud
-description: omd 会话的状态可见性——HUD 该显示什么（模式、轮次、story、agent、todo）以及今天怎么拿到这些可见性。omd 的 c4 HUD 面板**已在 0.3.0 退役**（系统提示词 context 不支持轮询形态）；当前经 /omd-doctor 和 mcp__omd-state__state_get_status 提供状态可见性。
-when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可见性、或问"我的 HUD 在哪"。不是配置写入器——dsh 今天没有可配置的状态栏面，且 c4 HUD 不再规划。
+description: omd 会话的状态可见性——HUD 该显示什么（模式、轮次、story、agent、todo）以及今天怎么拿到这些可见性。**c4 HUD 库能力已在 0.3.0 还原**（commit 后续 9）为纯函数库（lib/hud.js + tests）；把它渲染为持续面板的 client half 是 omd 1.x 项。
+when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可见性、或问"我的 HUD 在哪"。库调用（`lib/hud.js#summarize` / `renderCard` / `diffSummary`）今天任何调用方都可用；持续面板渲染需 omd client half（1.x）。
 ---
 
 # hud（状态可见性）
 
-> **先把诚实状态说前面：** OMC 的 HUD 是 Claude Code 的 `statusLine` 命令脚本（`~/.claude/hud/omc-hud.mjs` + `settings.json`）。dsh **没有状态栏面**，所以这里没有什么可安装、可配置的。omd 的 **c4 HUD 面板已在 0.3.0 退役**——systemPrompt 的 `context` 是同步装配、不支持轮询形态，lib/hud.js 的设计前提被否；该文件已删除（commit `ed3b28a`）。本技能保留方法论骨架：HUD 该放什么（若未来再上），以及**今天**存在的可见性路径。
+> **先把诚实状态说前面：** OMC 的 HUD 是 Claude Code 的 `statusLine` 命令脚本（`~/.claude/hud/omc-hud.mjs` + `settings.json`）。dsh **没有状态栏面**，所以这里没有什么可安装、可配置的。omd 的 **c4 HUD 库能力已在 0.3.0 还原**（commit 后续 9——`lib/hud.js` + `tests/lib/hud.test.js`，133 + 128 行，7 个测试通过）。库导出五要素契约（mode/round/story/agents/todo）、`summarize` / `renderCard` / `diffSummary` 纯函数、以及 `createPollingHud` 客户端轮询工厂。**通过 dsh 原生 `ctx.betterSidebar` 注册原生侧边栏 tab 的 client half 是 omd 1.x 项**——模式参考：[DSH-better-sidebar external-plugin-guide](https://github.com/omdsh-dev/DSH-better-sidebar/blob/main/docs/external-plugin-guide.md)。在 client half 落地前，用户通过下面 6 条路径拿可见性。
 
 ## HUD 该显示什么（方法论，留给 M3）
 

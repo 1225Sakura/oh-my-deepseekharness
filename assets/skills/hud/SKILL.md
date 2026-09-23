@@ -1,12 +1,12 @@
 ---
 name: hud
-description: Status visibility for omd sessions — what a heads-up display would show (mode, iteration, story, agents, todos) and how to get that visibility today. omd's c4 HUD panel was **retired in 0.3.0** (systemPrompt context does not support polling); current visibility comes from /omd-doctor and mcp__omd-state__state_get_status.
-when-to-use: The user asks about HUD/statusline setup, wants persistent session status visibility, or asks "where is my HUD". Not a config writer — there is no dsh statusline surface to configure today, and c4 HUD is no longer planned.
+description: Status visibility for omd sessions — what a heads-up display would show (mode, iteration, story, agents, todos) and how to get that visibility today. **c4 HUD library capability was restored in 0.3.0 (commit `699377e` siblings — 9)** as a pure-function library (lib/hud.js + tests); client half that renders it as a persistent panel is an omd 1.x item.
+when-to-use: The user asks about HUD/statusline setup, wants persistent session status visibility, or asks "where is my HUD". Library calls (`lib/hud.js#summarize` / `renderCard` / `diffSummary`) are available to any caller today; persistent panel rendering needs the omd client half (1.x).
 ---
 
 # HUD (status visibility)
 
-> **Honest status up front:** OMC's HUD is a Claude Code `statusLine` command script (`~/.claude/hud/omc-hud.mjs` + `settings.json`). dsh has **no statusline surface**, so there is nothing to install or configure here. The omd **c4 HUD panel was retired in 0.3.0** — systemPrompt `context` is synchronous and does not support polling, which ruled out the lib/hud.js shape; the file was deleted (commit `ed3b28a`). This skill preserves the methodology skeleton: what would belong on a HUD if one is ever shipped, and the visibility paths that exist **today**.
+> **Honest status up front:** OMC's HUD is a Claude Code `statusLine` command script (`~/.claude/hud/omc-hud.mjs` + `settings.json`). dsh has **no statusline surface**, so there is nothing to install or configure here. omd's **c4 HUD library capability is restored in 0.3.0** (commit `699377e` siblings — `lib/hud.js` + `tests/lib/hud.test.js`, 133 + 128 lines, 7 tests passing). The library exposes the five-element contract (mode/round/story/agents/todo), the `summarize`/`renderCard`/`diffSummary` pure functions, and a `createPollingHud` factory for client-side polling. **Client half that registers a native sidebar tab via dsh's `ctx.betterSidebar` is an omd 1.x item** — pattern reference: [DSH-better-sidebar external-plugin-guide](https://github.com/omdsh-dev/DSH-better-sidebar/blob/main/docs/external-plugin-guide.md). Until the client half ships, users get visibility through the six paths below.
 
 ## What a HUD should show (the methodology, kept for M3)
 
