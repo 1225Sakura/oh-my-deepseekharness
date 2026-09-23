@@ -1,6 +1,6 @@
 {
   "name": "@sakura12/oh-my-deepseekharness",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Multi-agent orchestration layer for DeepSeek Harness (OMC/OMX adaptation)",
   "type": "module",
   "main": "lib/index.js",
