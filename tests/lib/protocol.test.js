@@ -94,7 +94,7 @@ test('c3 自适应路由段：4 特征+表钳制+1:1 日志+fallback 语义入�
   expect(text).toContain('表上限权威')
   expect(text).toContain('禁止运行中重路由')
   expect(text).toContain('[routing] dispatch=<id>')
-  expect(text).toContain('fallback:true')
+  expect(text).toContain('fallback 审计记入权威 run-state')
   expect(text).toContain('会话默认档 medium')
   const custom = renderProtocol({ config: Config.parse({ routing: { defaultTier: 'low' } }), probeReport: {}, roles: [] })
   expect(custom).toContain('会话默认档 low')

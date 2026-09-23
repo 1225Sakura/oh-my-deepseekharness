@@ -141,7 +141,7 @@ test('C3 表外任务 e2e：落会话默认档 + run-state.json 记 fallback:tru
     expect(d.tableTier).toBeNull()
     expect(d.tier).toBe('medium') // 会话默认档（Config.routing.defaultTier 默认 medium）
     expect(d.logLine).toContain('fallback=true')
-    const file = await recordFallback({ stateDir: dir, decision: d })
+    const file = await recordFallback({ cwd: dir, stateDir: '.omd', decision: d })
     const state = JSON.parse(await readFile(file, 'utf8'))
     expect(state.fallback).toBe(true)
     expect(state.lastFallback).toMatchObject({ dispatchId: 'e2e-001', role: 'omd-agent-nosuch', tier: 'medium' })
@@ -150,7 +150,7 @@ test('C3 表外任务 e2e：落会话默认档 + run-state.json 记 fallback:tru
     const d2 = routeOnce({ table, role: 'omd-agent-nosuch', features, dispatchId: 'e2e-002', defaultTier: 'low' })
     expect(d2.tier).toBe('low')
     // recordFallback 只接受 fallback 判定（防误审计）
-    await expect(recordFallback({ stateDir: dir, decision: { fallback: false } })).rejects.toThrow(/fallback/)
+    await expect(recordFallback({ cwd: dir, stateDir: '.omd', decision: { fallback: false } })).rejects.toThrow(/fallback/)
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
@@ -158,4 +158,23 @@ test('C3 表外任务 e2e：落会话默认档 + run-state.json 记 fallback:tru
 
 test('TIER_BANDS 与协议渲染同源（0-2/3-5/6-8）', () => {
   expect(TIER_BANDS).toEqual({ lowMax: 2, mediumMax: 5 })
+})
+
+// M1 修复回归：fallback 审计走权威路径 + withFileLock 互斥——并发双调不丢更新、恰一最终值
+test('M1 回归：并发 fallback 审计在权威路径互斥域内串行', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'omd-m1-'))
+  try {
+    const d1 = { fallback: true, dispatchId: 'm1-a', role: 'r1', tier: 'low' }
+    const d2 = { fallback: true, dispatchId: 'm1-b', role: 'r2', tier: 'medium' }
+    await Promise.all([
+      recordFallback({ cwd: dir, stateDir: '.omd', decision: d1 }),
+      recordFallback({ cwd: dir, stateDir: '.omd', decision: d2 }),
+    ])
+    const file = join(dir, '.omd', 'state', 'run-state.json')
+    const state = JSON.parse(await readFile(file, 'utf8'))
+    expect(state.fallback).toBe(true)
+    expect(['m1-a', 'm1-b']).toContain(state.lastFallback.dispatchId) // 锁内串行，恰一最终值
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
 })
