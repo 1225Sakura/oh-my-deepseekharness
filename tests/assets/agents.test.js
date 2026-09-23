@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url'
 const AGENTS = join(dirname(fileURLToPath(import.meta.url)), '../../assets/agents')
 const OVERLAYS = join(dirname(fileURLToPath(import.meta.url)), '../../assets/overlays')
 
-// 19 角色全量名册（M1 7 + M2 12），tier 与 OMC 源 frontmatter model 字段映射核验过：
-// haiku→low, sonnet→medium, opus→high
+// 33 角色全量名册（M1 7 + M2 12 + v0.4 OMX 移植 14），tier 与 OMC/OMX 源卡语义映射核验过：
+// haiku→low, sonnet→medium, opus→high；OMX 卡按职责影响面定档（评审深度/破坏半径）
 const TIERS = {
   // M1
   explore: 'low', planner: 'high', analyst: 'high', executor: 'medium',
@@ -19,13 +19,23 @@ const TIERS = {
   'test-engineer': 'medium', 'qa-tester': 'medium', scientist: 'medium', critic: 'high',
   // M2 R3
   writer: 'low', 'git-master': 'medium', 'document-specialist': 'medium', 'code-simplifier': 'high',
+  // v0.4 OMX 移植（R4 评审线 / R5 专家线 / R6 产品研究线）
+  'api-reviewer': 'high', 'style-reviewer': 'low', 'performance-reviewer': 'high',
+  'quality-reviewer': 'medium', 'quality-strategist': 'high',
+  'build-fixer': 'medium', 'dependency-expert': 'medium',
+  'information-architect': 'medium', vision: 'medium',
+  'product-analyst': 'medium', 'product-manager': 'high', 'ux-researcher': 'medium',
+  researcher: 'low', 'explore-harness': 'low',
 }
 const EXPECTED = Object.keys(TIERS)
-// 只读角色（源 frontmatter disallowedTools: Write, Edit 或等效判定）
+// 只读角色（源 frontmatter disallowedTools: Write, Edit 或等效判定）；build-fixer 是 execution 卡不在列
 const READONLY = ['explore', 'planner', 'analyst', 'verifier', 'code-reviewer',
-  'architect', 'security-reviewer', 'document-specialist', 'scientist', 'critic']
+  'architect', 'security-reviewer', 'document-specialist', 'scientist', 'critic',
+  'api-reviewer', 'style-reviewer', 'performance-reviewer', 'quality-reviewer', 'quality-strategist',
+  'dependency-expert', 'information-architect', 'vision',
+  'product-analyst', 'product-manager', 'ux-researcher', 'researcher', 'explore-harness']
 
-test('19 角色 × 双语文件齐全', async () => {
+test('33 角色 × 双语文件齐全', async () => {
   const files = await readdir(AGENTS)
   for (const r of EXPECTED) {
     expect(files).toContain(`${r}.md`)
@@ -47,10 +57,10 @@ test('每张中文卡：frontmatter 正确 + Final_Response_Contract + leaf-guar
   }
 })
 
-test('tier 分布符合预期（low 2 / medium 10 / high 7）', () => {
+test('tier 分布符合预期（low 5 / medium 17 / high 11）', () => {
   const counts = { low: 0, medium: 0, high: 0 }
   for (const t of Object.values(TIERS)) counts[t]++
-  expect(counts).toEqual({ low: 2, medium: 10, high: 7 })
+  expect(counts).toEqual({ low: 5, medium: 17, high: 11 })
 })
 
 test('3 档 overlay × 双语齐全', async () => {

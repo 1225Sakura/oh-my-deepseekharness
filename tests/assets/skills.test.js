@@ -5,7 +5,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const SKILLS = join(dirname(fileURLToPath(import.meta.url)), '../../assets/skills')
-// 40 skill 全量名册：M1 11 + M2 S1 8 + S2 7 + S3 7 + S4 7
+// 44 skill 全量名册：M1 11 + M2 S1 8 + S2 7 + S3 7 + S4 7 + v0.4 OMX 移植 4
 const EXPECTED = [
   // M1：3 模式 + 7 辅助 + omd-doctor（原创）
   'autopilot', 'ralph', 'team', 'deep-interview', 'ralplan', 'plan', 'execute', 'verify', 'review', 'cancel', 'omd-doctor',
@@ -17,9 +17,11 @@ const EXPECTED = [
   'deepinit', 'drydock', 'harbor', 'loft', 'launch', 'hud', 'configure-notifications',
   // M2 S4 元与发布类（omc-setup 已改名 omd-setup；omc-doctor 保留为 deprecated 迁移体检）
   'omc-doctor', 'omd-setup', 'project-session-manager', 'release', 'ultragoal', 'visual-verdict', 'wiki',
+  // v0.4 OMX 独有 skill 移植（ultraqa/worker 已记 🚫 决定：OMC 退役 / 并入 team）
+  'analyze', 'best-practice-research', 'design', 'performance-goal',
 ]
 
-test('40 个 skill 目录 × 双语文件齐全', async () => {
+test('44 个 skill 目录 × 双语文件齐全', async () => {
   const dirs = await readdir(SKILLS)
   for (const s of EXPECTED) {
     expect(dirs).toContain(s)

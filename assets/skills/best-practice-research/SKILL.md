@@ -1,0 +1,90 @@
+---
+name: best-practice-research
+description: Bounded best-practice research wrapper using official/upstream evidence first, with a cited recommendation and explicit handoff
+when-to-use: A task depends on current external best practices, version-aware guidance, standards, official recommendations, or upstream behavior for an already chosen technology. Not for fully repo-local answers (use explore/research) or dependency adoption/comparison decisions.
+---
+
+# Best-Practice Research
+
+Use this skill when a task depends on current external best practices, version-aware guidance, standards, official recommendations, or upstream behavior. This is a workflow wrapper: it routes evidence gathering and synthesis; it is not a new research authority and it does not replace the general `research` lane.
+
+## Purpose
+
+Produce a cited, reusable best-practice answer or handoff that separates current external evidence from repo-local facts and dependency-selection decisions. For pre-planning investigation, this is the ordinary first research wrapper: gather official/upstream evidence, then hand it to the planning lane (`ralplan` / `plan`) or the caller as planning input. Do not present this skill as a final architecture component or as a validator-gated research loop.
+
+## Terminal By Default
+
+This skill is terminal and read-only by default. It gathers evidence and produces a cited recommendation with a handoff, then stops. Do not write or edit files, create or amend commits, run mutating commands, or otherwise modify repository state under this skill — even when the question has clear implementation implications. When implementation is warranted, stop and hand off rather than continuing: name `ralplan` / `plan` for planning and `autopilot` / `team` / `omd-agent-executor` for execution, and resume only after the user explicitly switches to that workflow.
+
+## Activate When
+
+- The user asks for best practices, recommended approach, current guidance, official recommendations, standards, or version-aware external behavior.
+- `ralplan`, `deep-interview`, `team`, or another workflow needs current external evidence before planning or execution can be correct.
+- The task involves an already chosen technology and needs authoritative usage guidance, migration notes, API behavior, lifecycle rules, or current safety guidance.
+
+## Do Not Activate When
+
+- The answer is fully repo-local; use `omd-agent-explore` / `research` for codebase facts.
+- The main question is whether to adopt, replace, upgrade, or compare dependencies — **dsh has no dedicated dependency-expert lane**; run that comparison through this skill's source-quality rules plus the `omd-agent-critic` role card, and say plainly that the dedicated OMX lane has no equivalent.
+- The user only needs implementation against already-grounded requirements; execute directly, or use `team` when coordinated parallel work is warranted.
+- The task can be answered from stable local project conventions without current external lookup.
+
+## Specialist Routing
+
+1. Use `omd-agent-explore` (via `subagent`, or `omd_delegate` for hard routing) first for brownfield facts: current code usage, local constraints, versions, config, and integration points.
+2. Use `omd-agent-document-specialist` for official/upstream docs, release notes, standards, migration guides, source-backed examples, and current best-practice evidence for an already chosen technology. For direct lookups, `web_search` / `read_page` in this lane work too.
+3. For adoption/upgrade/replacement/comparison decisions there is no dedicated role — apply this skill's source-quality rules yourself and label the dependency-selection part as a boundary, not a verdict.
+4. Return to the caller with explicit evidence, uncertainty, and any implementation handoff constraints.
+
+## Source-Quality Rules
+
+- Prefer official documentation, upstream source, release notes, changelogs, standards, and maintainer guidance.
+- Include source URLs for material claims.
+- State date/version context for current best-practice claims.
+- Label third-party summaries as supplemental; do not use them before official/upstream sources.
+- Flag stale, conflicting, undocumented, or version-mismatched evidence.
+- Do not over-fetch: gather the smallest evidence set that can support the decision.
+
+## Workflow
+
+1. Classify the question: conceptual best practice, implementation guidance, migration/version guidance, standards/compliance guidance, or mixed local + external guidance.
+2. Gather repo-local facts with `omd-agent-explore` / `grep` / `glob` / `read` when local usage or constraints affect the answer.
+3. Gather external evidence with `omd-agent-document-specialist` / `web_search` / `read_page` when current or version-aware practice affects correctness.
+4. Synthesize a concise answer with source quality, version/date context, caveats, and an implementation or planning handoff.
+5. Stop when the answer is grounded enough for the caller; otherwise report the exact blocker or specialist handoff needed.
+
+## Output Contract
+
+```md
+## Best-Practice Research: <question>
+
+### Direct Recommendation
+<actionable guidance or decision support>
+
+### Evidence Used
+- Official/upstream: <source URL> — <what it establishes>
+- Supplemental, if any: <source URL> — <why it is secondary>
+
+### Version / Date Context
+<versions, dates, release channels, or unknowns>
+
+### Repo-Local Context
+<facts from explore, or "not needed">
+
+### Boundaries / Non-goals
+<what this research does not decide>
+
+### Handoff
+<planning/execution/test implications; name the next workflow — `ralplan` / `plan` for planning, `autopilot` / `team` / `omd-agent-executor` for execution — and note that this skill stops here unless the user explicitly switches workflows>
+```
+
+## Stop Rules
+
+- Stop after a source-backed recommendation is reusable by the caller.
+- Stop and route upward if the task becomes dependency comparison, broad architecture, or implementation.
+- Do not continue researching when remaining work would only polish wording rather than change the recommendation.
+- This skill never implements. After delivering the recommendation and handoff, stop; do not modify repo files or repo state. Resume only when the user explicitly switches to a planning or implementation workflow named in the handoff.
+
+## State Contract (状态契约)
+
+This skill **holds no mode state** and creates nothing under `.omd/state/`. The cited answer is delivered as the final message; durable best-practice facts worth keeping go to `mcp__omd-state__notepad_write_priority` / `notepad_write_working`.

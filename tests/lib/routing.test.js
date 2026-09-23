@@ -1,6 +1,6 @@
 // tests/lib/routing.test.js
 // c3 自适应路由验收（台账 m3-advance S3，R18 表逐行落槽）：
-// C1 断言①：配置 21 项模型路由表 × 4 特征笛卡尔抽样 → 每次派发档位 ≤ 表定上限（钳制成立，表上限权威）
+// C1 断言①：配置 35 项模型路由表 × 4 特征笛卡尔抽样 → 每次派发档位 ≤ 表定上限（钳制成立，表上限权威）
 // C2 断言②：按 dispatch id 键控的路由日志行数 == 派发数（派发前恰一次判定，无运行中重路由）
 // C3 断言③：表外任务 e2e 一例 → 落会话默认档 + run-state.json 记 fallback:true（可审计）
 import { test, expect } from 'vitest'
@@ -50,19 +50,19 @@ test('clampTier：TIER_ORDER 序上只降不升；非法档位抛错', () => {
   expect(() => clampTier('ultra', 'high')).toThrow()
 })
 
-// ---- C1 断言①：配置 21 项模型路由表 × 4 特征笛卡尔抽样 → 每次派发档位 ≤ 表定上限 ----
-test('C1 钳制：21 项路由表（19 实角色+2 夹具）× 81 特征组合全抽样，派发档位恒 ≤ 表定上限', async () => {
+// ---- C1 断言①：配置 35 项模型路由表 × 4 特征笛卡尔抽样 → 每次派发档位 ≤ 表定上限 ----
+test('C1 钳制：35 项路由表（33 实角色+2 夹具）× 81 特征组合全抽样，派发档位恒 ≤ 表定上限', async () => {
   const assets = await loadAssets({ assetsRoot: ASSETS, language: 'zh' })
   const realRoles = assets.roles.map(r => ({ name: r.name, tier: r.tier }))
-  // 判据构造「配置 21 项模型路由表」：生产 19 实角色 + 夹具角色补足 21 项（逐项标注 fixture- 前缀）
+  // 判据构造「配置 35 项模型路由表」：生产 33 实角色（v0.4 OMX 移植 +14）+ 夹具角色补足 35 项（逐项标注 fixture- 前缀）
   const fixture = [...realRoles]
   let i = 0
-  while (fixture.length < 21) fixture.push({ name: `fixture-agent-${++i}`, tier: TIER_ORDER[i % 3] })
-  expect(realRoles.length).toBe(19)
-  expect(fixture.length).toBe(21)
+  while (fixture.length < 35) fixture.push({ name: `fixture-agent-${++i}`, tier: TIER_ORDER[i % 3] })
+  expect(realRoles.length).toBe(33)
+  expect(fixture.length).toBe(35)
 
   const table = buildRoutingTable(fixture)
-  expect(Object.keys(table).length).toBe(21)
+  expect(Object.keys(table).length).toBe(35)
   const combos = cartesianFeatures()
   let sampled = 0
   for (const [role, cap] of Object.entries(table)) {
@@ -75,10 +75,10 @@ test('C1 钳制：21 项路由表（19 实角色+2 夹具）× 81 特征组合�
       sampled++
     }
   }
-  expect(sampled).toBe(21 * 81)
+  expect(sampled).toBe(35 * 81)
 })
 
-test('C1 补充：生产路由表（assets 19 实角色）× 81 组合全抽样同样钳制（表上限权威）', async () => {
+test('C1 补充：生产路由表（assets 33 实角色）× 81 组合全抽样同样钳制（表上限权威）', async () => {
   const assets = await loadAssets({ assetsRoot: ASSETS, language: 'zh' })
   const table = buildRoutingTable(assets.roles)
   const combos = cartesianFeatures()
@@ -90,8 +90,8 @@ test('C1 补充：生产路由表（assets 19 实角色）× 81 组合全抽样�
       sampled++
     }
   }
-  expect(Object.keys(table).length).toBe(19)
-  expect(sampled).toBe(19 * 81)
+  expect(Object.keys(table).length).toBe(33)
+  expect(sampled).toBe(33 * 81)
 })
 
 // ---- C2 断言②：按 dispatch id 键控的路由日志行数 == 派发数 ----
