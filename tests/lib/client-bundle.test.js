@@ -89,7 +89,7 @@ test('③ apply：tab 类型 + tab 体注册（seat/key 对齐，guide 胶囊齐
   expect(def.guide[0].description()).toContain('五要素')
   expect(slotInjects).toEqual(['sidebar.right.pane.tab'])
   expect(slotRegs).toHaveLength(1)
-  expect(slotRegs[0].meta).toMatchObject({ name: 'sidebar.right.pane.tab', id: 'omd-hud-panel' })
+  expect(slotRegs[0].meta).toMatchObject({ name: 'sidebar.right.pane.tab', key: 'omd-hud-panel' }) // keyed 座按 key 派发（第一方契约）
   expect(slotRegs[0].component).toBe(exports.HudPanel) // 体座 key=定义 id，组件同导出
 })
 

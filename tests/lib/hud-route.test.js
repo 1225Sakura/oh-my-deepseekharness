@@ -38,15 +38,23 @@ test('handler：?cwd= 显式指定优先；响应 JSON + no-store；异常 500',
     const seen = []
     const handler = makeHudHandler({ stateDir: '.omd', snapshot: async (a) => { seen.push(a); return { ok: true, cwd: a.cwd, summary: {}, card: 'x' } } })
     const res = mockRes()
-    await handler({ url: `/oh-my-dsh/hud.json?cwd=${encodeURIComponent(cwd)}` }, res)
+    await handler({ method: 'GET', url: `/oh-my-dsh/hud.json?cwd=${encodeURIComponent(cwd)}` }, res)
     expect(res.status).toBe(200)
     expect(res.headers['cache-control']).toBe('no-store')
     expect(JSON.parse(res.body).cwd).toBe(cwd)
     expect(seen[0].cwd).toBe(cwd)
 
+    // 评审修复：POST 405；不存在的 cwd 404（路径 oracle 收窄）
+    const resPost = mockRes()
+    await handler({ method: 'POST', url: '/oh-my-dsh/hud.json' }, resPost)
+    expect(resPost.status).toBe(405)
+    const res404 = mockRes()
+    await handler({ method: 'GET', url: '/oh-my-dsh/hud.json?cwd=C%3A%2Fno-such-dir-omd-xyz' }, res404)
+    expect(res404.status).toBe(404)
+
     const boom = makeHudHandler({ snapshot: async () => { throw new Error('disk gone') } })
     const res2 = mockRes()
-    await boom({ url: '/oh-my-dsh/hud.json' }, res2)
+    await boom({ method: 'GET', url: '/oh-my-dsh/hud.json' }, res2)
     expect(res2.status).toBe(500)
     expect(JSON.parse(res2.body).error).toContain('disk gone')
   } finally { await rm(cwd, { recursive: true, force: true }) }

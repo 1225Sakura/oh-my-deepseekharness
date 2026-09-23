@@ -180,3 +180,62 @@ test('lsp：未注册 server 显式报错；lsp_stop 未运行幂等', async () 
     expect(r.note).toBe('未运行')
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
+
+// ---------- 评审修复回归（v0.4.1） ----------
+
+test('评审#2：spawn 不存在的 command → 显式报错而非打崩 MCP server', async () => {
+  const cwd = await fixture()
+  const t = makeCodeIntelTools({
+    codeIntel: { lspServers: { ghost: { command: 'definitely-not-a-real-binary-omd-xyz', args: [], languages: [] } } },
+  })
+  try {
+    await expect(t.lspStart({ cwd, server: 'ghost' })).rejects.toThrow(/启动失败|ENOENT|exit|write after a stream/i)
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+}, 20000)
+
+test('评审#4：initialize 无响应 → initializeTimeoutMs 内显式超时（不无限悬挂）', async () => {
+  const cwd = await fixture()
+  // 挂起服务器：读 stdin 但永不回复
+  const t = makeCodeIntelTools({
+    codeIntel: {
+      lspServers: {
+        hung: { command: process.execPath, args: ['-e', 'process.stdin.resume()'], languages: [], initializeTimeoutMs: 800 },
+      },
+    },
+  })
+  try {
+    const start = Date.now()
+    await expect(t.lspStart({ cwd, server: 'hung' })).rejects.toThrow(/超时/)
+    expect(Date.now() - start).toBeLessThan(5000) // 在注入的 800ms 超时附近失败，不悬挂
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+}, 20000)
+
+test('评审：崩溃预算真实生效（2 次崩溃后第 3 次拒绝；lsp_stop 复位）', async () => {
+  const cwd = await fixture()
+  const t = makeCodeIntelTools({
+    codeIntel: {
+      lspServers: {
+        crasher: { command: process.execPath, args: ['-e', 'setTimeout(()=>process.exit(1),100)'], languages: [], initializeTimeoutMs: 500 },
+      },
+    },
+  })
+  try {
+    for (let i = 0; i < 3; i++) {
+      await t.lspStart({ cwd, server: 'crasher' }).catch(() => {}) // 握手多半超时/失败，child 随后 exit 入账
+      await new Promise(r => setTimeout(r, 300)) // 等 exit 事件入账
+    }
+    // 崩溃 ≥2 后拒绝（预算账本独立于 servers 存活期）
+    await expect(t.lspStart({ cwd, server: 'crasher' })).rejects.toThrow(/崩溃重启已达上限/)
+    await t.lspStop({ server: 'crasher' }) // 显式 stop 复位预算
+    // 复位后不再因预算拒绝（可能因握手失败抛别的错，但不是预算错）
+    await expect(t.lspStart({ cwd, server: 'crasher' })).rejects.toThrow(/^(?!.*崩溃重启已达上限).*$/)
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+}, 30000)
+
+test('评审#3：astGrep=false 时 replace 同样显式禁用（search 不再独木难支）', async () => {
+  const cwd = await fixture()
+  try {
+    const t = makeCodeIntelTools({ codeIntel: { astGrep: false } })
+    await expect(t.astGrepReplace({ cwd, pattern: 'foo($A)', rewrite: 'bar($A)', lang: 'javascript' })).rejects.toThrow('禁用')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
