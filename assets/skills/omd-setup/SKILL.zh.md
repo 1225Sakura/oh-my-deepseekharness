@@ -17,7 +17,7 @@ omd 是 **dsh 插件**，不是 CLI。没有 `omd setup` 命令，也不需要�
 dsh plugin --profile <name> add oh-my-dsh
 
 # 从本地检出（开发 / 预发布）
-dsh plugin --profile <name> add D:\omd        # 换成你机器上的检出路径
+dsh plugin --profile <name> add /path/to/oh-my-deepseekharness        # 换成你机器上的检出路径
 ```
 
 安装时发生了什么：

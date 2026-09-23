@@ -17,7 +17,7 @@ Pick one source:
 dsh plugin --profile <name> add oh-my-dsh
 
 # From a local checkout (development / pre-release)
-dsh plugin --profile <name> add D:\omd        # or the checkout path on your OS
+dsh plugin --profile <name> add /path/to/oh-my-deepseekharness        # or the checkout path on your OS
 ```
 
 What happens on install:

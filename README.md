@@ -1,6 +1,6 @@
 # oh-my-dsh (omd)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3D22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 95 passed](https://img.shields.io/badge/tests-95%20passed-brightgreen)](./tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3D22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 195 passed](https://img.shields.io/badge/tests-195%20passed-brightgreen)](./tests)
 
 **DeepSeek Harness 的多智能体编排层** —— OMC / OMX 编排理念的 dsh 宿主适配实现。
 Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), adapted from:
@@ -18,8 +18,8 @@ omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 4
 # 发布后（npm 包名 @sakura12/oh-my-deepseekharness）
 dsh plugin --profile <name> add @sakura12/oh-my-deepseekharness
 
-# 本地开发（指向本仓库路径）
-dsh plugin --profile web add D:\omd
+# 本地开发（指向本仓库路径；以你的检出路径替换）
+dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 ```
 
 要求：Node.js ≥ 22.19，dsh 宿主 0.1.5-rc.1+。所有 `@deepseek-ai/*` 依赖均为宿主义务（peerDependencies，缺失自动降级，见下文「依赖边界」）。
@@ -35,7 +35,7 @@ dsh plugin --profile web add D:\omd
 | 模式 | 一句话示例 | 说明 |
 |---|---|---|
 | **autopilot** | `autopilot 帮我做一个 CLI 字数统计工具` | 自然语言触发，goal 驱动的全流程自动编排（访谈→规划→执行→双评审门） |
-| **ralph** | `ralph: 给仓库加 LICENSE 和 README 徽章` | 显式触发（`ralph:` 前缀），PRD + 证据契约的迭代循环，前台阻塞 |
+| **ralph** | `ralph: 把 README 的测试徽章数字同步到当前实际值` | 显式触发（`ralph:` 前缀），PRD + 证据契约的迭代循环，前台阻塞 |
 | **team** | `用 team 调研插件市场生态并出报告` | 无关键词，只能显式调用；多角色五阶段流水线（AgentTeams 承载） |
 
 取消与诊断：
@@ -57,6 +57,7 @@ dsh plugin --profile web add D:\omd
 | 角色 | **19** 个委派角色卡（`omd-agent-*`：explore / planner / analyst / executor / verifier / code-reviewer / designer / architect / debugger / tracer / security-reviewer / test-engineer / qa-tester / scientist / critic / writer / git-master / document-specialist / code-simplifier），各带档位（low 2 / medium 10 / high 7）与职责资产 |
 | Skills | **40** 个（中英双语资产）：3 执行模式 + 规划（ralplan/plan/deep-interview/ask-navigator）+ 质量（execute/verify/review/ai-slop-cleaner/minimal-code-discipline/agent-doc-discipline）+ 研究（research/autoresearch/external-context/trace/debug/graph）+ 记忆（remember/skillify/skill/self-improve/wiki）+ 基础设施与元（deepinit/drydock/harbor/loft/launch/hud/configure-notifications/omd-setup/project-session-manager/release/ultragoal/visual-verdict/ask/cancel/omd-doctor/omc-doctor） |
 | MCP 工具 | **18** 个（内置 `omd-state` MCP server）：`state_*`（模式状态，5）/ `notepad_*`（三区记事本，6）/ `prd_*`（需求台账，4）/ `handoff_*`（阶段交接，3） |
+| M3 增量 | **7** 项已交付：自适应模型路由（4 特征信号）/ HUD 状态摘要卡 / team worktree 隔离（每运行一树 + CAS 拆除 + 孤儿扫描）/ CAS 状态写（run-state.json 七字段）/ 多仓锚定（`.omd-workspace` 树内懒建）/ `omd_delegate` 硬路由工具 / `agent/pre-step` 原生拦截点 hooks 桥 |
 | 跨会话记忆 | `omd_memory_set` / `omd_memory_get` / `omd_memory_delete`（宿主 storage domain 承载，按项目哈希键隔离） |
 
 ---
@@ -130,12 +131,9 @@ oh-my-dsh:
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（96 tests）
+npm test            # vitest 全量（26 files / 195 tests）
 npm run test:watch
 ```
-
-设计规格：`docs/superpowers/specs/2026-09-15-oh-my-dsh-design.md`
-实现计划：`docs/superpowers/plans/2026-09-15-oh-my-dsh-m1.md`
 
 ## License
 
