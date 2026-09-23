@@ -5,29 +5,20 @@
 // 写 run-state 快照（c6），关闭时用 `team_dispose` 两阶段拆除（c5）。
 // 路径在 c5 运行树内时自动走 c8 树内锚定（multirepo.writeTreeRunState）；非运行树走主仓。
 import { z } from 'zod'
-import { join } from 'node:path'
-import { beginTeamRun, disposeRunWorktree, scanOrphans, runStatePath } from '../../lib/worktree.js'
+import { beginTeamRun, disposeRunWorktree, scanOrphans } from '../../lib/worktree.js'
 import { writeRunStateMirror, buildMirrorPatch, buildTodoSummary } from '../../lib/runstate.js'
-import { resolveRunStateDir, writeTreeRunState } from '../../lib/multirepo.js'
+import { writeTreeRunState } from '../../lib/multirepo.js'
 import { makeNotepadTools } from './notepad.mjs'
-import { makeStateTools } from './state.mjs'
-
-/**
- * 路径解析：c8 多仓锚定。优先取 c5 运行树内的 <tree>/.omd；非运行树走 cwd/stateDir。
- * @returns {{ cwd: string, stateDir: string, anchored: string, treeRoot?: string, runId?: string }}
- */
-function resolveStateRoot({ cwd, stateDir }) {
-  const r = resolveRunStateDir(cwd, { stateDir })
-  if (r.anchored === 'tree') {
-    return { cwd: r.treeRoot, stateDir: r.resolved.replace(r.treeRoot + '/', '').replace(r.treeRoot + '\\', ''), anchored: 'tree', treeRoot: r.treeRoot, runId: r.runId }
-  }
-  return { cwd, stateDir, anchored: r.anchored }
-}
 
 export function makeTeamTools(env) {
-  /** 一次性内部依赖：notepad stats 用于 c6 todo 三区计数。 */
-  function notepadStats(cwd) {
-    return makeNotepadTools({ stateDir: env.stateDir }).stats({ cwd })
+  /**
+   * notepad stats 取数（B5 修订）：caller 显式传 stateDir 时走 caller 的 stateDir，
+   * 否则走 env.stateDir。这样 todo 数据源与 run-state 写位置在同一目录，
+   * 避免 c5 树内 cwd 与主仓 run-state.json 跨仓不一致。
+   */
+  function notepadStats(cwd, stateDir) {
+    const sd = stateDir ?? env.stateDir
+    return makeNotepadTools({ stateDir: sd }).stats({ cwd })
   }
 
   async function begin({ cwd, runId, stateDir = '.omd' }) {
@@ -47,10 +38,10 @@ export function makeTeamTools(env) {
   /**
    * 阶段边界 / 派发前快照写（c6 唯一入口）。
    * patch 经 buildMirrorPatch 构造七字段镜像键，writeRunStateMirror 内做 CAS + 重试 + 覆盖写兜底。
-   * todo 字段可由调用方显式传，否则从 cwd 的 notepad stats 自动取。
+   * todo 字段可由调用方显式传，否则从 cwd 的 notepad stats 自动取（stateDir 透传，与 run-state 同位置）。
    */
   async function writeMirror({ cwd, stateDir = '.omd', patch = {}, expectUpdatedAt, retries = 3 }) {
-    const todo = patch.todo ?? buildTodoSummary({ stats: await notepadStats(cwd) })
+    const todo = patch.todo ?? buildTodoSummary({ stats: await notepadStats(cwd, stateDir) })
     const mirrorPatch = buildMirrorPatch({ ...patch, todo })
     return await writeRunStateMirror({ cwd, stateDir, patch: mirrorPatch, expectUpdatedAt, retries })
   }

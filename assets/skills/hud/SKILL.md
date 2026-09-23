@@ -1,12 +1,12 @@
 ---
 name: hud
-description: Status visibility for omd sessions — what a heads-up display should show (mode, iteration, story, agents, todos) and how to get that visibility today. The omd HUD panel is an M3 milestone; current visibility comes from /omd-doctor and mcp__omd-state__state_get_status.
-when-to-use: The user asks about HUD/statusline setup, wants persistent session status visibility, or asks "where is my HUD". Not a config writer — there is no dsh statusline surface to configure today.
+description: Status visibility for omd sessions — what a heads-up display would show (mode, iteration, story, agents, todos) and how to get that visibility today. omd's c4 HUD panel was **retired in 0.3.0** (systemPrompt context does not support polling); current visibility comes from /omd-doctor and mcp__omd-state__state_get_status.
+when-to-use: The user asks about HUD/statusline setup, wants persistent session status visibility, or asks "where is my HUD". Not a config writer — there is no dsh statusline surface to configure today, and c4 HUD is no longer planned.
 ---
 
 # HUD (status visibility)
 
-> **Honest status up front:** OMC's HUD is a Claude Code `statusLine` command script (`~/.claude/hud/omc-hud.mjs` + `settings.json`). dsh has **no statusline surface**, so there is nothing to install or configure here. The omd HUD panel — rendered through the host's `dsh.client` client slot — is an **M3 milestone** (spec §1 capability matrix, §8 roadmap). This skill preserves the methodology skeleton: what belongs on a HUD, and the visibility paths that exist **today**.
+> **Honest status up front:** OMC's HUD is a Claude Code `statusLine` command script (`~/.claude/hud/omc-hud.mjs` + `settings.json`). dsh has **no statusline surface**, so there is nothing to install or configure here. The omd **c4 HUD panel was retired in 0.3.0** — systemPrompt `context` is synchronous and does not support polling, which ruled out the lib/hud.js shape; the file was deleted (commit `ed3b28a`). This skill preserves the methodology skeleton: what would belong on a HUD if one is ever shipped, and the visibility paths that exist **today**.
 
 ## What a HUD should show (the methodology, kept for M3)
 

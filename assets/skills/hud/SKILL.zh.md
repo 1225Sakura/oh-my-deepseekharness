@@ -1,12 +1,12 @@
 ---
 name: hud
-description: omd 会话的状态可见性——HUD 该显示什么（模式、轮次、story、agent、todo）以及今天怎么拿到这些可见性。omd HUD 面板是 M3 里程碑；当前经 /omd-doctor 和 mcp__omd-state__state_get_status 提供状态可见性。
-when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可见性、或问"我的 HUD 在哪"。不是配置写入器——dsh 今天没有可配置的状态栏面。
+description: omd 会话的状态可见性——HUD 该显示什么（模式、轮次、story、agent、todo）以及今天怎么拿到这些可见性。omd 的 c4 HUD 面板**已在 0.3.0 退役**（系统提示词 context 不支持轮询形态）；当前经 /omd-doctor 和 mcp__omd-state__state_get_status 提供状态可见性。
+when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可见性、或问"我的 HUD 在哪"。不是配置写入器——dsh 今天没有可配置的状态栏面，且 c4 HUD 不再规划。
 ---
 
 # hud（状态可见性）
 
-> **先把诚实状态说前面：** OMC 的 HUD 是 Claude Code 的 `statusLine` 命令脚本（`~/.claude/hud/omc-hud.mjs` + `settings.json`）。dsh **没有状态栏面**，所以这里没有什么可安装、可配置的。omd HUD 面板——经宿主 `dsh.client` 客户端槽位渲染——是 **M3 里程碑**（规格 §1 能力矩阵、§8 路线图）。本技能保留方法论骨架：HUD 该放什么，以及**今天**存在的可见性路径。
+> **先把诚实状态说前面：** OMC 的 HUD 是 Claude Code 的 `statusLine` 命令脚本（`~/.claude/hud/omc-hud.mjs` + `settings.json`）。dsh **没有状态栏面**，所以这里没有什么可安装、可配置的。omd 的 **c4 HUD 面板已在 0.3.0 退役**——systemPrompt 的 `context` 是同步装配、不支持轮询形态，lib/hud.js 的设计前提被否；该文件已删除（commit `ed3b28a`）。本技能保留方法论骨架：HUD 该放什么（若未来再上），以及**今天**存在的可见性路径。
 
 ## HUD 该显示什么（方法论，留给 M3）
 

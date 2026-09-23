@@ -67,7 +67,16 @@ test('Priority 区手写多行段落+注释在 writeWorking 后原样保留', as
   for (const frag of ['这是一段手写的多行说明：', '第一行内容保留', '  - 甚至包括缩进的伪列表', '<!-- 注释也要保留 -->', '最后一行'])
     expect(doc).toContain(frag)
   expect(doc).toContain('新工作条目')
-  expect(doc.indexOf('## Priority Context')).toBeLessThan(doc.indexOf('## Working Memory'))
+  // H2 修复断言：用户写在 Priority 区的 raw 段落必须落在 Priority 区（不在 Working 区内）；
+  // 此前写的是 'Priority Context' < 'Working Memory' 的标题顺序——serializeNotepad 恒按 ZONES
+  // 顺序输出，断言恒真，无法捕获 fixture 错乱。改为：fixture 段落必须落在 Priority 区段内。
+  const priIdx = doc.indexOf('## Priority Context')
+  const workIdx = doc.indexOf('## Working Memory')
+  const fragIdx = doc.indexOf('这是一段手写的多行说明')
+  expect(priIdx).toBeGreaterThanOrEqual(0)
+  expect(workIdx).toBeGreaterThan(priIdx)
+  expect(fragIdx).toBeGreaterThan(priIdx)
+  expect(fragIdx).toBeLessThan(workIdx)
 })
 
 test('working 区非条目 raw 行保留，过期条目被清理', async () => {
