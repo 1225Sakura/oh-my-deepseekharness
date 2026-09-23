@@ -1,7 +1,7 @@
 ---
 name: team
 description: Explicit-invocation multi-agent pipeline — the lead orchestrates role-carded subagents through a five-stage pipeline with mandatory stage handoffs
-when-to-use: EXPLICIT INVOCATION ONLY ("use team to …", "/team …"). No keyword trigger — the word "team" in ordinary text must NOT activate this skill, and inside worker sessions the whole keyword routing table is inert. Use for parallel multi-agent execution of a decomposable task. **MVP scope (honest)**: only `handoff_write` / `handoff_read` / `handoff_list` MCP tools are wired out of the box; the five-stage pipeline (plan → prd → exec → verify → fix) is documentation-level — the lead must drive it manually with `subagent` spawns + `mcp__omd-state__handoff_write` between stages. There is no `lib/team.js` leader runtime, no tmux pane guardian, no UUID-bound worker lifecycle — those belong to omd 1.x.
+when-to-use: EXPLICIT INVOCATION ONLY ("use team to …", "/team …"). No keyword trigger — the word "team" in ordinary text must NOT activate this skill, and inside worker sessions the whole keyword routing table is inert. Use for parallel multi-agent execution of a decomposable task. **Since v0.4 there IS a leader runtime** (lib/team.js): the phase state machine (`team_phase_transition`), worker UUID lifecycle (`team_register_worker`/`team_worker_update`/`team_registry`), mailbox (`team_mail_*`), heartbeat scan (`team_heartbeat_scan`), and merge planning (`team_merge_plan`) are all available as MCP tools. Actual spawning is still done by the lead via `subagent`/`omd_delegate` (the runtime owns lifecycle + coordination data, not dispatch decisions); there is no tmux pane guardian (no dsh surface, 🚫).
 ---
 
 # team
@@ -32,7 +32,22 @@ team-plan → team-prd → team-exec → team-verify → team-fix (bounded loop)
 | team-verify | `omd-agent-verifier` (medium) — **always runs** | **>20 changed files or security-sensitive changes: add `omd-agent-code-reviewer` (high)** |
 | team-fix | `omd-agent-executor` (medium) | — |
 
-**team-fix bound:** `max_fix_loops = 3`. The loop is exec → verify → fix → exec …; exceeding 3 fix loops transitions to terminal `failed` with evidence — never an infinite loop.
+**team-fix bound:** `max_fix_loops = 3`. The loop is exec → verify → fix → exec …; exceeding 3 fix loops transitions to terminal `failed` with evidence — never an infinite loop. **This bound is enforced by the phase state machine** (`team_phase_transition` rejects fix→exec beyond the limit, leaving only failed/cancelled).
+
+### Runtime tool surface (v0.4+, lib/team.js exposed via MCP)
+
+| Tool | Purpose | When to call |
+|---|---|---|
+| `team_phase_transition({ cwd, runId, to, note? })` | Phase transition (state-machine validated, illegal transitions rejected) | at every phase change (same critical point as the handoff) |
+| `team_phase_status({ cwd, runId })` | Read phase state (phase/fixLoops/history) | first thing on resume |
+| `team_register_worker({ cwd, runId, worker })` | Register a worker's lifecycle (workerId auto `w-<uuid8>`; runId is the owner-epoch) | **immediately after every worker spawn** (record dispatchId/agentId too) |
+| `team_worker_update({ cwd, runId, workerId, patch })` | Status flow (dispatched→running→blocked/done/failed; terminal states are final) | on worker status changes |
+| `team_worker_heartbeat({ cwd, runId, workerId })` | Worker heartbeat (resets stale) | the lead beats on each worker report |
+| `team_mail_send / team_mail_read / team_mail_ack` | Mailbox: in=worker→lead (progress/blocker/done/question), out=lead→worker (nudge/assign/answer) | blockers/questions must land as mail; the lead acks after handling |
+| `team_heartbeat_scan({ cwd, runId })` | Stale detection + unacked blocker/question summary (**never auto-kills**) | every time the lead is active (the deterministic Watchdog) |
+| `team_merge_plan({ cwd, runId })` | Tree∩main conflict candidates + suggested merge order (plan only; execution stays with the lead/executor) | after verify passes, before tree teardown/merge |
+
+Data lives in `.omd/team/<runId>/{phase.json, registry.json, mailbox/{in,out}/<workerId>.jsonl}` — append-only/atomic writes; after a crash, resume by reading these before the handoffs.
 
 ### Stage handoff (mandatory)
 
@@ -63,13 +78,13 @@ Rules:
 
 ## Lead workflow
 
-1. **team-plan**: spawn `explore` (codebase/context scan) and `planner` (decomposition) in background parallel. Decompose into file-scoped tasks, independent or clearly dependency-ordered, each with subject + detailed description + verification command. Write the handoff.
+1. **team-plan**: spawn `explore` (codebase/context scan) and `planner` (decomposition) in background parallel — **register each with `team_register_worker` right after spawning**. Decompose into file-scoped tasks, independent or clearly dependency-ordered, each with subject + detailed description + verification command. Write the handoff, then `team_phase_transition` to the next stage.
 2. **team-prd**: `analyst` extracts acceptance criteria and boundaries when scope is ambiguous. Write the handoff.
-3. **team-exec**: spawn executor workers with `subagent` (background is the default — spawn all in parallel, never serialize independent workers). Each worker prompt = role card content + Worker Protocol (verbatim) + its assignments + all prior handoffs. Track the assignment table in your own `todo_write`.
-4. **Monitor**: worker results arrive as settlement notices — **yield; never poll**. Steer running or idle workers with `send_message`.
-5. **team-verify**: verifier is mandatory; add code-reviewer per the escalation rule. Reviewers verify against the acceptance criteria with fresh command evidence. Write the handoff.
-6. **team-fix**: bounded to 3 loops; spawn fix executors with the findings; loop back to team-exec/team-verify.
-7. **Terminal**: complete | failed | cancelled → Shutdown Protocol, then State Contract cleanup.
+3. **team-exec**: spawn executor workers with `subagent` (background is the default — spawn all in parallel, never serialize independent workers), **registering each immediately via `team_register_worker`** (role/tier/phase/dispatchId). Each worker prompt = role card content + Worker Protocol (verbatim) + its assignments + all prior handoffs + its workerId (needed for report mail). Track the assignment table in your own `todo_write`.
+4. **Monitor**: worker results arrive as settlement notices — **yield; never poll**. Run `team_heartbeat_scan` on every activity (see Watchdog); steer running or idle workers with `send_message`; beat `team_worker_heartbeat` for each reporting worker.
+5. **team-verify**: verifier is mandatory; add code-reviewer per the escalation rule. Reviewers verify against the acceptance criteria with fresh command evidence. Write the handoff. After verify passes and before tree teardown/merge, run `team_merge_plan`.
+6. **team-fix**: bounded to 3 loops (state-machine enforced); spawn fix executors with the findings; loop back to team-exec/team-verify.
+7. **Terminal**: complete | failed | cancelled (land it with `team_phase_transition`) → Shutdown Protocol, then State Contract cleanup.
 
 ## Worker Protocol (inject verbatim into every worker prompt)
 
@@ -97,12 +112,15 @@ blocked to the lead — never half-do it and never mark it completed.
 - You are a leaf executor. Any violation = task failure.
 ```
 
-## Watchdog (event-driven)
+## Watchdog (heartbeat-scan driven)
 
-dsh has no timer surface, so the watchdog is event-driven — a documented, deliberate difference from OMC's 5min/10min wall-clock thresholds:
+Since v0.4 there are two heartbeat layers (the dsh rewrite of OMC's wall-clock thresholds, boundary stated honestly):
 
-- On every lead activity (a worker report arrives, a stage transitions), run `list_agents` to reconcile who is running / idle / ready.
-- A worker long silent or stuck → `send_message` asking for status; still nothing by the next lead activity → stop it with `interrupt_agent` first, treat as dead, reassign its tasks, respawn a replacement if needed.
+- **Plugin-side periodic detection** (Config `team.heartbeatIntervalMs`, default 60s, 0=off): a background timer scans `.omd/team/*/registry.json` and surfaces stale workers + outstanding mail to the host log — **detection only, never nudging** (the plugin cannot speak for the model; nudging is your job).
+- **Lead-side on-demand scan**: on every lead activity (a worker report arrives, a stage transitions) you MUST run `team_heartbeat_scan({ cwd, runId })` — the deterministic Watchdog:
+  - `stale` workers (no heartbeat beyond `staleAfterMs`, never auto-killed) → `send_message` asking for status; still silent by your next activity → stop it with `interrupt_agent` first, mark it failed via `team_worker_update`, reassign its tasks, and respawn a replacement if needed (a replacement registers a NEW workerId via `team_register_worker`).
+  - `outstanding` (unacked blockers/questions) → handle each, then `team_mail_ack`.
+  - Also run `list_agents` to reconcile who is running / idle / ready against the registry (the registry is the authoritative lifecycle ledger).
 - A worker that fails **2+ consecutive tasks** → stop assigning it new work.
 - Waiting means yielding and ending your turn — worker completions wake you. Never busy-poll, never sleep-loop.
 
@@ -138,7 +156,7 @@ Never clear team state before the shutdown pass completes.
 **Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; mode fields nest under the `state` key.
 
 - **Start**: first call `mcp__omd-state__team_begin({ cwd, runId, stateDir })` to provision the worktree (c5) — this returns orphans (manual cleanup) and the new runId + head. Then `state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <compressed ≤1200 chars>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`. State file: `.omd/state/sessions/{sessionId}/team-state.json`. If cwd is inside the new worktree, prefer `mcp__omd-state__team_write_tree_state` for non-state writes (c8 — keeps parent `.omd/` clean).
-- **Stage transitions**: `state_write` with updated `state.current_phase` (`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`), `fix_loop_count`, and stage history on EVERY stage change. **Plus** `mcp__omd-state__team_write_mirror({ cwd, stateDir, patch: { mode: 'team', round, current_story, active_agents, todo }, expectUpdatedAt })` — c6 mirrors the seven-field snapshot into `.omd/state/run-state.json` (CAS-conflict retry ≤3, version +1 each write).
+- **Stage transitions**: on EVERY stage change do three things: ① `team_phase_transition({ cwd, runId, to, note })` — the phase state machine is authoritative (it enforces the fix-loop bound); ② `state_write` with updated `state.current_phase` (`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`) and stage history; ③ `team_write_mirror({ cwd, stateDir, patch: { mode: 'team', round, current_story, active_agents, todo }, expectUpdatedAt })` — c6 mirrors the seven-field snapshot into `.omd/state/run-state.json` (CAS-conflict retry ≤3, version +1 each write; reconcile active_agents against the registry).
 - **Complete / cancel**: shutdown pass first (notify all workers, await confirmations), then `mcp__omd-state__team_dispose({ cwd, runId, reason: 'verified' | 'cancelled', expectUpdatedAt })` (c5 two-phase teardown — CAS-write disposed → delete tree), then `state_clear({ cwd, sessionId, mode: "team" })`. `.omd/handoffs/` and `.omd/plans/` are never deleted.
 - **Abnormal exit**: state + handoffs remain for resume; state untouched for >2h is stale — report, don't auto-resume.
 - **MCP server down**: same reads/writes with plain file tools against `.omd/`, announced explicitly.

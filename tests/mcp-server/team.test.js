@@ -133,3 +133,66 @@ test('team_write_tree_state：非 c5 运行树（cwd 是主仓根）抛错', asy
   })).rejects.toThrow(/非运行树|anchored/)
   await rm(cwd, { recursive: true, force: true })
 })
+
+// ---------- v0.4 领队运行时面（lib/team.js 接线）：阶段机/registry/mailbox/heartbeat ----------
+
+test('team_phase_transition：合法迁移通过 + 持久化；非法迁移显式拒绝', async () => {
+  const cwd = await freshRepo()
+  const t = tools(cwd)
+  try {
+    const s1 = await t.phaseTransition({ cwd, runId: 'rt', to: 'team-exec', note: '跳过 prd' })
+    expect(s1.phase).toBe('team-exec')
+    const s2 = await t.phaseStatus({ cwd, runId: 'rt' })
+    expect(s2.history).toHaveLength(2)
+    await expect(t.phaseTransition({ cwd, runId: 'rt', to: 'team-fix' })).rejects.toThrow('非法阶段迁移')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('team_register_worker / worker_update / registry / heartbeat 全链', async () => {
+  const cwd = await freshRepo()
+  const t = tools(cwd)
+  try {
+    const w = await t.registerWorker({ cwd, runId: 'rt', worker: { role: 'omd-agent-executor', tier: 'medium', phase: 'team-exec', dispatchId: 'omdd-1' } })
+    expect(w.workerId).toMatch(/^w-/)
+    expect(w.status).toBe('dispatched')
+    await t.workerUpdate({ cwd, runId: 'rt', workerId: w.workerId, patch: { status: 'running' } })
+    await t.workerHeartbeat({ cwd, runId: 'rt', workerId: w.workerId })
+    const reg = await t.registry({ cwd, runId: 'rt' })
+    expect(reg.workers[w.workerId].status).toBe('running')
+    expect(reg.workers[w.workerId].dispatchId).toBe('omdd-1')
+    await expect(t.workerUpdate({ cwd, runId: 'rt', workerId: w.workerId, patch: { status: 'dispatched' } })).rejects.toThrow('非法状态迁移')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('team_mail_*：发信/读信/ack/未处置汇总 + heartbeat_scan 接线', async () => {
+  const cwd = await freshRepo()
+  const t = tools(cwd)
+  try {
+    const w = await t.registerWorker({ cwd, runId: 'rt', worker: { role: 'x', spawnedAt: '2026-01-01T00:00:00Z' } })
+    await t.mailSend({ cwd, runId: 'rt', direction: 'in', workerId: w.workerId, type: 'blocker', text: '缺凭据' })
+    const unread = await t.mailRead({ cwd, runId: 'rt', direction: 'in', unackedOnly: true })
+    expect(unread).toHaveLength(1)
+    const scan = await t.heartbeatScan({ cwd, runId: 'rt' })
+    expect(scan.outstanding).toHaveLength(1)
+    expect(scan.stale).toHaveLength(1) // spawnedAt 远旧于 now
+    await t.mailAck({ cwd, runId: 'rt', direction: 'in', workerId: w.workerId, seqs: [1] })
+    const scan2 = await t.heartbeatScan({ cwd, runId: 'rt' })
+    expect(scan2.outstanding).toHaveLength(0)
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('team_merge_plan：无冲突时 clean=全部树内改动', async () => {
+  const cwd = await freshRepo()
+  const t = tools(cwd)
+  try {
+    await t.begin({ cwd, runId: 'rt' })
+    const tree = join(cwd, '.omd', 'worktrees', 'rt')
+    await writeFile(join(tree, 'new-feature.js'), 'export {}\n')
+    const plan = await t.mergePlan({ cwd, runId: 'rt' })
+    expect(plan.conflicts).toEqual([])
+    expect(plan.clean).toContain('new-feature.js')
+  } finally {
+    execFileSync('git', ['worktree', 'remove', '--force', join(cwd, '.omd', 'worktrees', 'rt')], { cwd, stdio: 'ignore' })
+    await rm(cwd, { recursive: true, force: true })
+  }
+})

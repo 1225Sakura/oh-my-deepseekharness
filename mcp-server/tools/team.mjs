@@ -9,6 +9,12 @@ import { beginTeamRun, disposeRunWorktree, scanOrphans } from '../../lib/worktre
 import { writeRunStateMirror, buildMirrorPatch, buildTodoSummary } from '../../lib/runstate.js'
 import { writeTreeRunState } from '../../lib/multirepo.js'
 import { makeNotepadTools } from './notepad.mjs'
+import {
+  transitionPhasePersist, readPhaseState,
+  registerWorker, updateWorker, heartbeatWorker, readRegistry,
+  sendMail, readMail, ackMail, scanHeartbeat, buildMergePlan,
+  MAIL_DIRECTIONS, MAIL_TYPES, WORKER_STATUSES, TEAM_PHASES, TEAM_TERMINAL,
+} from '../../lib/team.js'
 
 export function makeTeamTools(env) {
   /**
@@ -54,7 +60,29 @@ export function makeTeamTools(env) {
     return await writeTreeRunState({ startDir: cwd, rel, data, stateDir })
   }
 
-  return { begin, dispose, scanOrphansTool, writeMirror, writeTreeState }
+  return {
+    begin, dispose, scanOrphansTool, writeMirror, writeTreeState,
+    // ---- v0.4 领队运行时面（lib/team.js 接线）----
+    phaseTransition: ({ cwd, runId, to, note, stateDir = '.omd' }) =>
+      transitionPhasePersist({ cwd, runId, to, note, stateDir }),
+    phaseStatus: ({ cwd, runId, stateDir = '.omd' }) => readPhaseState(cwd, runId, stateDir),
+    registerWorker: ({ cwd, runId, worker, stateDir = '.omd' }) =>
+      registerWorker({ cwd, runId, worker, stateDir }),
+    workerUpdate: ({ cwd, runId, workerId, patch, stateDir = '.omd' }) =>
+      updateWorker({ cwd, runId, workerId, patch, stateDir }),
+    workerHeartbeat: ({ cwd, runId, workerId, stateDir = '.omd' }) =>
+      heartbeatWorker({ cwd, runId, workerId, stateDir }),
+    registry: ({ cwd, runId, stateDir = '.omd' }) => readRegistry(cwd, runId, stateDir),
+    mailSend: ({ cwd, runId, direction, workerId, type, text, from, stateDir = '.omd' }) =>
+      sendMail({ cwd, runId, direction, workerId, type, text, from, stateDir }),
+    mailRead: ({ cwd, runId, direction, workerId, unackedOnly, stateDir = '.omd' }) =>
+      readMail({ cwd, runId, direction, workerId, unackedOnly, stateDir }),
+    mailAck: ({ cwd, runId, direction, workerId, seqs, stateDir = '.omd' }) =>
+      ackMail({ cwd, runId, direction, workerId, seqs, stateDir }),
+    heartbeatScan: ({ cwd, runId, staleAfterMs, stateDir = '.omd' }) =>
+      scanHeartbeat({ cwd, runId, staleAfterMs, stateDir }),
+    mergePlan: ({ cwd, runId, stateDir = '.omd' }) => buildMergePlan({ cwd, runId, stateDir }),
+  }
 }
 
 export function registerTeamTools(server, env) {
@@ -92,4 +120,81 @@ export function registerTeamTools(server, env) {
     description: 'c8 树内状态写：仅在 c5 运行树内可用，懒创建 <tree>/.omd；非运行树抛错',
     inputSchema: { cwd: z.string(), rel: z.string(), data: z.record(z.any()), stateDir: z.string().optional() },
   }, async a => jsonOut(await t.writeTreeState(a)))
+
+  // ---- v0.4 领队运行时（lib/team.js）：阶段状态机 / 队员生命周期 / mailbox / heartbeat / merge plan ----
+  const runBase = { cwd: z.string(), runId: z.string(), stateDir: z.string().optional() }
+
+  server.registerTool('team_phase_transition', {
+    description: 'team 阶段迁移（状态机校验）：team-plan→prd→exec→verify→fix(≤3)→complete/failed/cancelled；非法迁移显式拒绝',
+    inputSchema: { ...runBase, to: z.enum([...TEAM_PHASES, ...TEAM_TERMINAL]), note: z.string().optional() },
+  }, async a => jsonOut(await t.phaseTransition(a)))
+
+  server.registerTool('team_phase_status', {
+    description: '读 team 阶段状态（phase/fixLoops/history）',
+    inputSchema: runBase,
+  }, async a => jsonOut(await t.phaseStatus(a)))
+
+  server.registerTool('team_register_worker', {
+    description: '登记队员生命周期（实际 spawn 由领队经 omd_delegate/subagent 完成后调用本工具落账；workerId 省略自动生成 w-<uuid8>）',
+    inputSchema: {
+      ...runBase,
+      worker: z.object({
+        workerId: z.string().optional(), dispatchId: z.string().optional(), agentId: z.string().optional(),
+        role: z.string(), tier: z.string().optional(), phase: z.string().optional(),
+        spawnedAt: z.string().optional(), note: z.string().optional(),
+      }),
+    },
+  }, async a => jsonOut(await t.registerWorker(a)))
+
+  server.registerTool('team_worker_update', {
+    description: '更新队员状态（状态迁移校验：dispatched→running→blocked/done/failed；终态不可复活）',
+    inputSchema: {
+      ...runBase, workerId: z.string(),
+      patch: z.object({
+        status: z.enum(WORKER_STATUSES).optional(), note: z.string().optional(),
+        agentId: z.string().optional(), dispatchId: z.string().optional(), phase: z.string().optional(),
+      }),
+    },
+  }, async a => jsonOut(await t.workerUpdate(a)))
+
+  server.registerTool('team_worker_heartbeat', {
+    description: '队员心跳（复位 lastHeartbeatAt 与 stale 标记；终态队员拒绝）',
+    inputSchema: { ...runBase, workerId: z.string() },
+  }, async a => jsonOut(await t.workerHeartbeat(a)))
+
+  server.registerTool('team_registry', {
+    description: '读队员 registry（runId=owner-epoch 的 UUID 生命周期台账）',
+    inputSchema: runBase,
+  }, async a => jsonOut(await t.registry(a)))
+
+  server.registerTool('team_mail_send', {
+    description: 'mailbox 发信：in=队员→领队（progress/blocker/done/question），out=领队→队员（nudge/assign/answer）',
+    inputSchema: {
+      ...runBase, direction: z.enum(MAIL_DIRECTIONS), workerId: z.string(),
+      type: z.string(), text: z.string(), from: z.string().optional(),
+    },
+  }, async a => jsonOut(await t.mailSend(a)))
+
+  server.registerTool('team_mail_read', {
+    description: 'mailbox 读信（direction 省略双向；unackedOnly 只回未 ack）',
+    inputSchema: {
+      ...runBase, direction: z.enum(MAIL_DIRECTIONS).optional(), workerId: z.string().optional(),
+      unackedOnly: z.boolean().optional(),
+    },
+  }, async a => jsonOut(await t.mailRead(a)))
+
+  server.registerTool('team_mail_ack', {
+    description: 'mailbox ack 标记（领队处置完 blocker/question 后 ack）',
+    inputSchema: { ...runBase, direction: z.enum(MAIL_DIRECTIONS), workerId: z.string(), seqs: z.array(z.number().int()) },
+  }, async a => jsonOut(await t.mailAck(a)))
+
+  server.registerTool('team_heartbeat_scan', {
+    description: 'heartbeat 扫描：超时未心跳队员标 stale（绝不自动杀）+ 未 ack blocker/question 汇总——检测与呈面，催促由领队 send_message 执行',
+    inputSchema: { ...runBase, staleAfterMs: z.number().int().optional() },
+  }, async a => jsonOut(await t.heartbeatScan(a)))
+
+  server.registerTool('team_merge_plan', {
+    description: 'merge 计划（merge-orchestrator MVP）：树∩主仓冲突候选 + 建议合并序；只生成计划不执行合并',
+    inputSchema: runBase,
+  }, async a => jsonOut(await t.mergePlan(a)))
 }
