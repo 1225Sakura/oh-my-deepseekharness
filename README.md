@@ -8,7 +8,7 @@ Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepse
 - [oh-my-claudecode (OMC)](https://github.com/Yeachan-Heo/oh-my-claudecode) — Claude Code 编排层
 - [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) — Codex 编排层
 
-omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 40 个 skill + 19 个 `omd-agent-*` 角色卡（共 59 个技能目录条目）与 2 个斜杠命令、挂载内置 MCP server 提供状态/记忆工具。三种执行模式（autopilot / ralph / team）覆盖从一句话需求到多智能体流水线的完整光谱。
+omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 40 个 skill + 19 个 `omd-agent-*` 角色卡（共 59 个技能目录条目）与 2 个斜杠命令、挂载内置 MCP server 提供状态/记忆工具。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team（MVP：仅 handoff 工具面 + 队长手工驱动，无领队运行时、无 tmux pane 守护、无 UUID 绑定生命周期）。
 
 ---
 
@@ -36,7 +36,7 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 |---|---|---|
 | **autopilot** | `autopilot 帮我做一个 CLI 字数统计工具` | 自然语言触发，goal 驱动的全流程自动编排（访谈→规划→执行→双评审门） |
 | **ralph** | `ralph: 把 README 的测试徽章数字同步到当前实际值` | 显式触发（`ralph:` 前缀），PRD + 证据契约的迭代循环，前台阻塞 |
-| **team** | `用 team 调研插件市场生态并出报告` | 无关键词，只能显式调用；多角色五阶段流水线（AgentTeams 承载） |
+| **team** | `用 team 调研插件市场生态并出报告` | 无关键词，只能显式调用；多角色五阶段流水线（MVP：仅 handoff 工具面 + 队长手工驱动） |
 
 取消与诊断：
 
@@ -57,7 +57,7 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 | 角色 | **19** 个委派角色卡（`omd-agent-*`：explore / planner / analyst / executor / verifier / code-reviewer / designer / architect / debugger / tracer / security-reviewer / test-engineer / qa-tester / scientist / critic / writer / git-master / document-specialist / code-simplifier），各带档位（low 2 / medium 10 / high 7）与职责资产 |
 | Skills | **40** 个（中英双语资产）：3 执行模式 + 规划（ralplan/plan/deep-interview/ask-navigator）+ 质量（execute/verify/review/ai-slop-cleaner/minimal-code-discipline/agent-doc-discipline）+ 研究（research/autoresearch/external-context/trace/debug/graph）+ 记忆（remember/skillify/skill/self-improve/wiki）+ 基础设施与元（deepinit/drydock/harbor/loft/launch/hud/configure-notifications/omd-setup/project-session-manager/release/ultragoal/visual-verdict/ask/cancel/omd-doctor/omc-doctor） |
 | MCP 工具 | **18** 个（内置 `omd-state` MCP server）：`state_*`（模式状态，5）/ `notepad_*`（三区记事本，6）/ `prd_*`（需求台账，4）/ `handoff_*`（阶段交接，3） |
-| M3 增量 | **7** 项已交付：自适应模型路由（4 特征信号）/ HUD 状态摘要卡 / team worktree 隔离（每运行一树 + CAS 拆除 + 孤儿扫描）/ CAS 状态写（run-state.json 七字段）/ 多仓锚定（`.omd-workspace` 树内懒建）/ `omd_delegate` 硬路由工具 / `agent/pre-step` 原生拦截点 hooks 桥 |
+| M3 增量 | **7** 项：**已接线生效** — c1 `omd_delegate` 硬路由工具 / c2 keyword-hook（`agent/pre-step` 原生拦截点）/ c3 自适应模型路由（4 特征信号）；**通过 MCP 工具面接线** — c5 team worktree 隔离（`team_begin` / `team_dispose` / `team_scan_orphans`）/ c6 CAS 状态写（`team_write_mirror`，七字段镜像）/ c8 多仓锚定（`team_write_tree_state`，c5 树内懒建）；**已下线** — c4 HUD 摘要卡（dsh 系统提示词 context 不支持轮询形态，删除以避免误导）。hook 矩阵仅 c2 一根电线，OMC 30+ hook 矩阵未实现（dsh 宿主事件面探测为 0.x 范围外） |
 | 跨会话记忆 | `omd_memory_set` / `omd_memory_get` / `omd_memory_delete`（宿主 storage domain 承载，按项目哈希键隔离） |
 
 ---
@@ -110,7 +110,7 @@ oh-my-dsh:
 ├── handoffs/       # team 阶段交接（五段固定格式）
 ├── checkpoints/    # 恢复快照
 ├── logs/
-└── notepad.md      # 三区记事本（MANUAL 永不清理 / Priority 永久 / Working 7 天过期）
+└── notepad.md      # 双区记事本（Priority 永久 / Working 7 天过期；历史 MANUAL 区段只经文件直读保留）
 ```
 
 > `.omd/` 是运行时产物，建议加入 `.gitignore`。
