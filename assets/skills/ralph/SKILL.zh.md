@@ -72,10 +72,14 @@ MVP 说明：单一 verifier pass 是底线。分层评审深度与强制 deslop
 
 ## 停止条件
 
-- 全部 story `passes: true` + verifier 批准 → 完成（按状态契约清理）。
+- 全部 story `passes: true` + verifier 批准 → **收尾沉淀检查点**（见下）→ 完成（按状态契约清理）。
 - 达到 `maxRounds` → 停止；报告剩余 story 及其证据状态。
 - 根本性阻塞（缺凭据、需求不清、外部服务宕）→ 停止并报告。
 - 用户说停 → 取消语义：清状态；PRD、progress.txt、reconciliation.jsonl 保留。
+
+## 收尾沉淀检查点（显式记忆沉淀——替代 OMC hook 自动 learner）
+
+dsh 没有 session-end hook。完成清理前必须显式沉淀一次：耐久项目事实 → `omd_memory_set`；可复利知识（progress.txt 里「不要再犯的错误」类条目尤其要看）→ wiki add 或 notepad priority；暂态进度不沉淀。无沉淀项时显式声明，不许静默跳过。
 
 ## 降级
 

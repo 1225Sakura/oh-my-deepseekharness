@@ -74,7 +74,16 @@ Spawn two independent reviewers in parallel — separate subagent contexts, neve
 
 - **Re-validation is bounded to 3 rounds** (config `autopilot.maxValidationRounds`, default 3).
 - **Security-related changes escalate depth**: add an explicit security review pass (auth, crypto, trust boundaries, injection surface) and use the deepest available review effort.
-- Only when both reviewers approve: `update_goal(action="complete")`, then State Contract cleanup.
+- Only when both reviewers approve: pass the **closing distillation checkpoint** (below), then `update_goal(action="complete")`, then State Contract cleanup.
+
+## Closing distillation checkpoint (explicit memory distillation — replaces OMC's hook-driven auto-learner)
+
+dsh has no session-end hook, so memory distillation never happens automatically. Before `update_goal(action="complete")`, autopilot MUST run one explicit distillation pass (the closing form of the `remember` skill):
+
+1. **Durable project facts** (architecture decisions, environment pitfalls, operator preferences) → `omd_memory_set({ projectPath, key, value })`.
+2. **Compounding knowledge** (debugging conclusions, reusable patterns) → wiki add (see the `wiki` skill); at minimum notepad priority.
+3. **Transient progress** → do NOT distill (it evaporates with state cleanup).
+4. When nothing is worth distilling, say so explicitly ("no distillation items") — **never skip silently**.
 
 ## Numeric bounds (hard limits)
 

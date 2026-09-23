@@ -72,10 +72,14 @@ Cross-iteration memory: files changed, codebase patterns discovered, mistakes no
 
 ## Stop conditions
 
-- All stories `passes: true` + verifier approved → complete (State Contract cleanup).
+- All stories `passes: true` + verifier approved → **closing distillation checkpoint** (below) → complete (State Contract cleanup).
 - `maxRounds` reached → stop; report remaining stories with their evidence state.
 - Fundamental blocker (missing credentials, unclear requirements, external outage) → stop and report.
 - User says stop → cancel semantics: state cleared; PRD, progress.txt, reconciliation.jsonl preserved.
+
+## Closing distillation checkpoint (explicit memory distillation — replaces OMC's hook-driven auto-learner)
+
+dsh has no session-end hook. Before completion cleanup, run one explicit distillation pass: durable project facts → `omd_memory_set`; compounding knowledge (especially progress.txt "mistakes not to repeat" entries) → wiki add or notepad priority; transient progress is not distilled. When nothing qualifies, say so explicitly — never skip silently.
 
 ## Degradation
 

@@ -25,6 +25,7 @@ export function omdPaths({ cwd, stateDir = '.omd', sessionId }) {
     specs: pjoin(root, 'specs'),
     prdDir: pjoin(root, 'prd'),
     handoffs: pjoin(root, 'handoffs'),
+    traces: pjoin(root, 'trace'),
     checkpoints: pjoin(root, 'checkpoints'),
     notepad: pjoin(root, 'notepad.md'),
     logs: pjoin(root, 'logs'),

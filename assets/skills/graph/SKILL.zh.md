@@ -76,6 +76,26 @@ graph "先构建再测试，部署前问我"   （先撰写 descriptor）
 - **命令信任边界**：command 节点是经 `pwsh` 执行的任意 shell 行，在当前工作目录拥有真实进程权限。只运行你撰写或信任的 descriptor。命令不做文件系统/进程沙箱。
 - **agent 权限边界**：内建 agent 节点按约定只读——omd 中这是 prompt 层纪律（dsh `subagent` 无工具限制参数），要在节点 `instructions` 里写明并优先用只读角色卡。把 `.omd/graph-runs/<run_id>/descriptor.json` 当作可执行内容对待。
 
+## Journal 格式约定（二期运行时的锚点，模型驱动执行今天也照此写）
+
+`.omd/graph-runs/<run_id>/journal.jsonl` 是 append-only JSONL——每行一个事件，**只追加、不改写、不重排**。恢复语义完全由它导出（读 journal、跳过已 committed 节点、继续），所以模型驱动执行也必须严格按此格式写：
+
+```jsonl
+{"seq":1,"ts":"<ISO-8601>","type":"run_started","run_id":"...","graph_id":"...","descriptor_hash":"<sha256>"}
+{"seq":2,"ts":"...","type":"node_scheduled","node_id":"a1","attempt":1}
+{"seq":3,"ts":"...","type":"node_committed","node_id":"a1","attempt":1,"exit_code":0,"output_ref":"outputs/a1.md"}
+{"seq":4,"ts":"...","type":"node_failed","node_id":"a2","attempt":1,"error":"...","retryable":true}
+{"seq":5,"ts":"...","type":"gate_waiting","node_id":"gate","prompt":"Proceed?"}
+{"seq":6,"ts":"...","type":"gate_resolved","node_id":"gate","decision":"approved"}
+{"seq":7,"ts":"...","type":"run_finished","terminal_status":"completed|failed|cancelled"}
+```
+
+规则：
+- `seq` 严格递增（恢复时以最大 seq 续号）；`node_committed` 是节点完成的唯一判据——有 `node_scheduled` 无 `node_committed` 的节点恢复时重跑（at-least-once）。
+- 大输出不落 journal：`output_ref` 指向 `.omd/graph-runs/<run_id>/outputs/` 下的文件。
+- `descriptor.json` 快照与 journal 同目录；`descriptor_hash` 不一致即拒绝恢复（防 descriptor 中途被改）。
+- 二期确定性运行时落地时消费同一格式——今天模型写的 journal 就是明天的恢复输入。
+
 ## 状态契约
 
 graph **不持模式状态**：`.omd/graph-runs/<run_id>/` 下的 journal 与快照**就是**状态，用普通文件工具读写。没有 `state_write`/`state_clear` 周期。恢复的含义是：读 journal、跳过已提交节点、继续。含交互审批的图必须在 `ask_user_question` 可用的会话中运行——否则在门禁处 fail-closed。

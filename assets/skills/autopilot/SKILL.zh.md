@@ -74,7 +74,16 @@ Phase 0 检测到 ralplan 共识计划时本阶段跳过。
 
 - **re-validation 上限 3 轮**（配置项 `autopilot.maxValidationRounds`，默认 3）。
 - **安全相关变更升级深度**：追加显式安全评审（认证、加密、信任边界、注入面），并使用可用的最深评审强度。
-- 双评审都通过后：`update_goal(action="complete")`，再按状态契约清理。
+- 双评审都通过后：先过**收尾沉淀检查点**（见下），再 `update_goal(action="complete")`，再按状态契约清理。
+
+## 收尾沉淀检查点（显式记忆沉淀——替代 OMC hook 自动 learner）
+
+dsh 没有 session-end hook，记忆沉淀不会自动发生。autopilot 在 `update_goal(action="complete")` **之前**必须显式执行一次沉淀检查（remember skill 的收尾形态）：
+
+1. **耐久项目事实**（架构决定、环境坑、操作者偏好）→ `omd_memory_set({ projectPath, key, value })`。
+2. **可复利知识**（排障结论、可复用模式）→ wiki add（见 wiki skill）；至少是 notepad priority。
+3. **暂态进度** → 不沉淀（随状态清理蒸发）。
+4. 没有值得沉淀的内容时显式说一句「无沉淀项」——**不许静默跳过**。
 
 ## 数值界限（硬上限）
 

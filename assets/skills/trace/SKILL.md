@@ -141,7 +141,18 @@ Useful evidence sources include:
 - `git log` / `git_diff` for change-correlated behavior
 - `.omd/` mode state and handoff files when orchestration behavior is in question
 
-> OMC's dedicated trace MCP tools (`trace_timeline`, `trace_summary`) are **omd phase-2**; the sources above are the dsh-realistic substitutes.
+> **Since v0.4 omd HAS a trace data surface** (matching OMC's `trace_timeline`/`trace_summary`): the lead opens a trace with `mcp__omd-state__trace_begin({ cwd, title, hypotheses })`, lands each lane's key evidence as `trace_event` (kind=evidence/counterevidence), records hypothesis up/downgrades from the rebuttal round as `trace_event` (kind=status), and closes with `trace_event` (kind=end); `trace_summary` produces the aggregate. The backing store is `.omd/trace/<id>.jsonl` (append-only, crash-resumable).
+
+## Data-surface tools (v0.4+)
+
+| Tool | Purpose |
+|---|---|
+| `trace_begin({ cwd, traceId?, title?, hypotheses? })` | Open a trace; initial competing hypotheses are auto-numbered h1..hN |
+| `trace_event({ cwd, traceId, kind, hypothesis?, status?, text })` | Append an event; kind ∈ hypothesis/evidence/counterevidence/note/status/end |
+| `trace_summary({ cwd, traceId, timelineLimit? })` | Aggregate: hypothesis survival states, evidence counts, bounded timeline |
+| `trace_list({ cwd })` | List all traces |
+
+Discipline: the lead owns persistence (workers are leaves and never write the shared trace file — the lead files `trace_event`s after receiving lane reports); a closed (end) trace is read-only — open a new trace to continue investigating.
 
 Recommended worker return structure:
 
@@ -265,4 +276,4 @@ Good `trace` output is:
 
 ## State Contract (状态契约)
 
-Trace **holds no mode state**: it is a bounded orchestration lane inside the current session and writes nothing under `.omd/state/`. The ranked synthesis is the deliverable; if a durable fact or an unresolved critical unknown deserves persistence, record it via `mcp__omd-state__notepad_write_working` / `notepad_write_priority`.
+Trace **holds no mode state**: it is a bounded orchestration lane inside the current session and writes nothing under `.omd/state/`. The ranked synthesis is the deliverable; trace process data lands in `.omd/trace/<id>.jsonl` (via the `trace_*` tools, append-only), and conclusions worth keeping long-term go to `notepad_write_priority` or the wiki.

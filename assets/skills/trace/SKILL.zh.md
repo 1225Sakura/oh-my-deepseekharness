@@ -141,7 +141,18 @@ lane 3 的跨实体差异需要先做过前提审计再升级：枚举实体维�
 - `git log` / `git_diff` 做改动关联
 - 编排行为存疑时查 `.omd/` 模式状态与 handoff 文件
 
-> OMC 专用的 trace MCP 工具（`trace_timeline`、`trace_summary`）**在 omd 二期**；以上来源是 dsh 现实等价物。
+> **v0.4 起 omd 有 trace 数据面**（对标 OMC `trace_timeline`/`trace_summary`）：lead 开工时 `mcp__omd-state__trace_begin({ cwd, title, hypotheses })` 建追踪；worker 返回后把每条 lane 的关键证据落成 `trace_event`（kind=evidence/counterevidence）；反驳轮后的假设升降级落 `trace_event`（kind=status）；收尾 `trace_event`（kind=end）结案，`trace_summary` 出聚合摘要。承载面是 `.omd/trace/<id>.jsonl`（append-only，崩溃可恢复）。
+
+## 数据面工具（v0.4+）
+
+| 工具 | 用途 |
+|---|---|
+| `trace_begin({ cwd, traceId?, title?, hypotheses? })` | 开追踪：初始竞争假设自动编号 h1..hN |
+| `trace_event({ cwd, traceId, kind, hypothesis?, status?, text })` | 追加事件；kind ∈ hypothesis/evidence/counterevidence/note/status/end |
+| `trace_summary({ cwd, traceId, timelineLimit? })` | 聚合：假设存活状态、正反证据计数、有界时间线 |
+| `trace_list({ cwd })` | 列出全部 trace |
+
+纪律：lead 负责落盘（worker 是叶子、不写共享 trace 文件——lead 收到 lane 报告后统一 `trace_event`）；结案（end）后 trace 只读，续查另开新 trace。
 
 推荐的 worker 返回结构：
 
@@ -265,4 +276,4 @@ lead 应显式说明某假设为何被下调：
 
 ## 状态契约
 
-trace **不持模式状态**：它是当前会话内的有界编排通道，不在 `.omd/state/` 下写任何内容。分级综合就是交付物；若某个持久事实或未解的 critical unknown 值得保留，写 `mcp__omd-state__notepad_write_working` / `notepad_write_priority`。
+trace **不持模式状态**：它是当前会话内的有界编排通道，不在 `.omd/state/` 下写任何内容。分级综合就是交付物；追踪过程数据落 `.omd/trace/<id>.jsonl`（经 `trace_*` 工具，append-only），值得长期保留的结论另写 `notepad_write_priority` 或 wiki。

@@ -76,6 +76,26 @@ Edge kinds: `fixed` | `conditional` | `fan_out`/`join` pairs | `back_edge` (boun
 - **Command trust boundary**: command nodes are arbitrary shell lines run via `pwsh` with real process authority in the current working directory. Only run descriptors you wrote or trust. Commands are not filesystem/process sandboxed.
 - **Agent authority boundary**: built-in agent nodes are read-only by convention — in omd this is prompt-level discipline (dsh `subagent` has no tool-restriction parameter), so state it in the node's `instructions` and prefer read-only role cards. Treat `.omd/graph-runs/<run_id>/descriptor.json` as executable content.
 
+## Journal format contract (the phase-2 runtime's anchor — model-driven execution writes it today)
+
+`.omd/graph-runs/<run_id>/journal.jsonl` is append-only JSONL — one event per line, **append only, never rewrite, never reorder**. Resume semantics derive entirely from it (read journal, skip committed nodes, continue), so model-driven execution must write it in exactly this format:
+
+```jsonl
+{"seq":1,"ts":"<ISO-8601>","type":"run_started","run_id":"...","graph_id":"...","descriptor_hash":"<sha256>"}
+{"seq":2,"ts":"...","type":"node_scheduled","node_id":"a1","attempt":1}
+{"seq":3,"ts":"...","type":"node_committed","node_id":"a1","attempt":1,"exit_code":0,"output_ref":"outputs/a1.md"}
+{"seq":4,"ts":"...","type":"node_failed","node_id":"a2","attempt":1,"error":"...","retryable":true}
+{"seq":5,"ts":"...","type":"gate_waiting","node_id":"gate","prompt":"Proceed?"}
+{"seq":6,"ts":"...","type":"gate_resolved","node_id":"gate","decision":"approved"}
+{"seq":7,"ts":"...","type":"run_finished","terminal_status":"completed|failed|cancelled"}
+```
+
+Rules:
+- `seq` is strictly increasing (resume continues from the max seq); `node_committed` is the ONLY completion witness — a node with `node_scheduled` but no `node_committed` is re-run on resume (at-least-once).
+- Large outputs never land in the journal: `output_ref` points at files under `.omd/graph-runs/<run_id>/outputs/`.
+- The `descriptor.json` snapshot lives next to the journal; a `descriptor_hash` mismatch refuses resume (guards against mid-run descriptor edits).
+- The phase-2 deterministic runtime will consume this same format — journals written by the model today are tomorrow's resume input.
+
 ## State Contract (状态契约)
 
 Graph **holds no mode state**: the journal and snapshots under `.omd/graph-runs/<run_id>/` ARE the state, written with plain file tools. No `state_write`/`state_clear` cycle. Resume means: read the journal, skip committed nodes, continue. A graph that needs interactive approvals must run in a session where `ask_user_question` is available — otherwise it fails closed at the gate.

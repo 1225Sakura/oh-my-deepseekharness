@@ -56,9 +56,21 @@ Use `[[page-slug]]` wiki-link syntax between pages. Keep slugs stable — a rena
 - Wiki pages are git-ignored by default: `.omd/` (including `.omd/wiki/`) is project-local operational state.
 - Prefer updating pages over proliferating them; the wiki compounds by accretion, not duplication.
 
-## Auto-capture (phase-2)
+## Session-boundary checklists (explicit mount/persist — replaces OMC's wiki session hooks)
 
-OMC auto-captured significant discoveries as `session-log` pages at session end via a hook. omd's MVP does not wire the hooks bridge (`dsh-hooks-claude-code` is a host-native package, to be wired in phase 2), so **capture is manual**: when something significant is learned, wiki-add it immediately rather than waiting for session end. A deterministic session-end capture hook is a phase-2 item.
+dsh has no session-start / session-end hooks, so wiki "auto-mount on start, auto-persist on end" never happens by itself. Use these two **model-driven explicit checklists** instead (run them the moment something significant is learned — do not wait for session end):
+
+**At session start / task orientation (mount)**:
+1. Read `.omd/wiki/index.md` for categories/pages relevant to the task.
+2. On hits → `grep` tags/keywords, read the relevant pages, carry existing conclusions into the current work — do not reinvent them.
+3. No wiki directory → skip (do not create an empty wiki just for mounting).
+
+**When a significant discovery lands / before session close (persist)**:
+1. Is the discovery useful across sessions? Yes → wiki-add/ingest it per the Operations table (prefer updating existing pages).
+2. Every write also maintains `index.md` and `log.md`.
+3. When nothing qualifies, say so explicitly — never skip silently.
+
+Deterministic hook-based auto-capture remains a phase-2 item (depends on the host exposing a session-event surface); until then these two checklists ARE the capture mechanism.
 
 ## State Contract (状态契约)
 
