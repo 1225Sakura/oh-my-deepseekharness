@@ -22,6 +22,9 @@ export function makeNotepadTools(env) {
     return zones  // priority / manual 不动
   }
   async function writeZone(cwd, zone, { text, at }) {
+    // 评审修复：不可解析时间戳的条目会永不过期（pruneZones 对 NaN 一律保留）——入口即拒
+    if (at !== undefined && Number.isNaN(Date.parse(at)))
+      throw new Error(`notepad: at 不是可解析时间戳: ${String(at)}（省略则用当前时间）`)
     const zones = pruneZones(await load(cwd))
     zones[zone].push(formatEntry(text, at))
     await save(cwd, zones)
@@ -37,7 +40,8 @@ export function makeNotepadTools(env) {
       const before = zones.working.length
       const pruned = pruneZones(zones)
       await save(cwd, pruned)
-      return { ok: true, removed: before - pruned.working.length }
+      // removed 基于文件真实状态（read 的惰性清理只影响视图不落盘——先 read 再 prune 计数不矛盾）
+      return { ok: true, removed: before - pruned.working.length, note: 'removed 按文件状态计（read 的惰性清理不落盘）' }
     },
     stats: async ({ cwd }) => {
       const z = pruneZones(await load(cwd))

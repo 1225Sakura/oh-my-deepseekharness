@@ -111,3 +111,37 @@ test('traceId 省略时自动生成且可用', async () => {
   const s = await t.summary({ cwd, traceId: r.traceId })
   expect(s.title).toBe('auto')
 })
+
+// ---------- 评审修复回归（v0.4.1） ----------
+
+test('评审A-1：结案后重复 end 显式拒绝（首次结论不被覆盖）', async () => {
+  const { t, cwd } = await tools()
+  await t.begin({ cwd, traceId: 'x', hypotheses: ['a'] })
+  await t.event({ cwd, traceId: 'x', kind: 'end', text: '根因=甲' })
+  await expect(t.event({ cwd, traceId: 'x', kind: 'end', text: '改口=乙' })).rejects.toThrow('已结案')
+  const s = await t.summary({ cwd, traceId: 'x' })
+  expect(s.timeline.filter(e => e.type === 'end')).toHaveLength(1)
+})
+
+test('评审A-2：未知 hypothesis 引用显式报错（status/evidence/counterevidence）', async () => {
+  const { t, cwd } = await tools()
+  await t.begin({ cwd, traceId: 'x', hypotheses: ['甲', '乙'] })
+  await expect(t.event({ cwd, traceId: 'x', kind: 'status', hypothesis: 'h11', status: 'confirmed', text: 'x' })).rejects.toThrow('未知 hypothesis')
+  await expect(t.event({ cwd, traceId: 'x', kind: 'evidence', hypothesis: 'h9', text: 'x' })).rejects.toThrow('未知 hypothesis')
+  // 动态新增的假设立即可引用
+  await t.event({ cwd, traceId: 'x', kind: 'hypothesis', text: '丙' })
+  await t.event({ cwd, traceId: 'x', kind: 'evidence', hypothesis: 'h3', text: '丙的证据' })
+  const s = await t.summary({ cwd, traceId: 'x' })
+  expect(s.hypotheses.find(h => h.id === 'h3').evidence).toBe(1)
+})
+
+test('评审A-open：并发 trace_event 串行化——seq 唯一且无交错', async () => {
+  const { t, cwd } = await tools()
+  await t.begin({ cwd, traceId: 'x', hypotheses: ['a'] })
+  await Promise.all(Array.from({ length: 20 }, (_, i) =>
+    t.event({ cwd, traceId: 'x', kind: 'note', text: `n-${i}` })))
+  const s = await t.summary({ cwd, traceId: 'x' })
+  expect(s.eventCount).toBe(21)
+  expect(new Set(s.timeline.map(e => e.seq)).size).toBe(21)
+  expect(new Set(s.timeline.filter(e => e.type === 'note').map(e => e.text)).size).toBe(20) // 无丢事件
+})

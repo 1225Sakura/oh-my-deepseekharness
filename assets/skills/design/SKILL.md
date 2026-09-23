@@ -78,6 +78,6 @@ For normal frontend work, provide the relevant sections, repo evidence, and acce
 
 Complete only when design docs/assets/components/screenshots were inspected or noted absent; missing context is answered, assumed, or listed; root `DESIGN.md` contains every required section; recommendations cite it; and any visual QA handoff is clearly separated from design governance.
 
-## State Contract (状态契约)
+## State Contract
 
 This skill **holds no mode state**: `DESIGN.md` itself is the durable artifact, living in the repo root rather than under `.omd/`. Cross-session design decisions worth keeping outside the repo go to `mcp__omd-state__notepad_write_priority` / `notepad_write_working`.

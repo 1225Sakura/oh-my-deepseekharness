@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { omdPaths } from '../lib/paths.mjs'
+import { withFileLock } from '../../lib/runstate.js'
 
 const SAFE_ID = /^[A-Za-z0-9_-]+$/
 const EVENT_KINDS = ['hypothesis', 'evidence', 'counterevidence', 'note', 'status', 'end']
@@ -37,37 +38,53 @@ async function readEvents(file) {
 
 export function makeTraceTools(env) {
   return {
-    /** 开一条追踪：写 begin 事件（携带初始竞争假设集）。traceId 省略时生成。 */
+    /** 开一条追踪：写 begin 事件（携带初始竞争假设集）。traceId 省略时生成。
+     *  seq 语义声明：seq=物理行序号（含 corrupt 占位行），不是「第 N 个有效事件」。 */
     async begin({ cwd, traceId, title, hypotheses = [] }) {
       const id = traceId ?? `t-${randomUUID().slice(0, 8)}`
       const file = traceFile(env, cwd, id)
-      const existing = await readEvents(file)
-      if (existing.length) throw new Error(`trace 已存在: ${id}（续写请用 trace_event；另开请换 traceId）`)
-      const hyps = hypotheses.map((text, i) => ({ id: `h${i + 1}`, text, status: 'open' }))
-      await appendEvent(file, { seq: 1, ts: new Date().toISOString(), type: 'begin', title: title ?? id, hypotheses: hyps })
-      return { ok: true, traceId: id, hypotheses: hyps }
+      return withFileLock(file, async () => {
+        const existing = await readEvents(file)
+        if (existing.length) throw new Error(`trace 已存在: ${id}（续写请用 trace_event；另开请换 traceId）`)
+        const hyps = hypotheses.map((text, i) => ({ id: `h${i + 1}`, text, status: 'open' }))
+        await appendEvent(file, { seq: 1, ts: new Date().toISOString(), type: 'begin', title: title ?? id, hypotheses: hyps })
+        return { ok: true, traceId: id, hypotheses: hyps }
+      })
     },
 
-    /** 追加事件。kind=status 时须给 hypothesis + status；evidence/counterevidence 建议给 hypothesis。 */
+    /** 追加事件。kind=status 时须给 hypothesis + status；evidence/counterevidence 建议给 hypothesis。
+     *  评审修复：并发写串行化（withFileLock 同域）+ 结案后拒绝重复 end + 未知 hypothesis id 显式报错。 */
     async event({ cwd, traceId, kind, hypothesis, status, text }) {
       if (!EVENT_KINDS.includes(kind)) throw new Error(`kind 非法: ${kind}（合法: ${EVENT_KINDS.join('/')}）`)
       if (typeof text !== 'string' || !text.trim()) throw new Error('text 必填（事件陈述/证据内容）')
       const file = traceFile(env, cwd, traceId)
-      const events = await readEvents(file)
-      if (!events.length) throw new Error(`trace 不存在: ${traceId}（先 trace_begin）`)
-      if (events.some(e => e.type === 'end') && kind !== 'end')
-        throw new Error(`trace 已结案: ${traceId}（end 后只读；另开新 trace 续查）`)
-      if (kind === 'status') {
-        if (!hypothesis) throw new Error('kind=status 必须给 hypothesis（如 h1）')
-        if (!HYP_STATUS.includes(status)) throw new Error(`status 非法: ${status}（合法: ${HYP_STATUS.join('/')}）`)
-      }
-      if (kind === 'hypothesis' && hypothesis) throw new Error('kind=hypothesis 新增假设时不指定 id（自动分配）')
-      const ev = { seq: events.length + 1, ts: new Date().toISOString(), type: kind, text }
-      if (hypothesis) ev.hypothesis = hypothesis
-      if (kind === 'status') ev.status = status
-      if (kind === 'hypothesis') ev.hypothesis = `h${nextHypIndex(events)}`
-      await appendEvent(file, ev)
-      return { ok: true, traceId, seq: ev.seq, ...(ev.hypothesis ? { hypothesis: ev.hypothesis } : {}) }
+      return withFileLock(file, async () => {
+        const events = await readEvents(file)
+        if (!events.length) throw new Error(`trace 不存在: ${traceId}（先 trace_begin）`)
+        if (events.some(e => e.type === 'end'))
+          throw new Error(`trace 已结案: ${traceId}（end 后只读；另开新 trace 续查）`)
+        if (kind === 'status') {
+          if (!hypothesis) throw new Error('kind=status 必须给 hypothesis（如 h1）')
+          if (!HYP_STATUS.includes(status)) throw new Error(`status 非法: ${status}（合法: ${HYP_STATUS.join('/')}）`)
+        }
+        if (kind === 'hypothesis' && hypothesis) throw new Error('kind=hypothesis 新增假设时不指定 id（自动分配）')
+        // 未知 hypothesis 引用显式拒绝（评审修复：打错的 id 曾落盘但聚合时静默蒸发，无任何信号）
+        if ((kind === 'status' || kind === 'evidence' || kind === 'counterevidence') && hypothesis) {
+          const known = new Set()
+          for (const e of events) {
+            if (e.type === 'begin') for (const h of e.hypotheses ?? []) known.add(h.id)
+            if (e.type === 'hypothesis' && e.hypothesis) known.add(e.hypothesis)
+          }
+          if (!known.has(hypothesis))
+            throw new Error(`未知 hypothesis: ${hypothesis}（本 trace 已有: ${[...known].join('/') || '无'}）——先 kind=hypothesis 新增，或修正引用 id`)
+        }
+        const ev = { seq: events.length + 1, ts: new Date().toISOString(), type: kind, text }
+        if (hypothesis) ev.hypothesis = hypothesis
+        if (kind === 'status') ev.status = status
+        if (kind === 'hypothesis') ev.hypothesis = `h${nextHypIndex(events)}`
+        await appendEvent(file, ev)
+        return { ok: true, traceId, seq: ev.seq, ...(ev.hypothesis ? { hypothesis: ev.hypothesis } : {}) }
+      })
     },
 
     /** 聚合摘要：假设存活状态、正/反证据计数、有界时间线、结案状态。 */

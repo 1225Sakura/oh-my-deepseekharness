@@ -25,7 +25,7 @@ This skill is terminal and read-only by default. It gathers evidence and produce
 ## Do Not Activate When
 
 - The answer is fully repo-local; use `omd-agent-explore` / `research` for codebase facts.
-- The main question is whether to adopt, replace, upgrade, or compare dependencies — **dsh has no dedicated dependency-expert lane**; run that comparison through this skill's source-quality rules plus the `omd-agent-critic` role card, and say plainly that the dedicated OMX lane has no equivalent.
+- The main question is whether to adopt, replace, upgrade, or compare dependencies — that is the `omd-agent-dependency-expert` lane (candidate comparison, vulnerabilities, licensing, migration paths); route there directly.
 - The user only needs implementation against already-grounded requirements; execute directly, or use `team` when coordinated parallel work is warranted.
 - The task can be answered from stable local project conventions without current external lookup.
 
@@ -33,7 +33,7 @@ This skill is terminal and read-only by default. It gathers evidence and produce
 
 1. Use `omd-agent-explore` (via `subagent`, or `omd_delegate` for hard routing) first for brownfield facts: current code usage, local constraints, versions, config, and integration points.
 2. Use `omd-agent-document-specialist` for official/upstream docs, release notes, standards, migration guides, source-backed examples, and current best-practice evidence for an already chosen technology. For direct lookups, `web_search` / `read_page` in this lane work too.
-3. For adoption/upgrade/replacement/comparison decisions there is no dedicated role — apply this skill's source-quality rules yourself and label the dependency-selection part as a boundary, not a verdict.
+3. Route adoption/upgrade/replacement/comparison decisions to `omd-agent-dependency-expert` (the dedicated lane); this skill only supplies the source-quality rules and its cited findings as input — it does not make the selection verdict.
 4. Return to the caller with explicit evidence, uncertainty, and any implementation handoff constraints.
 
 ## Source-Quality Rules

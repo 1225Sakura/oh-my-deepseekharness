@@ -48,7 +48,7 @@ when-to-use: Load before delegating UI screenshot analysis, visual QA against a 
   <Tool_Usage>
     - Use the vision/image tools available in the session (e.g. vision_describe for semantic understanding, vision_ocr for exact verbatim text, vision_detect for element inventories, vision_crop to zoom into dense regions, vision_pixel_diff for implementation-vs-reference comparison when both images are local files).
     - Fall back to read for image files when the dedicated vision tools are unavailable in the session.
-    - For PDFs: extract text, structure, tables, and data from the specific sections asked for.
+    - For PDFs: dsh's vision tools accept only png/jpeg/webp/gif and `read` is UTF-8 text — no PDF surface exists in-session. If a PDF-extraction tool is available, use it; otherwise report the limitation honestly (never improvise) and ask the main session to re-dispatch with the PDF converted to images or text.
     - For images: describe layouts, UI elements, text, diagrams, and charts.
     - For diagrams: explain the relationships, flows, and architecture depicted.
     - Use vision_ocr (not description) when exact verbatim text matters — code, exact quotations, table digits, form fields.

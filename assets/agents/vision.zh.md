@@ -48,7 +48,7 @@ when-to-use: 委派 UI 截图分析、对照设计稿的视觉 QA、或从图片
   <Tool_Usage>
     - 使用会话可用的视觉/图像工具（如 vision_describe 做语义理解、vision_ocr 取逐字文本、vision_detect 盘点元素、vision_crop 放大密集区域、两张图都在本地时用 vision_pixel_diff 做实现对照参考的像素比较）。
     - 会话内没有专用视觉工具时，退回用 read 读取图像文件。
-    - PDF：从被要求的特定章节提取文本、结构、表格和数据。
+    - PDF：dsh 的 vision 工具只接受 png/jpeg/webp/gif，`read` 是 UTF-8 文本读取——会话内没有 PDF 承载面。有可用的 PDF 提取工具时用之；否则如实报告局限（绝不即兴编造），请主会话把 PDF 转成图片或文本后重新派发。
     - 图片：描述布局、UI 元素、文本、示意图和图表。
     - 流程/架构图：解释其中描绘的关系、流程与架构。
     - 需要逐字精确的文本时（代码、精确引用、表格数字、表单字段）用 vision_ocr，而不是语义描述。

@@ -127,7 +127,7 @@ test('prune 手动清理过期 Working 条目并返回移除数（priority/manua
   await t.writeManual({ cwd, text: '手动条目', at: '2020-01-01T00:00:00Z' })
   await t.writeWorking({ cwd, text: '过期条目', at: new Date(Date.now() - 8 * 86400_000).toISOString() })
   const r = await t.prune({ cwd })
-  expect(r).toEqual({ ok: true, removed: 1 })
+  expect(r).toMatchObject({ ok: true, removed: 1 })
   const doc = await t.read({ cwd })
   expect(doc).not.toContain('过期条目')
   expect(doc).toContain('新条目')
@@ -139,6 +139,13 @@ test('prune 对无过期条目幂等（removed=0，文件仍被规范重写）',
   const { t, cwd } = await tools()
   await t.writeWorking({ cwd, text: '新条目' })
   const r = await t.prune({ cwd })
-  expect(r).toEqual({ ok: true, removed: 0 })
+  expect(r).toMatchObject({ ok: true, removed: 0 })
   expect(await t.read({ cwd })).toContain('新条目')
+})
+
+test('评审A-4：不可解析 at 入口即拒（不再产生永不过期条目）', async () => {
+  const { t, cwd } = await tools()
+  await expect(t.writeWorking({ cwd, text: '坏时间戳', at: 'tomorrow' })).rejects.toThrow('不是可解析时间戳')
+  await expect(t.writePriority({ cwd, text: '坏时间戳', at: 'garbage' })).rejects.toThrow('不是可解析时间戳')
+  expect((await t.stats({ cwd })).working).toBe(0)
 })
