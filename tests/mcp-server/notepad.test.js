@@ -10,16 +10,14 @@ async function tools() {
   return { t: makeNotepadTools({ stateDir: '.omd' }), cwd }
 }
 
-test('三个分区分别写入并读回', async () => {
+test('两个分区分别写入并读回', async () => {
   const { t, cwd } = await tools()
   await t.writePriority({ cwd, text: '永远记住这个' })
   await t.writeWorking({ cwd, text: '临时事项' })
-  await t.writeManual({ cwd, text: '用户手写区' })
   const doc = await t.read({ cwd })
   expect(doc).toContain('## Priority Context')
   expect(doc).toContain('永远记住这个')
   expect(doc).toContain('临时事项')
-  expect(doc).toContain('用户手写区')
 })
 
 test('Working Memory 超过 7 天的条目在写入时被惰性清理', async () => {
@@ -31,10 +29,9 @@ test('Working Memory 超过 7 天的条目在写入时被惰性清理', async ()
   expect(doc).toContain('新条目')
 })
 
-test('MANUAL 区即使带旧时间戳也永不清理', async () => {
+test('Priority 区条目永不清理（旧时间戳也保留）', async () => {
   const { t, cwd } = await tools()
-  await t.writeManual({ cwd, text: '古董', at: '2020-01-01T00:00:00Z' })
-  await t.prune({ cwd })
+  await t.writePriority({ cwd, text: '古董', at: '2020-01-01T00:00:00Z' })
   expect(await t.read({ cwd })).toContain('古董')
 })
 
@@ -46,31 +43,31 @@ test('stats 返回三区条目数', async () => {
   expect(s).toEqual({ priority: 1, working: 1, manual: 0 })
 })
 
-// ---------- H2 回归：raw 行保留（MANUAL 区用户内容永不丢失） ----------
+// ---------- H2 回归：raw 行保留（各区用户内容永不丢失） ----------
 
-test('MANUAL 区手写多行段落+注释在 writeWorking/prune 后原样保留', async () => {
+test('Priority 区手写多行段落+注释在 writeWorking 后原样保留', async () => {
   const { t, cwd } = await tools()
   const { mkdir, writeFile } = await import('node:fs/promises')
   await mkdir(join(cwd, '.omd'), { recursive: true })
   const manual = [
     '# omd Notepad', '',
-    '## Priority Context', '',
-    '## Working Memory', '',
-    '## MANUAL',
+    '## Priority Context',
     '这是一段手写的多行说明：',
     '第一行内容保留',
     '', '  - 甚至包括缩进的伪列表',
     '<!-- 注释也要保留 -->',
     '最后一行',
+    '',
+    '## Working Memory', '',
+    '## MANUAL', '',
   ].join('\n')
   await writeFile(join(cwd, '.omd', 'notepad.md'), manual, 'utf8')
   await t.writeWorking({ cwd, text: '新工作条目' })
-  await t.prune({ cwd })
   const doc = await t.read({ cwd })
   for (const frag of ['这是一段手写的多行说明：', '第一行内容保留', '  - 甚至包括缩进的伪列表', '<!-- 注释也要保留 -->', '最后一行'])
     expect(doc).toContain(frag)
   expect(doc).toContain('新工作条目')
-  expect(doc.indexOf('## MANUAL')).toBeGreaterThan(doc.indexOf('## Working Memory'))
+  expect(doc.indexOf('## Priority Context')).toBeLessThan(doc.indexOf('## Working Memory'))
 })
 
 test('working 区非条目 raw 行保留，过期条目被清理', async () => {
