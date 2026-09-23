@@ -185,7 +185,7 @@ test('c3 fallback 审计：表外角色派发 → run-state.json 记 fallback:tr
     const { def, calls } = await setupTool({ config })
     const out = await def.execute({ description: 'x', prompt: 'x', role: 'omd-agent-nosuch', tier: 'low' }, { agent: makeFakes().parent })
     expect(out.fallback).toBe(true)
-    const state = JSON.parse(await readFile(join(dir, '.omd', 'state', 'run-state.json'), 'utf8'))
+    const state = JSON.parse(await readFile(join(dir, 'state', 'run-state.json'), 'utf8'))
     expect(state.fallback).toBe(true)
     expect(state.lastFallback.role).toBe('omd-agent-nosuch')
   } finally {
