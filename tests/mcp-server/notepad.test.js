@@ -105,3 +105,40 @@ test('stats 只统计条目行（raw 行不计数）', async () => {
   const s = await t.stats({ cwd })
   expect(s).toEqual({ priority: 1, working: 0, manual: 0 })
 })
+
+// ---------- D-1 修复：writeManual / prune 工具面补齐 ----------
+
+test('writeManual 写入 MANUAL 区且旧时间戳也永不清理', async () => {
+  const { t, cwd } = await tools()
+  await t.writeManual({ cwd, text: '手动区条目', at: '2020-01-01T00:00:00Z' })
+  const doc = await t.read({ cwd })
+  expect(doc).toContain('## MANUAL')
+  const manIdx = doc.indexOf('## MANUAL')
+  expect(doc.indexOf('手动区条目')).toBeGreaterThan(manIdx)
+  const s = await t.stats({ cwd })
+  expect(s.manual).toBe(1)
+})
+
+test('prune 手动清理过期 Working 条目并返回移除数（priority/manual 不动）', async () => {
+  const { t, cwd } = await tools()
+  // writeZone 写入即惰性清理，故过期条目须最后写入才能留在文件里供 prune 清理
+  await t.writeWorking({ cwd, text: '新条目' })
+  await t.writePriority({ cwd, text: '永久条目', at: '2020-01-01T00:00:00Z' })
+  await t.writeManual({ cwd, text: '手动条目', at: '2020-01-01T00:00:00Z' })
+  await t.writeWorking({ cwd, text: '过期条目', at: new Date(Date.now() - 8 * 86400_000).toISOString() })
+  const r = await t.prune({ cwd })
+  expect(r).toEqual({ ok: true, removed: 1 })
+  const doc = await t.read({ cwd })
+  expect(doc).not.toContain('过期条目')
+  expect(doc).toContain('新条目')
+  expect(doc).toContain('永久条目')
+  expect(doc).toContain('手动条目')
+})
+
+test('prune 对无过期条目幂等（removed=0，文件仍被规范重写）', async () => {
+  const { t, cwd } = await tools()
+  await t.writeWorking({ cwd, text: '新条目' })
+  const r = await t.prune({ cwd })
+  expect(r).toEqual({ ok: true, removed: 0 })
+  expect(await t.read({ cwd })).toContain('新条目')
+})

@@ -31,6 +31,14 @@ export function makeNotepadTools(env) {
     read: async ({ cwd }) => serializeNotepad(pruneZones(await load(cwd))),
     writePriority: ({ cwd, text, at }) => writeZone(cwd, 'priority', { text, at }),
     writeWorking: ({ cwd, text, at }) => writeZone(cwd, 'working', { text, at }),
+    writeManual: ({ cwd, text, at }) => writeZone(cwd, 'manual', { text, at }),
+    prune: async ({ cwd }) => {
+      const zones = await load(cwd)
+      const before = zones.working.length
+      const pruned = pruneZones(zones)
+      await save(cwd, pruned)
+      return { ok: true, removed: before - pruned.working.length }
+    },
     stats: async ({ cwd }) => {
       const z = pruneZones(await load(cwd))
       // 只统计条目行；raw 行（手绘说明/注释）不计数（H2 修复后这些行会被保留在区内）
@@ -48,5 +56,7 @@ export function registerNotepadTools(server, env) {
   server.registerTool('notepad_read', { description: '读 .omd/notepad.md（三区）', inputSchema: base }, async a => jsonOut(await t.read(a)))
   server.registerTool('notepad_write_priority', { description: '写入永久记忆（Priority Context）', inputSchema: entry }, async a => jsonOut(await t.writePriority(a)))
   server.registerTool('notepad_write_working', { description: '写入工作记忆（7 天过期）', inputSchema: entry }, async a => jsonOut(await t.writeWorking(a)))
+  server.registerTool('notepad_write_manual', { description: '写入 MANUAL 区（永不清理）', inputSchema: entry }, async a => jsonOut(await t.writeManual(a)))
+  server.registerTool('notepad_prune', { description: '手动清理过期 Working Memory', inputSchema: base }, async a => jsonOut(await t.prune(a)))
   server.registerTool('notepad_stats', { description: '三区条目数统计', inputSchema: base }, async a => jsonOut(await t.stats(a)))
 }
