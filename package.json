@@ -5,6 +5,10 @@
   "type": "module",
   "main": "lib/index.js",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1225Sakura/oh-my-deepseekharness.git"
+  },
   "engines": {
     "node": ">=22.19.0"
   },

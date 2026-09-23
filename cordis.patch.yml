@@ -5,7 +5,7 @@
 # dynamically at runtime via cordis ctx.plugin() because a static patch
 # cannot express package-internal absolute paths (see spec §7-1).
 #
-# Install: `dsh plugin --profile <name> add oh-my-deepseekharness` (npm or a local path).
+# Install: `dsh plugin --profile <name> add @sakura12/oh-my-deepseekharness` (npm or a local path).
 - insert:
     - id: oh-my-dsh
       name: '@sakura12/oh-my-deepseekharness'
