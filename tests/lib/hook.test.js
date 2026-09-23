@@ -48,6 +48,11 @@ test('detectKeyword：裸词/解释性提及/回显块不激活（B1 核心）',
   expect(detectKeyword('什么是 ralph 模式？')).toBeNull()
   expect(detectKeyword('看这段回显 [RALPH LOOP - ITERATION 3] 就继续了')).toBeNull()
   expect(detectKeyword('历史注入 [MAGIC KEYWORD: ralph] 也别再自激')).toBeNull()
+  // B1 复审具名钉：解释性问句（否定前导守卫，窗口含边界字符）
+  expect(detectKeyword('如何使用 ralph？')).toBeNull()
+  expect(detectKeyword('怎么用 wiki 查一下？')).toBeNull()
+  // B1 复审具名钉：CJK 引用形态（排除集含「」等全角引号）
+  expect(detectKeyword('「用 ralph 做」这种引用形态不武装')).toBeNull()
   expect(detectKeyword('帮我做个 code review 好吗')).toMatchObject({ target: 'review', hook: { injectGuide: true, arm: false } })
 })
 
@@ -273,6 +278,21 @@ test('监听器：review 命中 → 只注入行内指引块，不写模式状�
     const injected = out.messages.at(-1)
     expect(injected.content[0].text).toContain('未激活任何模式状态')
     await expect(stat(join(cwd, '.omd', 'state', 'sessions', 'sess-REV'))).rejects.toThrow() // 零模式状态
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('监听器：tool 来源文本块不参与检测（B1 复审：role 过滤挡不住 tool 形态的双保险钉）', async () => {
+  const cwd = await tmpWorkdir()
+  const { ctx, captured } = fakeCtx()
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  try {
+    const downstream = { kind: 'enter', messages: [] }
+    const out = await captured['agent/pre-step'](
+      { agent: { session: { header: { id: 'sess-TOOL', cwd } } }, messages: [{ role: 'user', content: [{ type: 'text', text: 'cancelomd', source: { kind: 'tool' } }] }] },
+      async () => downstream,
+    )
+    expect(out).toBe(downstream)
+    await expect(stat(join(cwd, '.omd'))).rejects.toThrow() // 零状态写
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 

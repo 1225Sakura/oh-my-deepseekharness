@@ -193,6 +193,22 @@ test('c3 fallback 审计：表外角色派发 → run-state.json 记 fallback:tr
   }
 })
 
+test('M1 回归（相对 stateDir 形态）：默认部署审计落 <cwd>/.omd/state/ 权威路径，无 .omd/.omd 幻影嵌套', async () => {
+  const config = Config.parse({}) // 默认相对 stateDir '.omd'——生产默认形态（第 2 轮评审 F-1：绝对夹具曾掩盖 cwd 错位）
+  const { def } = await setupTool({ config })
+  const out = await def.execute({ description: 'x', prompt: 'x', role: 'omd-agent-nosuch', tier: 'low' }, { agent: makeFakes().parent })
+  expect(out.fallback).toBe(true)
+  const authority = join(process.cwd(), '.omd', 'state', 'run-state.json')
+  const state = JSON.parse(await readFile(authority, 'utf8'))
+  expect(state.fallback).toBe(true)
+  expect(state.lastFallback.role).toBe('omd-agent-nosuch')
+  // 幻影嵌套路径不得存在（cwd/stateDir 错位回归钉）
+  await expect(readFile(join(process.cwd(), '.omd', '.omd', 'state', 'run-state.json'), 'utf8')).rejects.toThrow()
+  // 清理：仅移除本测试写入的文件
+  const { rm: rmAsync } = await import('node:fs/promises')
+  await rmAsync(authority, { force: true })
+})
+
 test('子代理非 completed → 显式失败（含 diagnostic）', async () => {
   const fakes = makeFakes()
   fakes.subagents.start = async () => ({
