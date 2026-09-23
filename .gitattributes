@@ -12,12 +12,12 @@
 *.json     text eol=lf
 *.yml      text eol=lf
 *.yaml     text eol=lf
-*.sh       text eol=lf
 *.py       text eol=lf
 *.gitignore      text eol=lf
 
-# Shell scripts must stay executable; do not strip mode bits on checkout
-*.sh       -text diff=bash
+# Shell scripts: enforce LF too; diff=bash for word-aware diffs.
+# (text/eol never affect the executable bit — that is core.fileMode's job.)
+*.sh       text eol=lf diff=bash
 
 # Generated/vendor — usually not diffed, but keep LF if touched
 package-lock.json text eol=lf -diff
