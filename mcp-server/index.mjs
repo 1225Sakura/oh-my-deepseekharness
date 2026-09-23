@@ -7,6 +7,7 @@ import { registerStateTools } from './tools/state.mjs'
 import { registerNotepadTools } from './tools/notepad.mjs'
 import { registerPrdTools } from './tools/prd.mjs'
 import { registerHandoffTools } from './tools/handoff.mjs'
+import { registerTeamTools } from './tools/team.mjs'
 
 const server = new McpServer({ name: 'omd-state', version: '0.1.0' })
 const env = { stateDir: process.env.OMD_STATE_DIR || '.omd' }
@@ -14,4 +15,5 @@ registerStateTools(server, env)
 registerNotepadTools(server, env)
 registerPrdTools(server, env)
 registerHandoffTools(server, env)
+registerTeamTools(server, env)
 await server.connect(new StdioServerTransport())
