@@ -1,0 +1,23 @@
+# oh-my-dsh repository attributes
+# See https://git-scm.com/docs/gitattributes
+
+# Default: normalize line endings on checkout, leave original on commit
+* text=auto
+
+# Source code and docs: enforce LF (overrides core.autocrlf)
+*.md       text eol=lf
+*.js       text eol=lf
+*.mjs      text eol=lf
+*.cjs      text eol=lf
+*.json     text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.sh       text eol=lf
+*.py       text eol=lf
+*.gitignore      text eol=lf
+
+# Shell scripts must stay executable; do not strip mode bits on checkout
+*.sh       -text diff=bash
+
+# Generated/vendor — usually not diffed, but keep LF if touched
+package-lock.json text eol=lf -diff
