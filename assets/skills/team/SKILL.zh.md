@@ -1,7 +1,7 @@
 ---
 name: team
 description: 仅限显式调用的多代理流水线——队长编排加载角色卡的 subagent 队员，走五阶段流水线，阶段间强制写交接文档
-when-to-use: **仅限显式调用**（"用 team 做…"、"/team …"）。无关键词触发——普通文本里的 "team" 一词不得激活本 skill；队员会话内整个关键词路由表失效。用于可拆解任务的并行多代理执行。
+when-to-use: **仅限显式调用**（"用 team 做…"、"/team …"）。无关键词触发——普通文本里的 "team" 一词不得激活本 skill；队员会话内整个关键词路由表失效。用于可拆解任务的并行多代理执行。**MVP 范围（诚实声明）**：默认仅 `handoff_write` / `handoff_read` / `handoff_list` 三个 MCP 工具面可用；五阶段流水线（plan → prd → exec → verify → fix）是文档级指引，队长需用 `subagent` spawn + 阶段间 `mcp__omd-state__handoff_write` 手工驱动。无 `lib/team.js` 领队运行时、无 tmux pane 守护、无 UUID 绑定 worker 生命周期——这些归 omd 1.x。
 ---
 
 # team
@@ -136,8 +136,8 @@ dsh 没有定时器承载面，所以 watchdog 是事件驱动的——这是对
 
 **调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；模式字段嵌套在 `state` 键下。
 
-- **开始**：`state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <压缩 ≤1200 字符>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`。状态文件：`.omd/state/sessions/{sessionId}/team-state.json`。
-- **阶段转换**：每次阶段变化都 `state_write` 更新 `state.current_phase`（`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`）、`fix_loop_count` 与阶段历史。
-- **完成/取消**：关闭流程走完之后 `state_clear({ cwd, sessionId, mode: "team" })`。`.omd/handoffs/` 与 `.omd/plans/` 永不删除。
+- **开始**：先调 `mcp__omd-state__team_begin({ cwd, runId, stateDir })` 建工作树（c5）——返回孤儿列表（人工处置）与新 runId + head。再 `state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <压缩 ≤1200 字符>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`。状态文件：`.omd/state/sessions/{sessionId}/team-state.json`。若 cwd 在新工作树内，非状态写优先用 `mcp__omd-state__team_write_tree_state`（c8：父仓 .omd 不外溢）。
+- **阶段转换**：每次阶段变化都 `state_write` 更新 `state.current_phase`（`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`）、`fix_loop_count` 与阶段历史。**同时**调 `mcp__omd-state__team_write_mirror({ cwd, stateDir, patch: { mode: 'team', round, current_story, active_agents, todo }, expectUpdatedAt })` —— c6 把七字段镜像快照写进 `.omd/state/run-state.json`（CAS 冲突重读 ≤3 次，每次写 version +1）。
+- **完成/取消**：先关闭流程（通知全部队员、等待确认），再 `mcp__omd-state__team_dispose({ cwd, runId, reason: 'verified' | 'cancelled', expectUpdatedAt })`（c5 两阶段拆除：CAS 写 disposed 终态 → 删树），最后 `state_clear({ cwd, sessionId, mode: "team" })`。`.omd/handoffs/` 与 `.omd/plans/` 永不删除。
 - **异常退出**：状态与 handoffs 留在盘上供 resume；>2h 未更新的状态视为 stale——只报告不自动续。
 - **MCP server 挂了**：用普通文件工具对 `.omd/` 做同样的读写，并显式说明。

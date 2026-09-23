@@ -1,7 +1,7 @@
 ---
 name: team
 description: Explicit-invocation multi-agent pipeline — the lead orchestrates role-carded subagents through a five-stage pipeline with mandatory stage handoffs
-when-to-use: EXPLICIT INVOCATION ONLY ("use team to …", "/team …"). No keyword trigger — the word "team" in ordinary text must NOT activate this skill, and inside worker sessions the whole keyword routing table is inert. Use for parallel multi-agent execution of a decomposable task.
+when-to-use: EXPLICIT INVOCATION ONLY ("use team to …", "/team …"). No keyword trigger — the word "team" in ordinary text must NOT activate this skill, and inside worker sessions the whole keyword routing table is inert. Use for parallel multi-agent execution of a decomposable task. **MVP scope (honest)**: only `handoff_write` / `handoff_read` / `handoff_list` MCP tools are wired out of the box; the five-stage pipeline (plan → prd → exec → verify → fix) is documentation-level — the lead must drive it manually with `subagent` spawns + `mcp__omd-state__handoff_write` between stages. There is no `lib/team.js` leader runtime, no tmux pane guardian, no UUID-bound worker lifecycle — those belong to omd 1.x.
 ---
 
 # team
@@ -137,8 +137,8 @@ Never clear team state before the shutdown pass completes.
 
 **Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; mode fields nest under the `state` key.
 
-- **Start**: `state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <compressed ≤1200 chars>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`. State file: `.omd/state/sessions/{sessionId}/team-state.json`.
-- **Stage transitions**: `state_write` with updated `state.current_phase` (`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`), `fix_loop_count`, and stage history on EVERY stage change.
-- **Complete / cancel**: `state_clear({ cwd, sessionId, mode: "team" })` AFTER the shutdown pass. `.omd/handoffs/` and `.omd/plans/` are never deleted.
+- **Start**: first call `mcp__omd-state__team_begin({ cwd, runId, stateDir })` to provision the worktree (c5) — this returns orphans (manual cleanup) and the new runId + head. Then `state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <compressed ≤1200 chars>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`. State file: `.omd/state/sessions/{sessionId}/team-state.json`. If cwd is inside the new worktree, prefer `mcp__omd-state__team_write_tree_state` for non-state writes (c8 — keeps parent `.omd/` clean).
+- **Stage transitions**: `state_write` with updated `state.current_phase` (`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`), `fix_loop_count`, and stage history on EVERY stage change. **Plus** `mcp__omd-state__team_write_mirror({ cwd, stateDir, patch: { mode: 'team', round, current_story, active_agents, todo }, expectUpdatedAt })` — c6 mirrors the seven-field snapshot into `.omd/state/run-state.json` (CAS-conflict retry ≤3, version +1 each write).
+- **Complete / cancel**: shutdown pass first (notify all workers, await confirmations), then `mcp__omd-state__team_dispose({ cwd, runId, reason: 'verified' | 'cancelled', expectUpdatedAt })` (c5 two-phase teardown — CAS-write disposed → delete tree), then `state_clear({ cwd, sessionId, mode: "team" })`. `.omd/handoffs/` and `.omd/plans/` are never deleted.
 - **Abnormal exit**: state + handoffs remain for resume; state untouched for >2h is stale — report, don't auto-resume.
 - **MCP server down**: same reads/writes with plain file tools against `.omd/`, announced explicitly.
