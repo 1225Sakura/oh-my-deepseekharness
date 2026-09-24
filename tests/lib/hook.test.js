@@ -119,7 +119,7 @@ function fakeCtx() {
 }
 
 const fakeCreateUserMessage = (msg) => ({ role: 'user', ...msg })
-const userMsg = (text) => ({ content: [{ type: 'text', text }] })
+const userMsg = (text) => ({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
 
 test('监听器：未命中 → 恰一次 next() 直通，零状态写零注入（C3）', async () => {
   const cwd = await tmpWorkdir()
@@ -340,5 +340,24 @@ test('回归 v4：注入消息 source 为 producer-owned 对象形态（四拒�
     expect(source.kind.length, '分支③：kind 必须非空').toBeGreaterThan(0)
     expect(source.kind, '分支④：kind 不得为 retired 的 plugin').not.toBe('plugin')
     expect(source).toEqual({ kind: 'oh-my-dsh:keyword-hook' })
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('回归 v4 扫描面：子代理回报（producer kind 消息）含触发词 → 零状态写零注入', async () => {
+  const cwd = await tmpWorkdir()
+  const { ctx, captured } = fakeCtx()
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  try {
+    // 模拟子代理回报消息：role='user' 但 source.kind 为 producer kind（非人类输入）
+    const reportMsg = { role: 'user', source: { kind: 'subagent-settled' }, content: [{ type: 'text', text: 'A8 裁决证据：keywords.js cancel 条目(cancelomd/stopomd, 独占优先)' }] }
+    const downstream = { kind: 'enter', messages: [reportMsg] }
+    let nextCalls = 0
+    const out = await captured['agent/pre-step'](
+      { agent: { session: { header: { id: 'sess-REPORT', cwd } } }, messages: [reportMsg] },
+      async () => { nextCalls++; return downstream },
+    )
+    expect(nextCalls).toBe(1)
+    expect(out).toBe(downstream)          // 恰一次 next() 原样直通
+    await expect(stat(join(cwd, '.omd'))).rejects.toThrow()  // 零状态写（不误预写 cancel）
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
