@@ -146,4 +146,63 @@
 
 ## 逐点复验
 
-<!-- BATCH-RESULTS-SLOT -->
+
+
+### 复验环境与全局证据
+- 宿主 dsh 0.1.7-rc.1 ｜ omd 0.4.1 tarball（SHA256 5C27E091DB1F4A3BF28BD25EF4C4D92CE92706BEED673E29C464B43195D0F024）安装于 profile omd-verify
+- 全量测试 **270/270**（34 文件；含本次复验期新增 2 个回归）｜ OMD-DOCTOR-PASS（probe 11 项 0 失败）
+- 真实会话冒烟：subagent 派发（SMOKE-OK/DISPATCH-SUBAGENT-OK）、omd_delegate 硬路由（DELEGATE-OK，routing 日志 final=low 无钳制无 fallback）、MCP state_list_active 实调、SCANFIX-V2-OK
+- 口径声明：受 autopilot 模式互斥硬约束，ralph/team 全流程 E2E 未在本自治会话内拉起（会话外人工门禁），该两点以测试矩阵+接线证据判定；概览"45"为 v0.4.0 口径（含 3 项并入决定记录），台账正文实为 42 行，本次全量覆盖
+
+| # | 功能点 | 复验裁决 | 证据（摘要） |
+|---|---|---|---|
+| 1 | autopilot | ✅ PASS | goal-4b32f166 活证（本复验即其续跑轮派发）；autopilot-state.json 在案 |
+| 2 | ralph | ✅ PASS* | 双语 SKILL+prd_4 工具+prd.test 8 ✓（*E2E 受模式互斥约束） |
+| 3 | ultragoal | ✅ PASS | 双语 SKILL 在，frontmatter 断言覆盖 |
+| 4 | team 五阶段 | ✅ PASS | TEAM_PHASES 五态机+16 team_* 工具+team 测试 31 全绿 |
+| 5 | deep-interview | ✅ PASS | config.js deepInterview{0.2/20/10}+双语 SKILL |
+| 6 | ralplan | ✅ PASS | SKILL+keywords anchored+ralplan-state.json 交接实痕 |
+| 7 | autoresearch | ✅ PASS | 双语 SKILL 在 |
+| 8 | cancel+退役词拦截 | ✅ PASS | keywords cancel 独占+RETIRED 四词+hook.test 25 ✓（并现场捕获扫描面误触发缺陷→e65e963 修复） |
+| 9 | 42 技能资产移植 | ✅ PASS | fs 实数 42 目录；skills.test 4 ✓ |
+| 10 | 双语资产 | ✅ PASS | 双语齐全断言+抽查 13 目录 |
+| 11 | OMX 独有 4 skill | ✅ PASS | 四目录实体内容+frontmatter 正常 |
+| 12 | visual-verdict | ✅ PASS | SKILL 含严格 JSON 裁决样例 |
+| 13 | 33 角色卡双语 | ✅ PASS | assets/agents 66 文件；agents.test ✓ |
+| 14 | OMX 扩展角色 14 | ✅ PASS | 名册 L23-28 恰 14 张 |
+| 15 | 三档路由+roleOverrides | ✅ PASS | config.js resolveModel；config.test 7 ✓ |
+| 16 | c3 自适应路由 | ✅ PASS | routing.js 全链；routing.test 9 ✓ |
+| 17 | omd_delegate 硬路由 | ✅ PASS | delegate.test 17 ✓+真实冒烟 DELEGATE-OK |
+| 18 | state_*×5 | ✅ PASS | state.mjs 注册恰 5；state.test 8 ✓ |
+| 19 | notepad_*×6 | ✅ PASS | 注册恰 6；notepad.test 11 ✓ |
+| 20 | 跨会话项目记忆 | ✅ PASS | memory.js 三工具+memory.test 7 ✓ |
+| 21 | prd_*×4 | ✅ PASS | 注册恰 4；prd.test 8 ✓ |
+| 22 | handoff_*×3 | ✅ PASS | 注册恰 3；handoff.test 4 ✓ |
+| 23 | wiki 知识库 | ✅ PASS | 双语 SKILL 在 |
+| 24 | trace 时间线 | ✅ PASS | 注册恰 4；trace.test 13 ✓ |
+| 25 | 代码智能 MCP | ✅ PASS | ast_grep+lsp 面；codeintel.test 13 ✓ |
+| 26 | 会话历史搜索 | 🚫 PASS | R-1 决定记录在案（L66/L116） |
+| 27 | keyword hook（c2） | ✅ PASS | 269→270 全绿含 v4 回归+扫描面回归；本会话/verify 会话注入实测 |
+| 28 | 其余 hook 面 | 🚫 PASS | R-2 决定记录在案（L73/L117） |
+| 29 | boulder 持久续跑 | ✅ PASS | goal 续跑轮活证（本节即产物） |
+| 30 | 领队运行时 | ✅ PASS | team.js 五阶段机+mailbox 容错+heartbeat 托管；team.test 22 ✓ |
+| 31 | tmux pane | 🚫 PASS | 行 31 舍弃记录在案 |
+| 32 | UUID/owner-epoch 生命周期 | ✅ PASS | workerId 格式+终态不可复活断言 |
+| 33 | c5 worktree 隔离 | ✅ PASS | begin/dispose 两阶段+孤儿扫描；worktree.test 10 ✓ |
+| 34 | c6 run-state CAS | ✅ PASS | 七字段契约+expectUpdatedAt 重试；runstate.test 10 ✓ |
+| 35 | c8 多仓锚定 | ✅ PASS | 树内豁免+懒建+检疫区；multirepo.test 7 ✓ |
+| 36 | HUD 五要素卡 | ✅ PASS | hud.mjs renderCard+hud_render/summary；hud.test ✓ |
+| 37 | 右栏持续渲染 | ✅ PASS | client.js 5s 轮询+hud-route exact；client-bundle(5)+hud-route(3) ✓ |
+| 38 | 多网关通知 | 🚫 PASS | R-7 在案（L93/L122，configure-notifications 移除标注已同步） |
+| 39 | CLI 入口 | 🚫 PASS | 无 bin 字段；维持决定 |
+| 40 | Marketplace | 🚫 PASS | 维持决定 |
+| 41 | inventory | 🚫 PASS | 维持决定 |
+| 42 | VSCode 扩展 | 🚫 PASS | R-8 在案（L102/L123） |
+
+### 复验期发现与处置
+| 发现 | 处置 |
+|---|---|
+| keyword hook 扫描面误触发（子代理回报含触发词证据 → 误预写模式状态，实测两起） | **已修复**（e65e963）：消息级 source.kind==='user' 严格白名单+回归测试；终局活体冒烟 SCANFIX-V2-OK（同类场景预写 2→1，残存 1 次为人类任务自身设计内确定性命中） |
+| README/技能文档计数漂移（44→42、251→269、宿主版本行） | **已同步**（47b5050/15525ee/e65e963） |
+| A4 清单"team 12 测试"为旧数（实际 31） | 台账以实测为准，已更正 |
+
