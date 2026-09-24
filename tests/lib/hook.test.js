@@ -170,7 +170,7 @@ test('监听器：命中 → 模式状态落盘 + 下游注入 [MAGIC KEYWORD] �
     const injected = out.messages.at(-1)
     expect(injected.content[0].text).toContain('[MAGIC KEYWORD: cancel]')
     expect(injected.content[0].text).toContain(`expectUpdatedAt=${back._meta.updatedAt}`)
-    expect(injected.source).toBe('oh-my-dsh:keyword-hook')
+    expect(injected.source).toEqual({ kind: 'oh-my-dsh:keyword-hook' }) // v4：对象形态（原断言编码了裸字符串缺陷）
     // 命中日志行（e2e 证据面）
     expect(infos.some(l => l.includes('[keyword-hook] hit trigger=\'cancelomd\''))).toBe(true)
   } finally { await rm(cwd, { recursive: true, force: true }) }
@@ -315,5 +315,30 @@ test('监听器：同会话同名模式已 active → 跳过重置与注入（B1
     expect(out.messages.length).toBe(downstream.messages.length) // 零注入
     const after = await readBackViaStateRead({ cwd, stateDir: '.omd', sessionId: 'sess-DUP', mode: 'cancel' })
     expect(after).toEqual(before) // 状态零重置
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+// ---- 回归（dsh 0.1.7-rc.1 session format v4，docs/dsh-017-adapt-audit.md §3）----
+// 缺陷史：repo 曾以裸字符串 source（HOOK_SOURCE 常量本身）注入会话消息，v4 admission
+// （dsh-session-format-v3-to-v4/lib/index.js:126 的四分支校验）在 dispose/持久化阶段抛
+// SessionFormatError。修复=回流 { kind } 对象形态。本测试复刻四分支，钉死回归。
+test('回归 v4：注入消息 source 为 producer-owned 对象形态（四拒绝分支全过）', async () => {
+  const cwd = await tmpWorkdir()
+  const { ctx, captured } = fakeCtx()
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  try {
+    const downstream = { kind: 'enter', messages: [userMsg('ralph: 拉起循环')] }
+    const out = await captured['agent/pre-step'](
+      { agent: { session: { header: { id: 'sess-V4', cwd } } }, messages: [userMsg('ralph: 拉起循环')] },
+      async () => downstream,
+    )
+    const injected = out.messages[out.messages.length - 1]
+    const source = injected && injected.source
+    // v4 admission 复刻：①source 是对象 ②kind 是 string ③kind 非空 ④kind 非 retired 的 'plugin'
+    expect(source, '分支①：source 必须是对象（裸字符串在 0.1.7 持久化即炸）').toBeTypeOf('object')
+    expect(typeof source.kind, '分支②：kind 必须是 string').toBe('string')
+    expect(source.kind.length, '分支③：kind 必须非空').toBeGreaterThan(0)
+    expect(source.kind, '分支④：kind 不得为 retired 的 plugin').not.toBe('plugin')
+    expect(source).toEqual({ kind: 'oh-my-dsh:keyword-hook' })
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })

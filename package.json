@@ -45,14 +45,14 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-commands": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.6-alpha.1 <0.2.0",
-    "@deepseek-ai/dsh-llm": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.6-alpha.1 <0.2.0",
-    "@deepseek-ai/dsh-mcp-client": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.6-alpha.1 <0.2.0",
-    "@deepseek-ai/dsh-skill": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.6-alpha.1 <0.2.0",
-    "@deepseek-ai/dsh-storage": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.6-alpha.1 <0.2.0",
-    "@deepseek-ai/dsh-storage-domain": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.6-alpha.1 <0.2.0",
-    "@deepseek-ai/dsh-system-prompt": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.6-alpha.1 <0.2.0",
-    "@deepseek-ai/dsh-tools": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.6-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-commands": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-llm": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-mcp-client": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-skill": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-storage": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-storage-domain": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-system-prompt": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-tools": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0",
     "@deepseek-ai/schemastery": "^3.18.2"
   },
   "peerDependenciesMeta": {

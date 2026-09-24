@@ -22,7 +22,7 @@ dsh plugin --profile <name> add @sakura12/oh-my-deepseekharness
 dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 ```
 
-要求：Node.js ≥ 22.19，dsh 宿主 0.1.5-rc.1+。所有 `@deepseek-ai/*` 依赖均为宿主义务（peerDependencies，缺失自动降级，见下文「依赖边界」）。可选能力依赖（optionalDependencies，缺席显式降级不阻断）：`@ast-grep/napi`（ast_grep_* 工具）、`vscode-jsonrpc` / `vscode-languageserver-protocol` / `vscode-uri`（lsp_* 工具）。
+要求：Node.js ≥ 22.19，dsh 宿主 0.1.7-rc.1+（session format v4）。所有 `@deepseek-ai/*` 依赖均为宿主义务（peerDependencies，缺失自动降级，见下文「依赖边界」）。可选能力依赖（optionalDependencies，缺席显式降级不阻断）：`@ast-grep/napi`（ast_grep_* 工具）、`vscode-jsonrpc` / `vscode-languageserver-protocol` / `vscode-uri`（lsp_* 工具）。
 
 验装：安装后在会话中输入 `/omd-doctor`。
 
