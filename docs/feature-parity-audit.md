@@ -139,9 +139,9 @@
 
 # v0.4.1 复验节（dsh 0.1.7-rc.1，2026-09-24）
 
-> 触发：dsh 0.1.5→0.1.7-rc.1 升级适配（docs/dsh-017-adapt-audit.md）；复验环境 = 终版 0.4.1 tarball（SHA256 20FD67E93E34C024A54AFBE59CF3724064CF9005C1B7C8115F2EB5084FF1D0AD）安装于 profile omd-verify，headless 实测通过（PING/SUBAGENT/DELEGATE/MCP/DOCTOR 五冒烟）。
+> 触发：dsh 0.1.5→0.1.7-rc.1 升级适配（docs/dsh-017-adapt-audit.md）；复验环境 = 终版 0.4.1 tarball（SHA256 5C27E091DB1F4A3BF28BD25EF4C4D92CE92706BEED673E29C464B43195D0F024（终版，含 e65e963 扫描面修复））安装于 profile omd-verify，headless 实测通过（PING/SUBAGENT/DELEGATE/MCP/DOCTOR 五冒烟）。
 > 方法：45 点逐点复验，四批次并行回收证据（子代理分派即通道活体证据）；主会话裁决与登记。
-> 全局证据：npm test **269/269**（2026-09-24 19:40 新鲜输出）；OMD-DOCTOR-PASS（11 项 probe 0 失败）。
+> 全局证据：npm test **270/270**（终版候选实测；含复验期新增 2 个回归）；OMD-DOCTOR-PASS（11 项 probe 0 失败）。
 > 口径声明：受 autopilot 模式互斥硬约束，ralph/team 全流程 E2E 不能在本自治会话内真实拉起——该两点以测试矩阵+接线探针为证据并如实标注"E2E 待会话外人工门禁"；其余各点均为新鲜命令/文件行证据。
 
 ## 逐点复验
