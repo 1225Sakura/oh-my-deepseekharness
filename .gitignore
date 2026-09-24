@@ -4,3 +4,5 @@ node_modules/
 
 # omd 运行时状态（dogfooding 时插件在自身仓库生成的 stateDir）
 .omd/
+# 本地打包产物
+*.tgz
