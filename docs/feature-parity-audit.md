@@ -90,7 +90,7 @@
 |---|---|---|---|---|
 | 36 | HUD 五要素摘要卡（c4） | ✅ **(⚠️→✅)** | server 面 `mcp-server/tools/hud.mjs`（hud_render/hud_summary）+ client half `lib/client.js` + 数据路由 `lib/hud-route.js`（/oh-my-dsh/hud.json） | client bundle 沙箱测试在案；面板可见需宿主重启装载（记录在 hud skill） |
 | 37 | statusline / 双层 HUD 持续渲染 | ✅ **(❌→✅)** | 右栏 omd-hud 面板 5s 轮询（`lib/client.js` useHudSnapshot） | 语义映射：dsh 无终端 statusline，右栏持续面板为其等价物——差异如实记录 |
-| 38 | 多网关通知 | 🚫 **(❌→🚫)** | 决定记录 R-7 | dsh 无会话事件通知面；`configure-notifications` skill 记录替代路径 |
+| 38 | 多网关通知 | 🚫 **(❌→🚫)** | 决定记录 R-7 | dsh 无会话事件通知面；替代路径结论保留于本行（原 `configure-notifications` skill 已于 v0.4.1 经用户批准移除） |
 
 ## H. CLI 与分发（4）
 
@@ -119,7 +119,7 @@
 - **R-4 wiki session hook → 会话边界清单替代。** 理由同 R-2/R-3。替代实装：wiki SKILL「会话边界清单」（session-start 挂载三步骤 + 落盘三步骤，模型驱动）。复评触发：R-2 解除。
 - **R-5 OMX ultraqa / worker → 🚫 不移植。** 理由：ultraqa 在 OMC v5.0 已退役（双源均不应复活）；worker 协议已并入 omd team skill 的 Worker 协议段（逐字注入契约在案）。
 - **R-6 OMX team-executor / team-orchestrator → 🚫 不移植。** 理由：二者绑定 OMX team 运行时（mailbox CLI/tmux 形态）；其职责由 omd team 运行时的阶段角色路由（team SKILL 表）+ lib/team.js registry 覆盖。复评触发：omd team 运行时出现这两卡覆盖不了的编排角色缺口。
-- **R-7 多网关通知 → 🚫 不做。** 理由：通知器依赖会话事件 hook（session-end/idle），宿主无此面（R-2）；`configure-notifications` skill 已记录 dsh 下最接近的替代路径。复评触发：R-2 解除或宿主提供通知缝。
+- **R-7 多网关通知 → 🚫 不做。** 理由：通知器依赖会话事件 hook（session-end/idle），宿主无此面（R-2）；替代路径结论原记录于 `configure-notifications` skill（v0.4.1 移除，见 #38）——dsh 下最接近的替代路径。复评触发：R-2 解除或宿主提供通知缝。
 - **R-8 VSCode 扩展 → 🚫 不做。** 理由：OMX 的 VSCode 扩展是其宿主 GUI；dsh 的对应物是 dsh Web GUI（omd v0.4 已向其交付 HUD 面板 client half），再写 VSCode 扩展是双倍维护面。复评触发：用户出现 VSCode 内使用 dsh 的明确需求。
 
 ## v0.3.0 初审发现闭环
