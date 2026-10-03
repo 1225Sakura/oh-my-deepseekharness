@@ -1,9 +1,9 @@
 // mcp-server/tools/hud.mjs
 // c4 HUD server 面（v0.4.0 P2-D 第一步）：把 lib/hud.js 的五要素契约暴露为 MCP 工具——
-// 模型调 hud_render 即得 6 行有界摘要卡文本，无需 client half 即可落地「HUD 可见性」。
+// 模型调 hud_render 即得至多 8 行中文摘要卡文本，无需 client half 即可落地「HUD 可见性」。
 // 数据源严格只有 state_get_status + notepad_stats 两个现成读面（lib/hud.js 设计约束）。
 import { z } from 'zod'
-import { summarize, renderCard, createSummaryReader } from '../../lib/hud.js'
+import { summarize, renderCard, buildHudView, createSummaryReader } from '../../lib/hud.js'
 import { makeStateTools } from './state.mjs'
 import { makeNotepadTools } from './notepad.mjs'
 
@@ -11,11 +11,13 @@ export function makeHudTools(env) {
   const stateTools = makeStateTools(env)
   const notepadTools = makeNotepadTools(env)
   return {
-    /** 渲染 HUD 摘要卡（五要素 6 行有界文本）。 */
+    /** 渲染 HUD 编排状态卡（中文摘要卡，至多 8 行）。恒返回恰 {summary, card} 二键（AC6）。 */
     async render({ cwd }) {
-      const read = createSummaryReader({ stateTools, notepadTools, cwd })
-      const summary = await read()
-      return { summary, card: renderCard(summary) }
+      const view = buildHudView({
+        status: await stateTools.getStatus({ cwd }),
+        stats: await notepadTools.stats({ cwd }),
+      })
+      return { summary: view.summary, card: renderCard(view.summary, view.detail) }
     },
     /** 只回五要素 JSON（client half / 机器消费面）。 */
     async summary({ cwd }) {
@@ -30,7 +32,7 @@ export function registerHudTools(server, env) {
   const jsonOut = (v) => ({ content: [{ type: 'text', text: typeof v === 'string' ? v : JSON.stringify(v) }] })
   const base = { cwd: z.string() }
   server.registerTool('hud_render', {
-    description: 'c4 HUD 摘要卡渲染：五要素（mode/round/story/agents/todo）6 行有界文本 + summary JSON；数据源=state_get_status+notepad_stats',
+    description: 'HUD 编排状态卡渲染：中文摘要卡（至多 8 行：模式/阶段/轮次/任务/记忆，空态含模式引导）+ summary JSON；数据源=state_get_status+notepad_stats',
     inputSchema: base,
   }, async a => jsonOut(await t.render(a)))
   server.registerTool('hud_summary', {

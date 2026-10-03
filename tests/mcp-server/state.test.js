@@ -87,3 +87,21 @@ test('孤儿 state 文件（缺 _meta）的报错文案显示 <unknown> 而非 u
   await expect(t.write({ cwd, sessionId: 's1', mode: 'ralph', state: { active: true } }))
     .rejects.toThrow(/<unknown>|ghost/)
 })
+test('getStatus U3/AC10 加性透传：state 与 fixLoops（两种拼法兜底）；缺席为 undefined', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 's1', mode: 'ralph',
+    state: { active: true, state: 'running', fix_loop_count: 2 } })
+  const st = await t.getStatus({ cwd })
+  expect(st.modes[0].state).toBe('running')
+  expect(st.modes[0].fixLoops).toBe(2)
+  await t.write({ cwd, sessionId: 's2', mode: 'team',
+    state: { active: true, fixLoops: 1 } })
+  const st2 = await t.getStatus({ cwd })
+  // fresh-first 同毫秒 tie-break 按 mode 名稳定序——按 mode 名取项，不依赖 modes[0]
+  expect(st2.modes.find(m => m.mode === 'team').fixLoops).toBe(1)
+  await t.write({ cwd, sessionId: 's3', mode: 'autopilot', state: { active: true } })
+  const st3 = await t.getStatus({ cwd })
+  expect(st3.modes.find(m => m.mode === 'autopilot').state).toBeUndefined()
+  expect(st3.modes.find(m => m.mode === 'autopilot').fixLoops).toBeUndefined()
+})
+

@@ -3,8 +3,8 @@ import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  HUD_FIELDS, HUD_CONTRACT_VERSION,
-  summarize, diffSummary, renderCard, createSummaryReader, createPollingHud,
+  HUD_FIELDS, HUD_CONTRACT_VERSION, MODE_LABELS, PRESETS, HUD_DEFAULT_PRESET, TIER,
+  summarize, diffSummary, renderCard, buildHudView, createSummaryReader, createPollingHud,
 } from '../../lib/hud.js'
 import { makeStateTools } from '../../mcp-server/tools/state.mjs'
 import { makeNotepadTools } from '../../mcp-server/tools/notepad.mjs'
@@ -50,22 +50,107 @@ test('diffSummary：一致=空数组；单字段变=恰该字段；对象键序�
   expect(diffSummary(a, { mode: 'x', extra: 1 })).toEqual(HUD_FIELDS)  // 多余字段不进 diff
 })
 
-// ---------- renderCard：最小摘要卡（R11 档位：无实时面板/流式） ----------
+// ---------- renderCard：中文摘要卡（至多 8 行；活跃/空态两态各有恰满预算） ----------
 
-test('renderCard：六行有界文本含五要素；部分形态输入不炸', () => {
-  const card = renderCard(summarize({
-    status: { activeCount: 1, modes: [{ mode: 'ralph', iteration: 2, current_story: 'S4', active_agents: ['a'], updatedAt: '2026-09-22T11:00:00.000Z' }] },
+test('renderCard：活跃卡中文五行至多 8 行；多模式小注；非 stale 无 stale 行', () => {
+  const view = buildHudView({
+    status: {
+      activeCount: 2,
+      modes: [
+        { mode: 'ralph', sessionId: 's1', iteration: 2, current_story: 'S4', active_agents: ['a'], updatedAt: '2026-09-22T11:00:00.000Z' },
+        { mode: 'team', sessionId: 's2', iteration: 1, active_agents: [], updatedAt: '2026-09-22T10:00:00.000Z' },
+      ],
+    },
     stats: { working: 0, priority: 1, manual: 0 },
-  }))
+  })
+  const card = renderCard(view.summary, view.detail)
   const lines = card.split('\n')
-  expect(lines).toHaveLength(6)
-  expect(lines[0]).toBe('[omd] HUD 摘要卡')
-  expect(card).toContain('mode:   ralph')
-  expect(card).toContain('round:  2')
-  expect(card).toContain('story:  S4')
-  expect(card).toContain('agents: 1')
-  expect(card).toContain('todo:   working=0 priority=1 manual=0')
-  expect(renderCard()).toContain('idle')  // 空态可渲染
+  expect(lines.length).toBeLessThanOrEqual(8)          // B1′：恰 6 行 → ≤8
+  expect(lines[0]).toBe('[omd] 编排状态')               // 新标题
+  expect(card).toContain('模式: ralph（Ralph 循环）')    // 主模式 + 中文 label
+  expect(card).toContain('阶段: 未设置')                 // current_phase 缺席不炸
+  expect(card).toContain('轮次: 2')                     // AC3 五标签：轮次
+  expect(card).toContain('任务: 1 个活跃代理')           // AC3 五标签：任务
+  expect(card).toContain('记忆: 永久 1 · 工作 0 · 手动 0')  // AC3 五标签：记忆（非裸 working=）
+  expect(card).toContain('另有 1 个活跃模式')            // 一行小注（N3）
+  expect(card).not.toContain('未更新')                  // 非 stale 不出现 stale 行
+  expect(card).not.toContain('round:')                  // AC2：无 round:- 黑话
+})
+
+test('renderCard：stale 主模式含锁定子串「未更新」；多模式 + stale 恰 8 行', () => {
+  const view = buildHudView({
+    status: {
+      activeCount: 2,
+      modes: [
+        { mode: 'autopilot', sessionId: 's1', current_phase: 'execution', iteration: 5, active_agents: ['a'], updatedAt: '2020-01-01T00:00:00.000Z', stale: true },
+        { mode: 'team', sessionId: 's2', active_agents: [], updatedAt: '2020-01-01T00:00:00.000Z' },
+      ],
+    },
+    stats: {},
+  })
+  const card = renderCard(view.summary, view.detail)
+  expect(card).toContain('未更新')                       // AC3 锁定子串（全计划唯一口径）
+  expect(card).toContain('上次更新：2020-01-01T00:00:00.000Z')
+  expect(card).toContain('模式: autopilot（自动驾驶）')
+  expect(card.split('\n')).toHaveLength(8)              // 行数预算 1+5+1+1 恰满（N3）
+})
+
+test('renderCard：空态引导——「没有运行」+ 5 模式名各伴随中文 label + 记忆行，恰 8 行', () => {
+  const card = renderCard(summarize({ status: { activeCount: 0, modes: [] }, stats: { working: 1 } }))
+  const lines = card.split('\n')
+  expect(lines.length).toBeLessThanOrEqual(8)
+  expect(card).toContain('没有运行')                     // AC2 空态表述
+  expect(card).not.toContain('round')                    // AC2：无 round:- 黑话
+  expect(card).not.toContain('idle')                     // 新空态卡无 idle 字样
+  for (const [mode, label] of Object.entries(MODE_LABELS)) {
+    expect(card).toContain(mode)                         // 每个模式名
+    expect(card).toContain('（' + label + '）')           // 均伴随中文 label
+  }
+  expect(lines).toHaveLength(1 + 1 + Object.keys(MODE_LABELS).length + 1)  // 空态预算恰满
+})
+
+// ---------- buildHudView：detail/modeCatalog/tier 派生（AC4/AC10，只进 hud.json 不进 MCP wire） ----------
+
+test('buildHudView：detail fresh-first 透传含 sessionId+label；modeCatalog idle 恒在', () => {
+  const view = buildHudView({
+    status: {
+      activeCount: 2,
+      modes: [
+        { mode: 'team', sessionId: 's2', iteration: 1, updatedAt: '2026-09-22T10:00:00.000Z' },
+        { mode: 'ralph', sessionId: 's1', iteration: 2, updatedAt: '2026-09-22T11:00:00.000Z' },
+      ],
+    },
+    stats: { working: 1, priority: 0, manual: 0 },
+  })
+  expect(Object.keys(view).sort()).toEqual(['detail', 'modeCatalog', 'summary', 'tier'])
+  expect(view.detail.primary).toBe('ralph')                       // primary=modes[0].mode（fresh-first）
+  expect(view.detail.modes[0]).toMatchObject({ mode: 'ralph', sessionId: 's1', iteration: 2, label: 'Ralph 循环' })  // A2：透传含 sessionId
+  expect(view.detail.modes.map(m => m.mode)).toEqual(['ralph', 'team'])
+  expect(view.modeCatalog).toHaveLength(Object.keys(MODE_LABELS).length)
+  for (const { mode, label } of view.modeCatalog) expect(label).toBe(MODE_LABELS[mode])
+  // idle 也输出完整目录（modeCatalog 恒在），空态卡无 stale 行
+  const idleView = buildHudView({ status: { activeCount: 0, modes: [] }, stats: {} })
+  expect(idleView.detail).toEqual({ primary: null, modes: [] })
+  expect(idleView.modeCatalog).toHaveLength(Object.keys(MODE_LABELS).length)
+  expect(idleView.summary.mode).toBe('idle')
+  expect(renderCard(idleView.summary, idleView.detail)).not.toContain('未更新')
+})
+
+test('buildHudView tier：AC10 三档判定 danger>warn>ok（stale/fix+fixLoops/state=failed）', () => {
+  const st = over => ({ activeCount: 1, modes: [{ mode: 'autopilot', updatedAt: '2026-09-22T11:00:00.000Z', ...over }] })
+  expect(buildHudView({ status: st(), stats: {} }).tier).toBe(TIER.OK)
+  expect(buildHudView({ status: st({ stale: true }), stats: {} }).tier).toBe(TIER.WARN)              // 主模式 stale
+  expect(buildHudView({ status: st({ current_phase: 'fix', fixLoops: 2 }), stats: {} }).tier).toBe(TIER.WARN)  // fix+fixLoops>=2
+  expect(buildHudView({ status: st({ current_phase: 'fix', fixLoops: 1 }), stats: {} }).tier).toBe(TIER.OK)    // fixLoops<2 不触发
+  expect(buildHudView({ status: st({ state: 'failed', stale: true }), stats: {} }).tier).toBe(TIER.DANGER)     // danger 优先于 warn
+})
+
+test('S7 常量锁定：MODE_LABELS 五模式中文 label；PRESETS 序与默认值；TIER 三档', () => {
+  expect(Object.keys(MODE_LABELS)).toEqual(['autopilot', 'ralph', 'team', 'ralplan', 'deep-interview'])
+  expect(Object.values(MODE_LABELS)).toEqual(['自动驾驶', 'Ralph 循环', '团队', '共识规划', '深度访谈'])
+  expect(PRESETS).toEqual(['minimal', 'focused', 'full'])
+  expect(HUD_DEFAULT_PRESET).toBe('focused')
+  expect(TIER).toEqual({ OK: 'ok', WARN: 'warn', DANGER: 'danger' })
 })
 
 // ---------- 数据源装配：只接 state_get_status + notepad_stats 两个现成读面 ----------

@@ -70,6 +70,8 @@ export function makeStateTools(env) {
         current_story: s.current_story, active_agents: s.active_agents,
         updatedAt: s._meta.updatedAt,
         stale: Date.now() - Date.parse(s._meta.updatedAt) > 2 * 3600_000,  // 规格 §5.4 stale 2h
+        // U3/AC10 wire：danger/warn 判定输入加性透传（缺席=undefined；state=模式终态，fixLoops 兼容两种拼法）
+        state: s.state, fixLoops: s.fixLoops ?? s.fix_loop_count,
       })),
     }
   }

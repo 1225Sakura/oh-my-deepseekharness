@@ -15,7 +15,7 @@ function mockRes() {
   return r
 }
 
-test('hudSnapshot：真实 .omd 状态 → 五要素摘要 + 6 行卡', async () => {
+test('hudSnapshot：真实 .omd 状态 → 五要素摘要 + 至多 8 行卡 + detail/modeCatalog/preset', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
     const env = { stateDir: '.omd' }
@@ -28,7 +28,26 @@ test('hudSnapshot：真实 .omd 状态 → 五要素摘要 + 6 行卡', async ()
     expect(snap.ok).toBe(true)
     expect(snap.summary).toMatchObject({ mode: 'autopilot', round: 2, agents: 1 })
     expect(snap.summary.todo).toMatchObject({ working: 1 })
-    expect(snap.card.split('\n')).toHaveLength(6)
+    expect(snap.card.split('\n').length).toBeLessThanOrEqual(8)  // B1′：恰 6 行 → ≤8
+    // AC5：顶层键集白名单锁定（现有键 ∪ {detail, modeCatalog, preset}）
+    expect(Object.keys(snap).sort())
+      .toEqual(['at', 'card', 'cwd', 'detail', 'modeCatalog', 'ok', 'preset', 'summary'])
+    expect(snap.detail.primary).toBe('autopilot')
+    expect(snap.detail.modes[0]).toMatchObject({ mode: 'autopilot', sessionId: 's1', label: '自动驾驶' })
+    expect(snap.detail.tier).toBe('ok') // U3/O2：tier 并入 detail 下发（lib 单源 → client 优先采用；顶层键集白名单不变）
+    expect(snap.modeCatalog).toHaveLength(5)
+    for (const { mode, label } of snap.modeCatalog) expect(label).toBeTruthy()
+    expect(snap.card).toContain('模式: autopilot（自动驾驶）')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('hudSnapshot preset（AC11/S8）：缺省 focused；非法回退 focused；合法透传', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    expect((await hudSnapshot({ cwd, stateDir: '.omd' })).preset).toBe('focused')
+    expect((await hudSnapshot({ cwd, stateDir: '.omd', config: { hudPreset: 'no-such' } })).preset).toBe('focused')
+    expect((await hudSnapshot({ cwd, stateDir: '.omd', config: { hudPreset: 'full' } })).preset).toBe('full')
+    expect((await hudSnapshot({ cwd, stateDir: '.omd', config: { hudPreset: 'minimal' } })).preset).toBe('minimal')
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
@@ -36,13 +55,14 @@ test('handler：?cwd= 显式指定优先；响应 JSON + no-store；异常 500',
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
     const seen = []
-    const handler = makeHudHandler({ stateDir: '.omd', snapshot: async (a) => { seen.push(a); return { ok: true, cwd: a.cwd, summary: {}, card: 'x' } } })
+    const handler = makeHudHandler({ stateDir: '.omd', config: { hudPreset: 'minimal' }, snapshot: async (a) => { seen.push(a); return { ok: true, cwd: a.cwd, summary: {}, card: 'x', preset: 'minimal' } } })
     const res = mockRes()
     await handler({ method: 'GET', url: `/oh-my-dsh/hud.json?cwd=${encodeURIComponent(cwd)}` }, res)
     expect(res.status).toBe(200)
     expect(res.headers['cache-control']).toBe('no-store')
     expect(JSON.parse(res.body).cwd).toBe(cwd)
     expect(seen[0].cwd).toBe(cwd)
+    expect(seen[0].config).toEqual({ hudPreset: 'minimal' })  // config 透传至 snapshot（S8 preset 来源）
 
     // 评审修复：POST 405；不存在的 cwd 404（路径 oracle 收窄）
     const resPost = mockRes()
