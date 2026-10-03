@@ -58,7 +58,8 @@ test('扫描抛错静默降级（下周期重试，不阻断宿主）', async ()
     scan: async () => { calls++; throw new Error('boom') },
   })
   const dispose = ctx.effects[0]()
-  await sleep(50)
+  const deadline = Date.now() + 2000 // 全量并发下 50ms 可能饿死 interval tick——轮询等待，断言强度不变
+  while (calls < 2 && Date.now() < deadline) await sleep(10)
   expect(calls).toBeGreaterThanOrEqual(2) // 抛错后仍在周期重试
   expect(ctx.warns).toHaveLength(0)
   dispose()
