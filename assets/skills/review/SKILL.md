@@ -45,3 +45,17 @@ Find what is actually wrong, ranked by severity, with enough detail to act on.
 ## State Contract (状态契约)
 
 Review **holds no mode state**. When it runs as a gate inside an enclosing mode (autopilot dual review gate, ralph verifier pass, team-verify), the enclosing mode records the verdict in its own state; review itself creates no files under `.omd/` and performs no `state_write`/`state_clear`.
+
+## Merge-readiness mode (opt-in dual-lane gate)
+
+When explicitly used as a merge gate ("merge-ready review", "pre-release dual-lane"), review upgrades from single-lane advisory to a dual-lane independent gate:
+
+1. **Record scope**: record the review scope first (`git status --short` + `git diff --stat`); never widen it silently.
+2. **Parallel lanes**: spawn two clean-context reviewers via `subagent`, neither seeing the other's output; load each role card with the `skill` tool first and embed the lane contract explicitly in the lane prompt — `omd-agent-code-reviewer`: "review security/quality/performance/best practices/maintainability only, not architecture; return file:line evidence and an APPROVE / REQUEST CHANGES / COMMENT verdict" (findings rated CRITICAL/HIGH/MEDIUM/LOW); `omd-agent-architect`: "return file:line evidence and an Architectural Status: CLEAR / WATCH / BLOCK (CLEAR = no concerns, WATCH = non-blocking concerns, BLOCK = merge blocker)" — this vocabulary is not in the architect role card and must come from the lane prompt. Do not pass `model`/`reasoning_effort` overrides to review lanes.
+3. **Evidence gate (fail-closed)**: APPROVE iff code-reviewer=APPROVE ∧ architect=CLEAR ∧ both lanes returned evidence. Any missing or failed lane = an "independent review unavailable" blocking state — never an approval fallback; do not substitute the authoring lane.
+4. **Synthesis matrix**: architect=BLOCK → REQUEST CHANGES; else reviewer=REQUEST CHANGES → REQUEST CHANGES; else architect=WATCH → COMMENT; else follow the reviewer's verdict.
+5. **Finding discipline**: every finding names `file:line` + the issue + risk + a concrete fix; facts separated from suggestions.
+6. **Report contract**: the final report presents both lanes' original verdicts side by side with the synthesized verdict; architect BLOCK items go first and must not be buried; an unavailable state is reported as "independent review unavailable", never recorded as APPROVE or merge-ready.
+7. Boundary: the default advisory posture and all other gates are unchanged — other explicit gates (the autopilot dual-review gate, ralph's independent review layer, team-verify escalation) remain defined by their own modes; this mode serves independently invoked merge gates. It holds no mode state and never calls `state_write`/`state_clear`.
+
+(Adapted from the OMX code-review card — gate matrix, fail-closed unavailable state, and dual-lane discipline are ported verbatim; OMX-specific surfaces (`omx state write` CLI, hook-owned `skill-active-state.json`, and the Autopilot `handoff_artifacts.code_review`→`ultraqa` flow) are intentionally not carried: verdicts and follow-up flow belong to the invoking outer mode's own state. Upstream: reference/oh-my-codex/skills/code-review. This section must be written identically (translated) into both SKILL.zh.md and SKILL.md.)

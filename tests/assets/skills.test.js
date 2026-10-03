@@ -69,3 +69,20 @@ test('omd-doctor 原创 skill 含诊断清单要点（规格 §6.3）', async ()
   expect(doc).toMatch(/gitignore/i)
   expect(doc).toMatch(/端到端/)
 })
+
+test('hud skill 双语同步：detail/modeCatalog/preset/tier 说明 + 新卡样例标记 + 旧 6 行契约字样清除（AC8 双向 grep）', async () => {
+  const zh = await readFile(join(SKILLS, 'hud', 'SKILL.zh.md'), 'utf8')
+  const en = await readFile(join(SKILLS, 'hud', 'SKILL.md'), 'utf8')
+  // 正向（两文件一致）：current_phase/stale 说明 + modeCatalog/preset/tier 说明 + 新卡样例标记
+  for (const [tag, text] of [['zh', zh], ['en', en]]) {
+    expect(text, tag + ' 缺 current_phase 说明').toContain('current_phase')
+    expect(text, tag + ' 缺 stale 说明').toMatch(/stale|未更新/)
+    expect(text, tag + ' 缺 modeCatalog 说明').toContain('modeCatalog')
+    expect(text, tag + ' 缺 preset 说明').toContain('preset')
+    expect(text, tag + ' 缺 tier 说明').toContain('tier')
+    expect(text, tag + ' 缺新卡样例标记').toContain('[omd] 编排状态')
+  }
+  // 负向：旧 6 行契约字样（en 曾有 six-line/six bounded 三处；zh 曾有 6 行卡/6 行有界 三处）
+  expect(en).not.toMatch(/six-line|six bounded/)
+  expect(zh).not.toMatch(/6 行卡|6 行有界/)
+})
