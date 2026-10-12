@@ -1,6 +1,6 @@
 # oh-my-dsh (omd)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 301 passed](https://img.shields.io/badge/tests-301%20passed-brightgreen)](./tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 316 passed](https://img.shields.io/badge/tests-316%20passed-brightgreen)](./tests)
 
 **DeepSeek Harness 的多智能体编排层** —— OMC / OMX 编排理念的 dsh 宿主适配实现。
 Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), adapted from:
@@ -58,7 +58,7 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 | Skills | **42** 个（中英双语资产）：3 执行模式 + 规划 + 质量 + 研究 + 记忆 + 基础设施与元 + OMX 移植 4（analyze / best-practice-research / design / performance-goal） |
 | MCP 工具 | **49** 个（内置 `omd-state` MCP server）：`state_*`×5 / `notepad_*`×6 / `prd_*`×4 / `handoff_*`×3 / `team_*`×16（c5/c6/c8 + 领队运行时）/ `trace_*`×4 / `hud_*`×2 / 代码智能×9（`ast_grep_*`×2 + `lsp_*`×7） |
 | Team 运行时 | `lib/team.js`：阶段状态机（team-plan→prd→exec→verify→fix(≤3，状态机强制)→终态）/ 队员 registry（workerId=UUID，runId=owner-epoch，终态不可复活）/ mailbox（in=队员→队长 progress/blocker/done/question，out=队长→队员 nudge/assign/answer）/ heartbeat（`team_heartbeat_scan` 按需扫描 + 插件侧周期检测定时器——检测+呈面，催促归队长模型，绝不自动杀）/ merge 计划（树∩主仓冲突候选 + 建议序，执行归模型） |
-| HUD | 三层承载：web GUI 右侧边栏 `omd-hud` 面板（client half，`lib/client.js`，5s 轮询五要素卡）/ 数据路由 `GET /oh-my-dsh/hud.json` / MCP `hud_render` `hud_summary`（CLI 会话同款摘要） |
+| HUD | 三层承载：web GUI 右侧边栏 `omd-hud` 面板（client half，`lib/client.js`，5s 轮询五要素卡；full preset 另渲染「队员」「工具调用」两区）/ 数据路由 `GET /oh-my-dsh/hud.json`（loopback 私有面另聚合 team registry 为 `workers`、聚合 `.omd/state/events.jsonl` 派发事件总线为 `toolCalls`，MCP wire 零变化）/ MCP `hud_render` `hud_summary`（CLI 会话同款摘要） |
 | 代码智能 | `ast_grep_search` / `ast_grep_replace`（结构化语法检索/重写，$VAR/$$$VARS 元变量，dryRun 默认不落盘）；`lsp_start/stop/status/document_symbols/references/definition/diagnostics`（Config `codeIntel.lspServers` 注册表驱动，单实例/崩溃重启 ≤2/随 MCP server 退出回收） |
 | Hook 与定时 | c2 keyword-hook（`agent/pre-step` 原生拦截点，唯一 hook 电线）+ team heartbeat 周期检测定时器（Config `team.heartbeatIntervalMs`，默认 60s，0=关闭） |
 | 跨会话记忆 | `omd_memory_set/get/delete`（宿主 storage domain 承载）+ notepad 三区（priority 永久 / working 7 天 / MANUAL 永不清理）+ autopilot/ralph 收尾沉淀检查点（替代 OMC hook 自动 learner） |
@@ -122,7 +122,8 @@ oh-my-dsh:
 ├── state/
 │   ├── sessions/<sessionId>/<mode>-state.json   # 每会话每模式状态（active/phase/iteration）
 │   ├── run-state.json                           # c6 七字段镜像（CAS，队长独占写）
-│   └── boulder.json                             # ralph 进度石
+│   ├── boulder.json                             # ralph 进度石
+│   └── events.jsonl                             # U8 派发事件总线（route/fallback，append-only，读面尾部窗口 64 KiB）
 ├── plans/          # autopilot/team 计划
 ├── specs/          # 规格文档
 ├── prd/            # ralph PRD（JSON + reconciliation.jsonl 台账）
@@ -157,7 +158,7 @@ oh-my-dsh:
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（35 files / 301 tests）
+npm test            # vitest 全量（36 files / 316 tests）
 npm run test:watch
 ```
 

@@ -10,7 +10,7 @@ when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可�
 >
 > 1. **Client half 面板**（`lib/client.js`）：dsh web GUI 右侧边栏注册 tab 类型 `omd-hud`（guide 页「omd HUD」胶囊打开），5s 轮询 `/oh-my-dsh/hud.json` 渲染语义化面板：preset 三档（minimal/focused/full，缺省 focused）、idle 空态引导（渲染下发 modeCatalog：模式名+中文名同现）、活跃态主模式卡（中文标签：模式/阶段/轮次/任务/记忆；stale 时附「未更新」提示行）与 tier 三档色档（正常/警告/危险，颜色仅 CSS 变量视觉档、必带文字标记）。面板可见性前提：dsh web 宿主加载 omd 插件并已重启以装载 client bundle（HMR 不覆盖新插件激活）。
 > 2. **数据路由**（`lib/hud-route.js`）：web 宿主 exact GET `/oh-my-dsh/hud.json?cwd=`，面板的取数面（loopback 只读、no-store；?cwd= 可覆盖默认宿主进程锚点）。响应在五要素 summary/card 之外下发 `detail`/`modeCatalog`/`preset` 面板私有键（不进 MCP wire）。CLI 会话无 webServer → `hudRoute` probe 记 skipped，不是降级。
-> 3. **MCP server 面**：`mcp__omd-state__hud_render`（五要素 summary JSON + 至多 8 行中文状态卡文本）/ `hud_summary`（纯 JSON）——任何会话（含 CLI）立即可用，数据源严格只有 `state_get_status` + `notepad_stats` 两个现成读面（lib/hud.js 设计约束）。
+> 3. **MCP server 面**：`mcp__omd-state__hud_render`（五要素 summary JSON + 至多 8 行中文状态卡文本）/ `hud_summary`（纯 JSON）——任何会话（含 CLI）立即可用，数据源严格只有 `state_get_status` + `notepad_stats` 两个现成读面（lib/hud.js 设计约束——该约束仍适用于 MCP wire 面；/oh-my-dsh/hud.json loopback 私有面已经 P2 一次性修订扩展，修订来源=.omd/plans/ralplan-omd-upgrade-hud-observability.md ADR）。
 >
 > statusline 持续渲染在 dsh 的等价物就是这块右栏面板（webServer/client bundle 形态），不是终端状态栏——语义差异如实记录。
 
@@ -43,7 +43,17 @@ when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可�
 
 面板私有数据面（仅 `/oh-my-dsh/hud.json` 下发，不进 MCP wire）：`detail`（{primary, modes[]}，fresh-first，透传 label/current_phase/stale 等状态字段）、`modeCatalog`（五模式「模式名+中文名」常量目录，单源自 lib，client 只渲染不内置）、`preset`（minimal/focused/full，缺省 focused，来源 dsh Config 键 hud.preset）。
 
-tier 色档（仅 client 面板；MCP 卡恒纯文本、禁 ANSI）：ok=状态正常（活跃且非 stale）；warn=警告（主模式 stale，或活跃模式 current_phase 为 fix 且 fixLoops≥2）；danger=危险（任意活跃模式 state 为 failed）。色档经 data-tier 属性落 DOM，且必带文字标记（状态正常/警告/危险）——颜色不是唯一信息载体。
+> **P2 修订记录（U8）**：hud.json 私有面数据源由 `state_get_status` + `notepad_stats` 扩展为再加 `.omd/team/*/registry.json` 聚合（`workers` 键）与 `.omd/state/events.jsonl` 聚合（`toolCalls` 键）；该扩展仅 hud.json 私有面生效（loopback 只读路由 `/oh-my-dsh/hud.json`）；MCP wire 面（`hud_render`/`hud_summary`/`state_get_status` 形状）零变化。修订来源=.omd/plans/ralplan-omd-upgrade-hud-observability.md ADR。
+
+**workers / toolCalls 新数据面（仅 hud.json，U8 一期）**：
+
+- `workers={list, truncated}`（对象包非裸数组）：list 元素恰六键 `{runId, workerId, role, status, spawnedAt, lastHeartbeatAt}`（不透传 registry.stale）；run 目录按 mtime 新者优先扫描，收满 50 名提前退出并标 `truncated:true`；list 内按 spawnedAt 新者优先。
+- `toolCalls={total, byTier:{low,medium,high,explicit}, fallbackCount}`：聚合自 `.omd/state/events.jsonl`（append-only 派发事件总线，route/fallback 两类事件）；byTier.explicit 桶计 explicit=true 事件，low/medium/high 桶仅计 explicit=false 且 tier 非 null 事件。
+- **events.jsonl 尾部窗口语义**：读面只取尾部 64 KiB（DEFAULT_EVENTS_WINDOW_BYTES）——`total`/`fallbackCount` 均为窗口内计数；旧 fallback 滑出窗口后 fallback>0 的 warn 色档自动消退，这是有意的「近期信号」语义，不是 bug。
+- **toolCalls.total 计数口径=路由判定**：落盘挂钩点在 model 校验/spawn 闸门之前，故含后续校验失败/spawn 失败车次（与 [routing] logLine 的 1:1 口径仅对成功派发成立）。
+- **full preset 两区**：「队员」区（workerId/role/status/心跳时长，truncated 时附截断提示行；一期纯时长显示、无 stale 阈值推导）与「工具调用」区（路由判定计数/tier 分布/fallback 行，fallback>0 时数值带 warn 色）——focused/minimal preset 不含两区，payload 缺键时跳过不炸。
+
+tier 色档（仅 client 面板；MCP 卡恒纯文本、禁 ANSI）：ok=状态正常（活跃且非 stale）；warn=警告（主模式 stale，或活跃模式 current_phase 为 fix 且 fixLoops≥2）；danger=危险（任意活跃模式 state 为 failed）。hud-route 私有侧另在 toolCalls.fallbackCount>0 且原档为 ok 时把下发的 detail.tier 提升为 warn（danger 不降级，lib/hud.js deriveTier 零改动）。色档经 data-tier 属性落 DOM，且必带文字标记（状态正常/警告/危险）——颜色不是唯一信息载体。
 
 名实分离注明：五要素数据契约（mode/round/story/agents/todo）与工具名 `hud_render`/`hud_summary` 保持不变；卡与面板的呈现已更名「编排状态」并改用中文标签——上卡的「阶段」（current_phase）替代「故事线」（current_story）属呈现层选择，数据面照旧透传 story；旧称「HUD 摘要卡」仅存于历史版本。
 
