@@ -5,7 +5,7 @@
 // C3 表上限钳制联动 c3（派发档位 ≤ 表定上限；档位经 Config.tiers 映射）
 import { test, expect } from 'vitest'
 import { join } from 'node:path'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { Config } from '../../lib/config.js'
 import { buildRoutingTable } from '../../lib/routing.js'
@@ -48,9 +48,14 @@ function makeFakes({ validRoutes = VALID_ROUTES, childText = 'OK-DELEGATE' } = {
   return { calls, llm, subagents, parent }
 }
 
-/** 注册工具并返回捕获的定义 + fake ctx。 */
-async function setupTool({ config, roles = [{ name: 'omd-agent-explore', tier: 'low' }, { name: 'omd-agent-planner', tier: 'high' }], ...fakeOpts } = {}) {
+/**
+ * 注册工具并返回捕获的定义 + fake ctx + events 捕获数组。
+ * F-6 测试卫生（U8 S1）：默认注入 recordRouteEvent 捕获器——execute 用例断言调用形状、
+ * 零真实落盘（不写仓库活 .omd/state/events.jsonl）；injectEvents:false 走真实落盘（M1 回归专用）。
+ */
+async function setupTool({ config, roles = [{ name: 'omd-agent-explore', tier: 'low' }, { name: 'omd-agent-planner', tier: 'high' }], injectEvents = true, ...fakeOpts } = {}) {
   const fakes = makeFakes(fakeOpts)
+  const events = []
   let captured
   const ctx = { tools: { register(def) { captured = def } }, logger: { info() {}, warn() {} } }
   await registerDelegateTool(ctx, def => def, {
@@ -58,8 +63,9 @@ async function setupTool({ config, roles = [{ name: 'omd-agent-explore', tier: '
     roles,
     subagents: fakes.subagents,
     llm: fakes.llm,
+    ...(injectEvents ? { recordRouteEvent: async e => { events.push(e) } } : {}),
   })
-  return { ...fakes, def: captured }
+  return { ...fakes, def: captured, events }
 }
 
 const TABLE = buildRoutingTable([
@@ -114,8 +120,15 @@ test('resolveDispatch：非法参数显式抛错（tier 非法/model 空串/prov
 // ---- 工具装配：spawn 路径差分（单元面；宿主 e2e 落 evidence/S8） ----
 
 test('omd_delegate：显式可用 id → preflight 校验后经 spawn 派发，agentOptions 硬路由，返回非空文本', async () => {
-  const { def, calls } = await setupTool()
+  const { def, calls, events } = await setupTool()
   const out = await def.execute({ description: '探针', prompt: '只输出 OK-DELEGATE', model: 'glm-5.3-flash' }, { agent: makeFakes().parent })
+  // U8 S1（AC-1）：恰一条 route 事件（捕获器断言调用形状，零真实落盘）；dispatchId=判定键控 id
+  expect(events).toHaveLength(1)
+  expect(events[0].kind).toBe('route')
+  expect(events[0].decision.dispatchId).toBe(out.dispatchId)
+  expect(events[0].decision.explicit).toBe(true)
+  expect(events[0].decision.modelId).toBe('glm-5.3-flash')
+  expect(events[0].cwd).toBe(process.cwd())
   expect(calls.preflight).toEqual([{ provider: 'glm', model: 'glm-5.3-flash' }])
   expect(calls.start).toHaveLength(1)
   expect(calls.start[0].name).toBe(DELEGATE_PROVIDER)
@@ -129,11 +142,13 @@ test('omd_delegate：显式可用 id → preflight 校验后经 spawn 派发，a
 })
 
 test("omd_delegate：显式不可用 id（deepseek-*）→ 派发前显式失败、绝不静默继承、零 spawn", async () => {
-  const { def, calls } = await setupTool()
+  const { def, calls, events } = await setupTool()
   await expect(def.execute({ description: '负例', prompt: 'x', model: 'deepseek-reasoner' }, { agent: makeFakes().parent }))
     .rejects.toThrow(/deepseek-reasoner/)
   expect(calls.preflight).toHaveLength(1)
   expect(calls.start).toHaveLength(0)
+  // AC-1 语义声明：事件记录路由判定（挂钩点在 model 校验闸门之前，含后续失败车次）
+  expect(events.map(e => e.kind)).toEqual(['route'])
 })
 
 test('C3 钳制联动 e2e 面：档位经 Config.tiers 映射——high 映射不可用 id 时显式失败；同请求被表钳到 low 后成功', async () => {
@@ -167,9 +182,12 @@ test('provider 缺席 → 显式报错并列出已注册 provider（不猜测）
   fakes.subagents.getProvider = () => undefined
   let captured
   const ctx = { tools: { register(def) { captured = def } }, logger: { info() {}, warn() {} } }
-  await registerDelegateTool(ctx, def => def, { config: Config.parse({}), roles: [], subagents: fakes.subagents, llm: fakes.llm })
+  // F-6（U8 S1）：注入捕获器——事件=路由判定（闸门之前），负例也恰一条 route 事件、零真实落盘
+  const events = []
+  await registerDelegateTool(ctx, def => def, { config: Config.parse({}), roles: [], subagents: fakes.subagents, llm: fakes.llm, recordRouteEvent: async e => { events.push(e) } })
   await expect(captured.execute({ description: 'x', prompt: 'x', model: 'glm-5.3-flash' }, { agent: makeFakes().parent }))
     .rejects.toThrow(/spawn.*未注册/)
+  expect(events.map(e => e.kind)).toEqual(['route'])
 })
 
 test('ctx.subagents 缺席 → 注册即抛错（index.js 降级记 probeReport）', async () => {
@@ -182,9 +200,14 @@ test('c3 fallback 审计：表外角色派发 → run-state.json 记 fallback:tr
   const dir = await mkdtemp(join(tmpdir(), 'omd-s8-'))
   try {
     const config = Config.parse({ stateDir: dir }) // 绝对路径直落临时目录
-    const { def, calls } = await setupTool({ config })
+    const { def, events } = await setupTool({ config })
     const out = await def.execute({ description: 'x', prompt: 'x', role: 'omd-agent-nosuch', tier: 'low' }, { agent: makeFakes().parent })
     expect(out.fallback).toBe(true)
+    // U8 S1（AC-2）：fallback 派发 → route+fallback 各一条同点落盘（同一 dispatchId）
+    expect(events.map(e => e.kind)).toEqual(['route', 'fallback'])
+    expect(events[0].decision.dispatchId).toBe(out.dispatchId)
+    expect(events[1].decision.dispatchId).toBe(out.dispatchId)
+    expect(events[1].decision.fallback).toBe(true)
     const state = JSON.parse(await readFile(join(dir, 'state', 'run-state.json'), 'utf8'))
     expect(state.fallback).toBe(true)
     expect(state.lastFallback.role).toBe('omd-agent-nosuch')
@@ -195,18 +218,38 @@ test('c3 fallback 审计：表外角色派发 → run-state.json 记 fallback:tr
 
 test('M1 回归（相对 stateDir 形态）：默认部署审计落 <cwd>/.omd/state/ 权威路径，无 .omd/.omd 幻影嵌套', async () => {
   const config = Config.parse({}) // 默认相对 stateDir '.omd'——生产默认形态（第 2 轮评审 F-1：绝对夹具曾掩盖 cwd 错位）
-  const { def } = await setupTool({ config })
-  const out = await def.execute({ description: 'x', prompt: 'x', role: 'omd-agent-nosuch', tier: 'low' }, { agent: makeFakes().parent })
-  expect(out.fallback).toBe(true)
-  const authority = join(process.cwd(), '.omd', 'state', 'run-state.json')
-  const state = JSON.parse(await readFile(authority, 'utf8'))
-  expect(state.fallback).toBe(true)
-  expect(state.lastFallback.role).toBe('omd-agent-nosuch')
-  // 幻影嵌套路径不得存在（cwd/stateDir 错位回归钉）
-  await expect(readFile(join(process.cwd(), '.omd', '.omd', 'state', 'run-state.json'), 'utf8')).rejects.toThrow()
-  // 清理：仅移除本测试写入的文件
-  const { rm: rmAsync } = await import('node:fs/promises')
-  await rmAsync(authority, { force: true })
+  const eventsFile = join(process.cwd(), '.omd', 'state', 'events.jsonl')
+  // F-6（U8 S1，Critic r3 MINOR-5）：events.jsonl 快照-恢复式清理——测试前存在则读内容测后写回，
+  // 不存在则测后删除；不得整文件 rm 销毁 dev 活数据。injectEvents:false → 本用例走真实落盘。
+  const eventsBefore = await readFile(eventsFile, 'utf8').catch(() => null)
+  try {
+    const { def } = await setupTool({ config, injectEvents: false })
+    const out = await def.execute({ description: 'x', prompt: 'x', role: 'omd-agent-nosuch', tier: 'low' }, { agent: makeFakes().parent })
+    expect(out.fallback).toBe(true)
+    const authority = join(process.cwd(), '.omd', 'state', 'run-state.json')
+    const state = JSON.parse(await readFile(authority, 'utf8'))
+    expect(state.fallback).toBe(true)
+    expect(state.lastFallback.role).toBe('omd-agent-nosuch')
+    // U8 S1：真实落盘面——events.jsonl 恰追加 route+fallback 两行（同一 dispatchId）
+    const newLines = (await readFile(eventsFile, 'utf8')).slice(eventsBefore?.length ?? 0).trim().split('\n')
+    expect(newLines).toHaveLength(2)
+    const [routeEv, fallbackEv] = newLines.map(l => JSON.parse(l))
+    expect(routeEv.kind).toBe('route')
+    expect(fallbackEv.kind).toBe('fallback')
+    expect(routeEv.dispatchId).toBe(out.dispatchId)
+    expect(fallbackEv.dispatchId).toBe(out.dispatchId)
+    expect(fallbackEv.role).toBe('omd-agent-nosuch')
+    // 幻影嵌套路径不得存在（cwd/stateDir 错位回归钉）
+    await expect(readFile(join(process.cwd(), '.omd', '.omd', 'state', 'run-state.json'), 'utf8')).rejects.toThrow()
+    await expect(readFile(join(process.cwd(), '.omd', '.omd', 'state', 'events.jsonl'), 'utf8')).rejects.toThrow()
+    // 清理：仅移除本测试写入的文件
+    const { rm: rmAsync } = await import('node:fs/promises')
+    await rmAsync(authority, { force: true })
+  } finally {
+    // events.jsonl 快照-恢复（失败路径也恢复，不把测试污染留给 dev 活数据）
+    if (eventsBefore === null) await rm(eventsFile, { force: true })
+    else await writeFile(eventsFile, eventsBefore, 'utf8')
+  }
 })
 
 test('子代理非 completed → 显式失败（含 diagnostic）', async () => {
@@ -218,9 +261,12 @@ test('子代理非 completed → 显式失败（含 diagnostic）', async () => 
   })
   let captured
   const ctx = { tools: { register(def) { captured = def } }, logger: { info() {}, warn() {} } }
-  await registerDelegateTool(ctx, def => def, { config: Config.parse({}), roles: [], subagents: fakes.subagents, llm: fakes.llm })
+  // F-6（U8 S1）：注入捕获器——spawn 失败车次也恰一条 route 事件（路由判定语义）、零真实落盘
+  const events = []
+  await registerDelegateTool(ctx, def => def, { config: Config.parse({}), roles: [], subagents: fakes.subagents, llm: fakes.llm, recordRouteEvent: async e => { events.push(e) } })
   await expect(captured.execute({ description: 'x', prompt: 'x', model: 'glm-5.3-flash' }, { agent: makeFakes().parent }))
     .rejects.toThrow(/stopReason=error.*boom/s)
+  expect(events.map(e => e.kind)).toEqual(['route'])
 })
 
 // ---- parentRouteForDelegation（parentAgentOptionsForDelegation 镜像） ----
