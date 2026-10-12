@@ -1,10 +1,11 @@
 // tests/lib/hud-route.test.js
 // v0.4 P2-D HUD 路由（node 数据面）：handler 语义 + webServer 注册/降级契约
 import { test, expect } from 'vitest'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { HUD_ROUTE_PATH, hudSnapshot, makeHudHandler, registerHudRoute } from '../../lib/hud-route.js'
+import { recordRouteEvent } from '../../lib/events.js'
 import { makeStateTools } from '../../mcp-server/tools/state.mjs'
 import { makeNotepadTools } from '../../mcp-server/tools/notepad.mjs'
 
@@ -29,9 +30,9 @@ test('hudSnapshot：真实 .omd 状态 → 五要素摘要 + 至多 8 行卡 + d
     expect(snap.summary).toMatchObject({ mode: 'autopilot', round: 2, agents: 1 })
     expect(snap.summary.todo).toMatchObject({ working: 1 })
     expect(snap.card.split('\n').length).toBeLessThanOrEqual(8)  // B1′：恰 6 行 → ≤8
-    // AC5：顶层键集白名单锁定（现有键 ∪ {detail, modeCatalog, preset}）
+    // AC5：顶层键集白名单锁定（U8 S2 扩为 10 键：∪ {detail, modeCatalog, preset, toolCalls, workers}）
     expect(Object.keys(snap).sort())
-      .toEqual(['at', 'card', 'cwd', 'detail', 'modeCatalog', 'ok', 'preset', 'summary'])
+      .toEqual(['at', 'card', 'cwd', 'detail', 'modeCatalog', 'ok', 'preset', 'summary', 'toolCalls', 'workers'])
     expect(snap.detail.primary).toBe('autopilot')
     expect(snap.detail.modes[0]).toMatchObject({ mode: 'autopilot', sessionId: 's1', label: '自动驾驶' })
     expect(snap.detail.tier).toBe('ok') // U3/O2：tier 并入 detail 下发（lib 单源 → client 优先采用；顶层键集白名单不变）
@@ -77,6 +78,110 @@ test('handler：?cwd= 显式指定优先；响应 JSON + no-store；异常 500',
     await boom({ method: 'GET', url: '/oh-my-dsh/hud.json' }, res2)
     expect(res2.status).toBe(500)
     expect(JSON.parse(res2.body).error).toContain('disk gone')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+// U8 S2 辅助：写 run registry（workers=对象映射，team.js:159/177 形状）并用 utimes 钉死
+// run 目录 mtime（截断边界=扫描序的权威输入，消除创建顺序/时钟粒度偶然性）
+async function writeRegistryFixture(cwd, runId, workers, mtimeIso) {
+  const dir = join(cwd, '.omd', 'team', runId)
+  await mkdir(dir, { recursive: true })
+  await writeFile(join(dir, 'registry.json'),
+    JSON.stringify({ runId, createdAt: '2026-01-01T00:00:00.000Z', workers }), 'utf8')
+  const d = new Date(mtimeIso)
+  await utimes(dir, d, d) // 写 registry.json 会刷新目录 mtime → 最后钉回目标值
+  return dir
+}
+
+test('AC-6 空态/坏 registry：无 team 目录与 events → workers 空包 + toolCalls 空聚合；单 run 坏 JSON 跳过该 run 不 500', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    const s0 = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(s0.ok).toBe(true)
+    expect(s0.workers).toEqual({ list: [], truncated: false })
+    expect(s0.toolCalls).toEqual({ total: 0, byTier: { low: 0, medium: 0, high: 0, explicit: 0 }, fallbackCount: 0 })
+
+    // 坏 registry 注入：run-bad 是坏 JSON（跳过该 run），run-good 正常聚合，整体不 500
+    const badDir = join(cwd, '.omd', 'team', 'run-bad')
+    await mkdir(badDir, { recursive: true })
+    await writeFile(join(badDir, 'registry.json'), '{broken json', 'utf8')
+    await writeRegistryFixture(cwd, 'run-good', {
+      'w-1': { workerId: 'w-1', runId: 'run-good', role: 'omd-agent-executor', status: 'running', stale: false, spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:05:00.000Z' },
+    }, '2026-01-02T00:00:00.000Z')
+    const s1 = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(s1.ok).toBe(true)
+    expect(s1.workers.truncated).toBe(false)
+    expect(s1.workers.list).toHaveLength(1)
+    expect(s1.workers.list[0]).toMatchObject({ runId: 'run-good', workerId: 'w-1', role: 'omd-agent-executor', status: 'running' })
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('AC-7 workers 聚合形状：{list,truncated} 对象包；元素恰六键不透传 stale；list 按 spawnedAt 新者优先', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    // 两 run 各 1-2 worker；run-a 含 stale:true 注入（vestigial，不得透传）
+    await writeRegistryFixture(cwd, 'run-a', {
+      'w-old': { workerId: 'w-old', role: 'r1', status: 'done', stale: true, spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:01:00.000Z' },
+    }, '2026-01-01T01:00:00.000Z')
+    await writeRegistryFixture(cwd, 'run-b', {
+      'w-mid': { workerId: 'w-mid', role: 'r2', status: 'running', stale: false, spawnedAt: '2026-01-02T00:00:00.000Z', lastHeartbeatAt: '2026-01-02T00:01:00.000Z' },
+      'w-new': { workerId: 'w-new', role: 'r3', status: 'running', stale: false, spawnedAt: '2026-01-03T00:00:00.000Z', lastHeartbeatAt: '2026-01-03T00:01:00.000Z' },
+    }, '2026-01-02T01:00:00.000Z')
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.workers.truncated).toBe(false)
+    // 呈现序=spawnedAt 新者优先（跨 run 全局排序，非按 run 分块）
+    expect(snap.workers.list.map(w => w.workerId)).toEqual(['w-new', 'w-mid', 'w-old'])
+    for (const w of snap.workers.list) {
+      // 元素恰含六键——不透传 registry.stale（vestigial，team.js:172 恒 false）
+      expect(Object.keys(w).sort()).toEqual(['lastHeartbeatAt', 'role', 'runId', 'spawnedAt', 'status', 'workerId'])
+      expect(w.runId).toBeTruthy()
+      expect(w.lastHeartbeatAt).toBeTruthy()
+    }
+    expect(snap.workers.list.find(w => w.workerId === 'w-old').runId).toBe('run-a')
+    expect(snap.workers.list.find(w => w.workerId === 'w-new').runId).toBe('run-b')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('AC-7 截断 + OQ-3 双排序边界：总数 >50 → 收满 50 提前退出 truncated:true；老 mtime run 内新 spawnedAt worker 仍被截断', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    // run-new：mtime 新（扫描先到，占满 50 名额）+ 50 个老 spawnedAt worker
+    const workers = {}
+    for (let i = 0; i < 50; i++) {
+      const id = `w-${String(i).padStart(2, '0')}`
+      workers[id] = { workerId: id, role: 'r', status: 'running', stale: false, spawnedAt: `2026-01-01T00:00:${String(i).padStart(2, '0')}.000Z`, lastHeartbeatAt: '2026-01-01T01:00:00.000Z' }
+    }
+    await writeRegistryFixture(cwd, 'run-new', workers, '2026-02-01T00:00:00.000Z')
+    // run-old：mtime 老（扫描后到）+ 1 个全列表最新 spawnedAt 的 worker
+    await writeRegistryFixture(cwd, 'run-old', {
+      'w-bleed': { workerId: 'w-bleed', role: 'r', status: 'running', stale: false, spawnedAt: '2026-06-01T00:00:00.000Z', lastHeartbeatAt: '2026-06-01T00:00:00.000Z' },
+    }, '2026-01-01T00:00:00.000Z')
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.workers.truncated).toBe(true)
+    expect(snap.workers.list).toHaveLength(50)
+    // OQ-3：截断边界由扫描序（run mtime 新者优先）决定——w-bleed spawnedAt 最新仍被截断，
+    // 呈现序排序只在已收名单内部发生（双序分离，防后续维护者误并两序）
+    expect(snap.workers.list.some(w => w.workerId === 'w-bleed')).toBe(false)
+    expect(snap.workers.list.every(w => w.runId === 'run-new')).toBe(true)
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('AC-10 fallback>0 → detail.tier 提升 warn（原判定 ok）；danger 不降级', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    // 基线：无事件 → deriveTier 原判定 ok
+    expect((await hudSnapshot({ cwd, stateDir: '.omd' })).detail.tier).toBe('ok')
+    // route+fallback 1:1 同点落盘（delegate.js 语义）→ fallbackCount=1 → warn
+    await recordRouteEvent({ cwd, stateDir: '.omd', decision: { dispatchId: 'd-1', role: 'off-table-role', fallback: true, tier: 'medium' }, kind: 'route' })
+    await recordRouteEvent({ cwd, stateDir: '.omd', decision: { dispatchId: 'd-1', role: 'off-table-role', fallback: true, tier: 'medium' }, kind: 'fallback' })
+    const s1 = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(s1.toolCalls).toEqual({ total: 1, byTier: { low: 0, medium: 1, high: 0, explicit: 0 }, fallbackCount: 1 })
+    expect(s1.detail.tier).toBe('warn')
+    // danger 不降级：failed 模式在场 → 仍 danger（提升逻辑只升不降）
+    await makeStateTools({ stateDir: '.omd' }).write({
+      cwd, sessionId: 's1', mode: 'team', state: { active: true, state: 'failed', current_phase: 'exec' },
+    })
+    expect((await hudSnapshot({ cwd, stateDir: '.omd' })).detail.tier).toBe('danger')
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
