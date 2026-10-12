@@ -15,8 +15,9 @@ Work through the checklist in order. Every check lands in the final table with a
 ### 1. Host version vs peerDependencies
 
 - Determine the running dsh host version (session runtime context, or the installed `@deepseek-ai/dsh-*` package versions).
-- Compare against the plugin's peerDep range: `@deepseek-ai/dsh-*` pinned to **0.1.5-rc.1** (see omd `package.json`).
-- Below the range → ❌ (fix: upgrade dsh, or accept best-effort degraded operation — omd warns but does not refuse to load, spec §6.1). Mismatch above the range → ⚠️ "newer than tested".
+- Compare against the plugin's peerDep ranges (**authoritative source = omd `package.json` peerDependencies**; since 0.4.3 they cover the 0.1.2/0.1.5/0.1.7 legacy lines plus the 0.2.0-rc line: `>=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0 || >=0.2.0-rc.1 <0.3.0`).
+- **Actually evaluate satisfies (guards against silent rc-line drift, U9 S-4)**: substitute the real host version into each peerDependencies range and evaluate satisfies (e.g. `node -e` with semver, or manual comparison against version samples); if the host version satisfies none of them → ⚠️ "host version outside the declared compat ranges" (the npm test sample matrix cannot cover future unlisted rc lines — this check is the runtime backstop).
+- Below the ranges → ❌ (fix: upgrade dsh, or accept best-effort degraded operation — omd warns but does not refuse to load, spec §6.1). Outside the declared ranges (newer) → ⚠️ "newer than declared compat ranges".
 
 ### 2. Registration counts
 
@@ -84,7 +85,7 @@ omd doctor — <date>
 
 | # | Check | Status | Detail |
 |---|-------|--------|--------|
-| 1 | Host version vs peerDep (0.1.5-rc.1) | ✅/⚠️/❌ | host=<v> |
+| 1 | Host version vs peerDep (per package.json) | ✅/⚠️/❌ | host=<v> |
 | 2 | Registration counts (44/33/2/4/49) | … | missing: … |
 | 3 | Config model identifiers | … | … |
 | 4 | MCP smoke (state_get_status) | … | … |
