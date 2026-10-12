@@ -8,6 +8,8 @@
 // ⑥-⑮ ralplan-hud-clarity 呈现层重写：AC7 idle 下发目录/active 中文卡/stale 锁子串/
 //    detail 缺席回退/无内置目录；AC10 tier 三档 data-tier 标记；AC11 preset 三档矩阵
 //    （minimal-idle / focused-active / full-active / 回退，fakeReact useState 种子注入）
+// ⑮-⑱ U8 S3 AC11：full preset「队员」「工具调用」两区——完整 payload 在场/focused+minimal
+//    不在场/旧 server 缺键跳过不炸/truncated 提示行 + fallback>0 warn 色行
 import { test, expect } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
@@ -109,6 +111,16 @@ function snapPayload(over = {}) {
     ...over, // 显式传 detail: undefined / preset: undefined 即「缺席」
   }
 }
+
+// U8 S3 fixtures：hud.json 新顶层键（workers={list,truncated} / toolCalls={total,byTier,fallbackCount}）
+const WORKERS = {
+  list: [
+    { runId: 'run-1', workerId: 'w-ab12', role: 'executor', status: 'running', spawnedAt: '2026-02-06T09:50:00.000Z', lastHeartbeatAt: '2026-02-06T09:55:00.000Z' },
+    { runId: 'run-1', workerId: 'w-cd34', role: 'reviewer', status: 'done', spawnedAt: '2026-02-06T09:40:00.000Z', lastHeartbeatAt: '2026-02-06T08:20:00.000Z' },
+  ],
+  truncated: false,
+}
+const TOOLCALLS = { total: 7, byTier: { low: 1, medium: 4, high: 1, explicit: 1 }, fallbackCount: 0 }
 
 /** 种子注入渲染：snap 为第 1 个 useState、err 为第 2 个。
  *  HudPanel 闭包绑定 materialize 时的 react——故必须在此用种子 react 物化工厂。 */
@@ -320,4 +332,70 @@ test('⑭ AC7：client.js 无内置模式目录文案残留（目录单源下发
   const code = await readFile(BUNDLE, 'utf8')
   expect(code).not.toMatch(/自动驾驶|Ralph 循环|团队|共识规划|深度访谈/)
   expect(code).not.toContain('MODE_LABELS')
+})
+
+test('⑮ U8/AC11 full：「队员」「工具调用」两区在场（workerId/role/status/心跳时长 + 路由判定/tier 分布/fallback 行）', async () => {
+  const { loaderCalls } = await loadBundle()
+  const s = snapPayload({ preset: 'full', workers: WORKERS, toolCalls: TOOLCALLS })
+  const { tree, flat } = seedPanel(loaderCalls, s)
+  // 「队员」区：每 worker 一行 workerId/role/status/心跳时长（snap.at − lastHeartbeatAt）
+  expect(flat).toContain('队员')
+  expect(flat).toContain('w-ab12')
+  expect(flat).toContain('executor')
+  expect(flat).toContain('running')
+  expect(flat).toContain('5 分钟') // 10:00:05 − 09:55:00
+  expect(flat).toContain('1 小时') // 10:00:05 − 08:20:00（100 分钟→小时级）
+  expect(flat).toContain('心跳')
+  expect(flat).not.toContain('超时') // 一期纯时长显示，不做 stale 阈值推导
+  expect(flat).not.toContain('已截断') // truncated:false 无提示行
+  // 「工具调用」区：路由判定计数（文案用「路由判定」不用「派发计数」）/tier 分布/fallback 行
+  expect(flat).toContain('工具调用')
+  expect(flat).toContain('路由判定')
+  expect(flat).not.toContain('派发计数')
+  expect(flat).toContain('7 次')
+  expect(flat).toContain('tier 分布')
+  expect(flat).toContain('low 1 / medium 4 / high 1 / explicit 1')
+  expect(flat).toContain('fallback 异常')
+  // fallback=0：无 warn 色行（tier=ok，tierBadge 也无色）
+  const warnNodes = findNodes(tree, (n) => n.props && n.props.style && n.props.style.color === 'var(--dsh-warn, #d90)')
+  expect(warnNodes).toHaveLength(0)
+})
+
+test('⑯ U8/AC11 focused/minimal：两区不在场（full 专属）', async () => {
+  const { loaderCalls } = await loadBundle()
+  for (const preset of ['focused', 'minimal']) {
+    const s = snapPayload({ preset, workers: WORKERS, toolCalls: TOOLCALLS })
+    const { flat } = seedPanel(loaderCalls, s)
+    expect(flat).not.toContain('队员')
+    expect(flat).not.toContain('工具调用')
+    expect(flat).not.toContain('路由判定')
+  }
+})
+
+test('⑰ U8/AC11 full + 缺 workers/toolCalls 键（旧 server）：两区跳过不炸，其余 full 区照常', async () => {
+  const { loaderCalls } = await loadBundle()
+  const s = snapPayload({ preset: 'full' }) // snapPayload 本体不带 workers/toolCalls
+  const { flat } = seedPanel(loaderCalls, s)
+  expect(flat).not.toContain('队员')
+  expect(flat).not.toContain('工具调用')
+  expect(flat).not.toContain('路由判定')
+  expect(flat).toContain('记忆（notepad 三区）') // full 既有区不受缺键影响
+  expect(flat).toContain('数据面')
+})
+
+test('⑱ U8/AC11 full：workers.truncated=true 截断提示行 + fallback>0 该行文字 warn 色', async () => {
+  const { loaderCalls } = await loadBundle()
+  const s = snapPayload({
+    preset: 'full',
+    workers: { list: [WORKERS.list[0]], truncated: true },
+    toolCalls: { total: 9, byTier: { low: 0, medium: 2, high: 0, explicit: 0 }, fallbackCount: 2 },
+  })
+  const { tree, flat } = seedPanel(loaderCalls, s)
+  expect(flat).toContain('仅显示最近 50 名队员（已截断）')
+  expect(flat).toContain('fallback 异常')
+  expect(flat).toContain('2 次')
+  // fallback>0 → 该行数值带 warn 色（tier=ok 时树内唯一 warn 色节点即 fallback 行）
+  const warnNodes = findNodes(tree, (n) => n.props && n.props.style && n.props.style.color === 'var(--dsh-warn, #d90)')
+  expect(warnNodes).toHaveLength(1)
+  expect(JSON.stringify(warnNodes[0])).toContain('2 次')
 })
