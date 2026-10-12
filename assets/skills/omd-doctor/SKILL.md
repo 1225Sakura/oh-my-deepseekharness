@@ -37,7 +37,8 @@ Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / 
 
 - Read the effective omd Config: `tiers.low/medium/high` and any `roleOverrides` — read the effective values from the model routing table in the omd protocol section of the system prompt (the model cannot read plugin Config directly).
 - For each configured value: `inherit` is always valid; anything else must be resolvable as a model identifier by the host LLM service.
-- Unresolvable identifier → ❌ (fix: correct the identifier in the plugin config, or set it to `inherit` to follow the main session model). Note the MVP caveat: model routing is hard only on the `workflow` path; `subagent` inherits the main session (soft routing), so a broken identifier degrades rather than crashes there.
+- **Verify empirically (U9 2g-C — do not judge statically)**: use `list_subagent_models` — list providers, then each provider's model catalog, then probe each non-`inherit` tiers/roleOverrides value as an exact model; "not allowed" / absent from the catalog → treat as unresolvable. Hard-won evidence (2026-10-12, dsh 0.2.0-rc.2): the default `glm-5.3-flash` is not in this deployment's sakura provider allowlist (k3/MiniMax-M3 only), and `omd_delegate` hard-routed to it died twice with `stopReason=error`; workarounds = subagent inheriting the main session, or passing an explicitly allowed provider/model.
+- Unresolvable identifier → ❌ (fix: correct the identifier in the plugin config, or set it to `inherit` to follow the main session model). Note the MVP caveat: model routing is hard only on the `workflow`/`omd_delegate` paths; `subagent` inherits the main session (soft routing), so a broken identifier degrades rather than crashes there.
 
 ### 4. MCP server smoke
 
