@@ -19,7 +19,9 @@ test('team 不在注册表中（显式调用 only，规格 §3.0-4）', () => {
 })
 
 test('renderProtocol 输出包含路由表、文本守卫、能力矩阵、委派规则、状态契约', () => {
-  const config = Config.parse({})
+  // U10 后生产默认 tiers='inherit'；此处 fixture 显式喂 glm 档位值（MINOR-5 豁免语义：
+  // :26 断言不改，glm 串只是渲染输入样例，不锚定生产默认值）
+  const config = Config.parse({ tiers: { low: 'glm-5.3-flash', medium: 'glm-5.3-flash', high: 'glm-5.3-flash' } })
   const probe = { core: { status: 'ok' }, storage: { status: 'unavailable' } }
   const roles = [{ name: 'omd-agent-explore', tier: 'low' }, { name: 'omd-agent-planner', tier: 'high' }]
   const text = renderProtocol({ config, probeReport: probe, roles })

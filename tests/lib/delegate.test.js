@@ -1,6 +1,6 @@
 // tests/lib/delegate.test.js
 // c1 实现验收（台账 m3-advance S8，T4② 补写判据逐行落槽）：
-// C1 前置：档位 id 对齐部署 LLM（config 默认 glm-5.3-flash）+ 不可用 id 派发前显式报错不静默继承
+// C1 前置：档位值可解析时（U10 起默认 "inherit" 继承主会话；显式覆写 id 须部署可解析）派发前校验，不可用 id 显式报错不静默继承
 // C2 档位/model 参数经 spawn 路径派发（差分：可用 id 成功非空 / 无效 id 显式失败；宿主 e2e 落 evidence/S8）
 // C3 表上限钳制联动 c3（派发档位 ≤ 表定上限；档位经 Config.tiers 映射）
 import { test, expect } from 'vitest'

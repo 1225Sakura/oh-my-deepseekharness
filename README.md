@@ -75,9 +75,9 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 | 键 | 类型 / 默认 | 说明 |
 |---|---|---|
 | `language` | `'zh' \| 'en' \| 'both'`，默认 `'zh'` | 资产语言：中文 / 英文 / 中文正文+英文术语 |
-| `tiers.low` | 模型标识，默认 `glm-5.3-flash` | 档位→模型映射；值可为 `provider/model` 或 **`'inherit'`**（继承主会话模型） |
-| `tiers.medium` | 同上，默认 `glm-5.3-flash` | 同上 |
-| `tiers.high` | 同上，默认 `glm-5.3-flash` | 同上 |
+| `tiers.low` | 模型标识，默认 `'inherit'` | 档位→模型映射；值可为 `provider/model` 或 **`'inherit'`**（继承主会话模型） |
+| `tiers.medium` | 同上，默认 `'inherit'` | 同上 |
+| `tiers.high` | 同上，默认 `'inherit'` | 同上 |
 | `roleOverrides` | `dict<string>`，默认 `{}` | 角色级覆盖，优先于 tiers，如 `{ "omd-agent-code-reviewer": "deepseek/deepseek-reasoner" }` |
 | `stateDir` | 字符串，默认 `'.omd'` | 项目状态目录名 |
 | `autopilot.maxIterations` | 自然数 ≥1，默认 `10` | autopilot 最大轮次（`create_goal` 的 max_goal_rounds 默认值） |
@@ -110,6 +110,14 @@ oh-my-dsh:
         args: ["--stdio"]
         languages: [typescript]
 ```
+
+### 迁移说明 / Migration（0.4.4 → 0.4.5 行为变更）
+
+**`tiers` 三档默认值从写死的 `glm-5.3-flash` 改为 `'inherit'`（继承主会话模型路由）**。影响面：
+
+- 已显式配置 `tiers` 或经 `roleOverrides` 覆盖的部署：**不受影响**；
+- 经 `omd_delegate` 显式指定 `model` 的派发：**不受影响**（显式 model 绕过档位表，一等硬指定）；
+- 未做任何配置的部署：档位派发从「固定 glm-5.3-flash」变为「继承主会话模型」——成本敏感部署（希望档位派发继续走指定小模型）应在 Config 中把 `tiers.<tier>` 显式写回具体模型 id。
 
 ---
 
