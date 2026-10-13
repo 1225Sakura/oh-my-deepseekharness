@@ -104,7 +104,7 @@ graph "先构建再测试，部署前问我"   （先撰写 descriptor）
 - **graph_run** `{cwd, descriptor, takeover?, stale_grace_ms?}`：封印并**同步推进至首个等待点**（gate_waiting / agent_pending / 终态）再返回；恒返回 `{exit_code, terminal_status, status, waiting, projection, ...}`。同 `run_id` 重入：fence 存活 → `19`；owner 死且 stale 过期 → `takeover:true` 显式接管。
 - **graph_status** `{cwd, run_id}`：`projectGraph` 投影（ready/waiting/blocked/done/failed/max_seq）+ fence 观测（`stalled`）。
 - **graph_resume** `{cwd, run_id, takeover?, stale_grace_ms?}`：唯一续驱动口——从 run 目录 `descriptor.json` 快照重水化并推进；`takeover:true` 是 stalled run 的显式接管（成功写 `fence_acquired`）。
-- **graph_node_result** `{cwd, run_id, node_id, attempt, exit_code, output_ref?}`：agent 节点唯一提交口；必须匹配最新 `agent_pending`（attempt 一致且尚无 committed），同 payload 重复提交幂等返回、异 payload 拒绝。
+- **graph_node_result** `{cwd, run_id, node_id, attempt, exit_code, output_ref?, output?}`：agent 节点唯一提交口；必须匹配最新 `agent_pending`（attempt 一致且尚无 committed），同 payload 重复提交幂等返回、异 payload 拒绝。
 - **graph_gate_resolve** `{cwd, run_id, node_id, decision: approved|denied, output_summary?}`：human-approval 唯一裁决口；必须匹配该 gate 最新 `gate_waiting`（错位/已裁决/终态 run 拒绝）；`denied` 是一等结局（run 以 gate_denied 终结）。
 
 ### journal 词汇表登记（上文冻结 7 type 之外的新增，运行时与模型手写同遵）
@@ -125,7 +125,7 @@ graph "先构建再测试，部署前问我"   （先撰写 descriptor）
 
 ### agent 护栏（运行时生成，非模型自由裁量）
 
-`effect_policy=side_effect_free` 的 agent 节点，入口封印前由运行时给 `instructions` **强制拼只读/leaf-guard 契约前缀**（幂等：已带前缀不重复拼；MCP 与 bin 双入口同前缀 → 同 `descriptor_hash`，跨入口恢复不因前缀漂移）。
+`effect_policy=side_effect_free` 的 agent 节点，入口封印前由运行时给 `instructions` **强制拼只读/leaf-guard 契约前缀**（幂等：已带前缀不重复拼；MCP 与 bin 双入口同前缀 → 同 `descriptor_hash`，跨入口恢复不因前缀漂移）。例外：sealed 输入（带 `descriptor_hash` 的 descriptor）以封印态原样采用、永不重算——运行时前缀对其不适用。
 
 ### 授权面诚实声明（prompt 层约定，非安全边界）
 

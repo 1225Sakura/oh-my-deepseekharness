@@ -104,7 +104,7 @@ The deterministic runtime core lives in `lib/graph/` (schema validation / descri
 - **graph_run** `{cwd, descriptor, takeover?, stale_grace_ms?}`: seals and advances synchronously to the first waiting point (gate_waiting / agent_pending / terminal) before returning; always returns `{exit_code, terminal_status, status, waiting, projection, ...}`. Re-entering the same `run_id`: live fence → `19`; dead owner past the stale grace → `takeover:true` explicit takeover.
 - **graph_status** `{cwd, run_id}`: `projectGraph` projection (ready/waiting/blocked/done/failed/max_seq) + fence observation (`stalled`).
 - **graph_resume** `{cwd, run_id, takeover?, stale_grace_ms?}`: the only resume-driver entry — rehydrates from the run directory's `descriptor.json` snapshot and advances; `takeover:true` is the explicit takeover for stalled runs (writes `fence_acquired` on success).
-- **graph_node_result** `{cwd, run_id, node_id, attempt, exit_code, output_ref?}`: the only commit port for agent nodes; must match the latest `agent_pending` (same attempt, no committed yet) — idempotent for identical payloads, rejects conflicting ones.
+- **graph_node_result** `{cwd, run_id, node_id, attempt, exit_code, output_ref?, output?}`: the only commit port for agent nodes; must match the latest `agent_pending` (same attempt, no committed yet) — idempotent for identical payloads, rejects conflicting ones.
 - **graph_gate_resolve** `{cwd, run_id, node_id, decision: approved|denied, output_summary?}`: the only adjudication port for human-approval nodes; must match that gate's latest `gate_waiting` (misaligned / already-resolved / terminal runs are rejected); `denied` is a first-class outcome (the run ends as gate_denied).
 
 ### Journal vocabulary registration (additions beyond the 7 frozen types above — binding for the runtime and hand-written journals alike)
@@ -125,7 +125,7 @@ The deterministic runtime core lives in `lib/graph/` (schema validation / descri
 
 ### Agent guardrails (runtime-generated, not model discretion)
 
-For agent nodes with `effect_policy=side_effect_free`, the runtime force-prepends a read-only/leaf-guard contract prefix to `instructions` before sealing (idempotent: already-prefixed text is not double-prefixed; MCP and bin share the prefix → same `descriptor_hash`, so cross-entry resume never drifts on the prefix).
+For agent nodes with `effect_policy=side_effect_free`, the runtime force-prepends a read-only/leaf-guard contract prefix to `instructions` before sealing (idempotent: already-prefixed text is not double-prefixed; MCP and bin share the prefix → same `descriptor_hash`, so cross-entry resume never drifts on the prefix). Exception: sealed inputs (descriptors carrying `descriptor_hash`) are adopted as-sealed and never re-computed — the runtime prefix does not apply to them.
 
 ### Authority-face honest declaration (prompt-level convention, not a security boundary)
 

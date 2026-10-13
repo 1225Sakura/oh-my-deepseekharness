@@ -130,6 +130,7 @@ export function makeGraphTools(env) {
         return {
           exit_code: 0,
           terminal_status: null,
+          status: 'in_progress', // 形状惯例：validate 不建 run、无投影面，与 toolFailure 兜底一致
           run_id: sealed.run_id,
           descriptor_hash: sealed.descriptor_hash,
           node_count: sealed.nodes.length,
@@ -445,13 +446,13 @@ export function registerGraphTools(server, env) {
   const jsonOut = (v) => ({ content: [{ type: 'text', text: typeof v === 'string' ? v : JSON.stringify(v) }] })
   const base = { cwd: z.string() }
   const runIdBase = { ...base, run_id: z.string() }
-  const runOpts = { takeover: z.boolean().optional(), stale_grace_ms: z.number().optional() }
+  const runOpts = { takeover: z.boolean().optional(), stale_grace_ms: z.number().min(1).optional() } // 拒负数/0；缺省走 fence 默认 30s
   server.registerTool('graph_validate', {
     description: 'graph descriptor 自检（strict schema + 结构 + UNSUPPORTED_EDGE fail-fast）——写 descriptor 先自检，返回将封印的 descriptor_hash；effect_policy=side_effect_free 的 agent 节点 instructions 在此拼只读/leaf-guard 护栏前缀（运行时生成）',
     inputSchema: { ...base, descriptor: z.record(z.any()) },
   }, async a => jsonOut(await t.validate(a)))
   server.registerTool('graph_run', {
-    description: 'graph 运行：封印并同步推进至首个等待点（gate_waiting/agent_pending）或终态，恒返回 {exit_code, terminal_status, status, waiting, projection}；同 run_id 重入 fence 存活即 19，owner 死且 stale 过期需 takeover:true 显式接管；UNSUPPORTED_EDGE（conditional/back_edge）入口 fail-fast',
+    description: 'graph 运行：封印并同步推进至首个等待点（gate_waiting/agent_pending）或终态，恒返回 {exit_code, terminal_status, status, waiting, projection}；同 run_id 重入 fence 存活即 19，owner 死且 stale 过期需 takeover:true 显式接管；UNSUPPORTED_EDGE（conditional/back_edge）入口 fail-fast；授权面：descriptor 内 command 节点是经 pwsh 执行的任意 shell 行，只运行你撰写或信任的 descriptor（与 bin 入口同权）',
     inputSchema: { ...base, descriptor: z.record(z.any()), ...runOpts },
   }, async a => jsonOut(await t.run(a)))
   server.registerTool('graph_status', {

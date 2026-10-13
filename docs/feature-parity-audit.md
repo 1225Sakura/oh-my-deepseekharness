@@ -13,7 +13,7 @@
 - 快照锚（`git log -1` 实证，本会话复核）：OMC HEAD `8262f9f` = tag v5.7.0；OMX HEAD `02ef37e` = tag 0.21.9。
 - 上游权威数字复核（本会话实测，与 S1 勘误表逐项一致）：OMC skills **48**（目录枚举 = `.claude-plugin/plugin.json` 注册 48 项，双口径一致）｜hooks **30 条注册**（14 matcher / 11 事件类型，逐事件分布与 u7-drift §1 一致）｜agents **19**｜commands **21**；OMX root skills **29**（0.21.5→0.21.9 零增删）。
 - omd 侧实测（2026-10-13）：`assets/skills/` **42 目录**｜`assets/agents/` **66 文件**（33 角色×双语）｜MCP `server.registerTool` 逐文件枚举 **55**（9 个工具文件）｜斜杠命令 2（`lib/commands.js`：omd-doctor / omd-cancel）｜tests **43 文件 / 519 tests 全绿**（`npm test` 本轮新鲜实测）。
-- 口径声明：①team/ralph 全流程 E2E 仍受 autopilot 模式互斥硬约束（v0.4.1 口径延续），以测试矩阵 + 接线证据判定；②S1 判定「不纳入」的 14 项上游增量（u7-drift §3.2/§3.3）按契约不重评，结论直接复用；③`.omd/` 下证据指针为文件系统级事实（gitignored）；④本轮重基线基于 v0.4.4 代码事实，U10（tiers 默认值行为变更）落地后 #16/#17 证据行需随行更新。
+- 口径声明：①team/ralph 全流程 E2E 仍受 autopilot 模式互斥硬约束（v0.4.1 口径延续），以测试矩阵 + 接线证据判定；②S1 判定「不纳入」的 14 项上游增量（u7-drift §3.2/§3.3）按契约不重评，结论直接复用；③`.omd/` 下证据指针为文件系统级事实（gitignored）；④本轮重基线基于 v0.4.4 代码事实；U10（tiers 默认值改为 inherit）已在 ec96619 落地、随 0.4.5 发版，#16/#17 证据行经落地核对机制面未变、无需随行改写，dsh 0.2.0 stable 二次复评仍待触发。
 
 ## 总览计数（45 点 + 11 项上游新增评估行）
 
@@ -165,7 +165,7 @@ R-1～R-8 全文在下方 v0.4.0 存档节（一个含义一个家，此处不�
 - 11 项评估的移植裁决 → U7 后续轮或独立共识流程。
 - HUD effort level 前置核实（dsh 宿主 effort 数据缝是否存在）→ 待核项。
 - GLOSSARY 机械改名（66 处引用）→ 低优先待批准项。
-- U10（tiers 默认值改为 inherit 的行为变更 + dsh 0.2.0 stable 二次复评）不在本次范围；落地后 #16/#17 证据行随行更新（见 upgrade-tracking 轮 15 推进序）。
+- U10（tiers 默认值改为 inherit 的行为变更）已在 ec96619 落地、随 0.4.5 发版，#16/#17 证据行经落地核对无需随行改写（机制面未变）；dsh 0.2.0 stable 二次复评仍待触发（见 upgrade-tracking 轮 15 推进序）。
 
 ---
 
