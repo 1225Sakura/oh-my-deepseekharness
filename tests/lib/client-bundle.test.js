@@ -10,6 +10,9 @@
 //    （minimal-idle / focused-active / full-active / 回退，fakeReact useState 种子注入）
 // ⑮-⑱ U8 S3 AC11：full preset「队员」「工具调用」两区——完整 payload 在场/focused+minimal
 //    不在场/旧 server 缺键跳过不炸/truncated 提示行 + fallback>0 warn 色行
+// ⑲ U6 S1 自适应 run 分组两级树：≥2 distinct runId → 组头行（runId 末 8 字符 + 「· N 名」
+//    计数=组内已渲染行数）在队员行之前 + 队员行缩进（paddingLeft 12）+ truncated 提示行保留；
+//    单 run（全同 runId）零组头——⑮ 单 run fixture 零改写仍绿即回归保护
 import { test, expect } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
@@ -121,6 +124,17 @@ const WORKERS = {
   truncated: false,
 }
 const TOOLCALLS = { total: 7, byTier: { low: 1, medium: 4, high: 1, explicit: 1 }, fallbackCount: 0 }
+// U6 S1 fixture：2 distinct runId 各 2 名队员，交错序（组序=组内首元素出现序，组内保持输入序）；
+// truncated:true 同时覆盖截断提示行保留（截断腰斩 run 时计数=组内已渲染行数，提示行兜底）
+const WORKERS_MULTI = {
+  list: [
+    { runId: 'run-aaaa1111bbbb', workerId: 'w-m1a', role: 'executor', status: 'running', spawnedAt: '2026-02-06T09:58:00.000Z', lastHeartbeatAt: '2026-02-06T09:59:00.000Z' },
+    { runId: 'run-cccc2222dddd', workerId: 'w-m2a', role: 'reviewer', status: 'running', spawnedAt: '2026-02-06T09:57:00.000Z', lastHeartbeatAt: '2026-02-06T09:56:00.000Z' },
+    { runId: 'run-aaaa1111bbbb', workerId: 'w-m1b', role: 'verifier', status: 'done', spawnedAt: '2026-02-06T09:50:00.000Z', lastHeartbeatAt: '2026-02-06T09:40:00.000Z' },
+    { runId: 'run-cccc2222dddd', workerId: 'w-m2b', role: 'planner', status: 'blocked', spawnedAt: '2026-02-06T09:30:00.000Z', lastHeartbeatAt: null },
+  ],
+  truncated: true,
+}
 
 /** 种子注入渲染：snap 为第 1 个 useState、err 为第 2 个。
  *  HudPanel 闭包绑定 materialize 时的 react——故必须在此用种子 react 物化工厂。 */
@@ -398,4 +412,28 @@ test('⑱ U8/AC11 full：workers.truncated=true 截断提示行 + fallback>0 该
   const warnNodes = findNodes(tree, (n) => n.props && n.props.style && n.props.style.color === 'var(--dsh-warn, #d90)')
   expect(warnNodes).toHaveLength(1)
   expect(JSON.stringify(warnNodes[0])).toContain('2 次')
+})
+
+test('⑲ U6 S1 自适应组头：≥2 distinct runId → 组头行 + 缩进队员行；单 run 零组头；截断提示行保留', async () => {
+  const { loaderCalls } = await loadBundle()
+  const s = snapPayload({ preset: 'full', workers: WORKERS_MULTI, toolCalls: TOOLCALLS })
+  const { tree, flat } = seedPanel(loaderCalls, s)
+  // 组头行在场：runId 末 8 字符短式 + 「· N 名」，N=组内已渲染行数
+  expect(flat).toContain('队员')
+  expect(flat).toContain('run …1111bbbb · 2 名')
+  expect(flat).toContain('run …2222dddd · 2 名')
+  // 顺序断言：组头在其队员行之前；组序=组内首元素出现序；交错输入按 run 归组
+  const order = ['run …1111bbbb', 'w-m1a', 'w-m1b', 'run …2222dddd', 'w-m2a', 'w-m2b']
+    .map((t) => flat.indexOf(t))
+  for (let i = 0; i < order.length; i++) expect(order[i]).toBeGreaterThanOrEqual(0)
+  for (let i = 1; i < order.length; i++) expect(order[i]).toBeGreaterThan(order[i - 1])
+  // 队员行缩进一级（组头下 paddingLeft 12；树内缩进行恰=4 行队员，其余元素无 paddingLeft）
+  const indented = findNodes(tree, (n) => n.props && n.props.style && n.props.style.paddingLeft === 12)
+  expect(indented).toHaveLength(4)
+  // truncated 提示行照旧兜底（截断腰斩 run 时计数即组内已渲染行数）
+  expect(flat).toContain('仅显示最近 50 名队员（已截断）')
+  // 自适应反向断言：单 run（WORKERS 全同 runId）保持 U8 平铺原状——零组头行
+  const single = seedPanel(loaderCalls, snapPayload({ preset: 'full', workers: WORKERS }))
+  expect(single.flat).not.toContain('run …')
+  expect(single.flat).toContain('w-ab12') // 队员行照常渲染
 })
