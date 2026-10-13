@@ -11,6 +11,7 @@ import { registerHandoffTools } from './tools/handoff.mjs'
 import { registerTeamTools } from './tools/team.mjs'
 import { registerTraceTools } from './tools/trace.mjs'
 import { registerHudTools } from './tools/hud.mjs'
+import { registerGraphTools } from './tools/graph.mjs'
 import { registerCodeIntelTools } from './tools/codeintel.mjs'
 
 const server = new McpServer({ name: 'omd-state', version: '0.1.0' })
@@ -24,5 +25,6 @@ registerHandoffTools(server, env)
 registerTeamTools(server, env)
 registerTraceTools(server, env)
 registerHudTools(server, env)
+registerGraphTools(server, env)
 registerCodeIntelTools(server, env)
 await server.connect(new StdioServerTransport())

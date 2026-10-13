@@ -8,7 +8,7 @@ when-to-use: 带显式依赖（DAG）的可重复多步流水线、必须能扛�
 
 从一份声明式 JSON descriptor 运行一个确定性编排图。
 
-> **移植状态（先读）。** OMC 原版经独立 OS 进程（`omc graph run`）执行，背后是 `src/graph/*` 的 sealed-descriptor 与 pure-scheduler 契约，崩溃恢复靠 OCC journal 真实生效。**该运行时未移植——列 omd 二期。**本 skill 当前承载的是完整方法论骨架：descriptor 契约、节点/边语义与恢复纪律。omd 中的执行是**模型驱动**的（见下）：下文标注为运行时强制的保证，在这里是约定而非硬保证。
+> **移植状态（先读）。** OMC 原版经独立 OS 进程（`omc graph run`）执行，背后是 `src/graph/*` 的 sealed-descriptor 与 pure-scheduler 契约，崩溃恢复靠 OCC journal 真实生效。**omd 一期运行时已落地（U4）**：确定性核心在 `lib/graph/`（schema/descriptor/journal/scheduler/fence/runner），MCP 六工具面与后台脚本双入口共用（见下「运行时工具面」）。模型驱动执行仍是合法旁路——journal 契约不变，今天模型写的 journal 就是明天的恢复输入。
 
 ## 用法
 
@@ -38,7 +38,7 @@ graph "先构建再测试，部署前问我"   （先撰写 descriptor）
 5. **恢复**：中断后用同一 descriptor 重跑会回放 journal 并继续。已完成节点绝不重跑——先读 journal，跳过已提交节点。
 6. 边跑边播报进度：`[run]`、`[node]`、`[ok]`、`[fail]`、`[join]`、`[done]`。
 
-### 运行时退出码（OMC 原版契约，omd 二期生效）
+### 运行时退出码（omd 一期运行时已生效）
 
 记录在此以保持 descriptor 前向兼容：`0` 成功 | `1` 终态失败 | `19` 另一写者持有本 run（忙） | `20` journal 损坏/被篡改（fail-closed） | `21` 恢复时 descriptor 漂移 | `70` 运行时崩溃。模型驱动执行以文字报告同样的状态，不用退出码。
 
@@ -67,11 +67,11 @@ graph "先构建再测试，部署前问我"   （先撰写 descriptor）
 }
 ```
 
-边种类：`fixed` | `conditional` | `fan_out`/`join` 对 | `back_edge`（经 `max_traversals` 有界重试）。OMC 的权威 Zod schema 在 `src/graph/schema.ts`；omd 尚无 schema 校验器——靠检视校验，descriptor 畸形即快速失败。
+边种类：`fixed` | `fan_out`/`join` 对今天可运行；`conditional` 与 `back_edge` 在入口即被 `UNSUPPORTED_EDGE` fail-fast 拒绝（不支持，明说不猜）。权威 Zod schema 移植为 `lib/graph/schema.js`——`graph_validate` 入口做 strict 校验，descriptor 畸形即快速失败。
 
 ## 能力边界与语义（撰写前必读）
 
-- **边支持**：模型驱动执行下，`fixed` 边与 `fan_out`/`join` 对今天可用。`conditional` 与 `back_edge` 路由需要能产生 route 的结果——OMC 内建 executor 从不产生 route，会以 `route_required` 快速失败；在 omd 中，依赖它们的图**在二期运行时落地前视为不支持**，明说而不是猜路由。
+- **边支持**：`fixed` 边与 `fan_out`/`join` 对可运行。`conditional` 与 `back_edge` 路由在一期运行时**不支持**：入口（graph_validate/graph_run）以 `UNSUPPORTED_EDGE` fail-fast（exit 1，显式列出违例边），明说而不是猜路由。
 - **崩溃恢复保证是 at-least-once**（command 节点）：外部副作用与 journal 追加之间崩溃，恢复时该节点会重跑。`idempotent` 命令的解析键以 `GRAPH_IDEMPOTENCY_KEY` 环境值暴露给命令并记录供下游去重。外部副作用的 exactly-once 不在范围内。
 - **命令信任边界**：command 节点是经 `pwsh` 执行的任意 shell 行，在当前工作目录拥有真实进程权限。只运行你撰写或信任的 descriptor。命令不做文件系统/进程沙箱。
 - **agent 权限边界**：内建 agent 节点按约定只读——omd 中这是 prompt 层纪律（dsh `subagent` 无工具限制参数），要在节点 `instructions` 里写明并优先用只读角色卡。把 `.omd/graph-runs/<run_id>/descriptor.json` 当作可执行内容对待。
@@ -95,6 +95,41 @@ graph "先构建再测试，部署前问我"   （先撰写 descriptor）
 - 大输出不落 journal：`output_ref` 指向 `.omd/graph-runs/<run_id>/outputs/` 下的文件。
 - `descriptor.json` 快照与 journal 同目录；`descriptor_hash` 不一致即拒绝恢复（防 descriptor 中途被改）。
 - 二期确定性运行时落地时消费同一格式——今天模型写的 journal 就是明天的恢复输入。
+
+## 运行时工具面（U4 一期已落地）
+
+确定性运行时核心在 `lib/graph/`（schema 校验 / descriptor 封印 / 扁平 OCC journal / 纯函数 scheduler / owner fence / runner 推进循环），**双入口共用**：MCP 六工具（`omd-state` server）与后台脚本 `node bin/graph-runner.mjs --descriptor <draft.json> --runs-root <dir> [--takeover] [--stale-grace-ms <ms>] [--cwd <dir>]`（进程退出码 = exit_code，stdout 末行 `GRAPH_RUN_RESULT <json>`）。
+
+- **graph_validate** `{cwd, descriptor}`：写 descriptor 先自检——strict schema + 结构校验 + `UNSUPPORTED_EDGE` fail-fast；返回将封印的 `descriptor_hash`。
+- **graph_run** `{cwd, descriptor, takeover?, stale_grace_ms?}`：封印并**同步推进至首个等待点**（gate_waiting / agent_pending / 终态）再返回；恒返回 `{exit_code, terminal_status, status, waiting, projection, ...}`。同 `run_id` 重入：fence 存活 → `19`；owner 死且 stale 过期 → `takeover:true` 显式接管。
+- **graph_status** `{cwd, run_id}`：`projectGraph` 投影（ready/waiting/blocked/done/failed/max_seq）+ fence 观测（`stalled`）。
+- **graph_resume** `{cwd, run_id, takeover?, stale_grace_ms?}`：唯一续驱动口——从 run 目录 `descriptor.json` 快照重水化并推进；`takeover:true` 是 stalled run 的显式接管（成功写 `fence_acquired`）。
+- **graph_node_result** `{cwd, run_id, node_id, attempt, exit_code, output_ref?}`：agent 节点唯一提交口；必须匹配最新 `agent_pending`（attempt 一致且尚无 committed），同 payload 重复提交幂等返回、异 payload 拒绝。
+- **graph_gate_resolve** `{cwd, run_id, node_id, decision: approved|denied, output_summary?}`：human-approval 唯一裁决口；必须匹配该 gate 最新 `gate_waiting`（错位/已裁决/终态 run 拒绝）；`denied` 是一等结局（run 以 gate_denied 终结）。
+
+### journal 词汇表登记（上文冻结 7 type 之外的新增，运行时与模型手写同遵）
+
+```jsonl
+{"seq":N,"ts":"<ISO-8601>","type":"agent_pending","node_id":"a1","attempt":1}
+{"seq":N,"ts":"...","type":"fence_acquired","epoch":2,"owner_pid":12345}
+```
+
+- `agent_pending`：agent 节点等待模型闭环（`{node_id, attempt}`，watchdog 超 `timeout_ms` 标 `node_failed{retryable}`）；提交走 `graph_node_result` → `node_committed`。
+- `fence_acquired`：恢复/接管获取 fence 的审计行（`{epoch, owner_pid}`；fresh run 首启不写）。fence 元数据本体不进 journal。
+
+### fence 旁文件布局（run 目录内，均不进 journal）
+
+- `owner.lock`：O_CREAT|O_EXCL 创建并持有 fd，payload `{pid, epoch, started_at}`——占用互斥与持有身份判据。
+- `owner.epoch`：单调递增整数 sidecar（接管只升不降，release 后续号不回退）。
+- `owner.json`：`{pid, started_at, lease_ts}` 心跳。**stalled = lease 距今 > 30s（默认）且 owner pid 不存活**，双条件缺一不可；接管（takeover）只在 stalled 时放行。
+
+### agent 护栏（运行时生成，非模型自由裁量）
+
+`effect_policy=side_effect_free` 的 agent 节点，入口封印前由运行时给 `instructions` **强制拼只读/leaf-guard 契约前缀**（幂等：已带前缀不重复拼；MCP 与 bin 双入口同前缀 → 同 `descriptor_hash`，跨入口恢复不因前缀漂移）。
+
+### 授权面诚实声明（prompt 层约定，非安全边界）
+
+`graph_gate_resolve` 与 `graph_node_result` **信任 MCP 调用者**，无用户在场证明——gate 是工作流构造而非安全边界（模型本就持 pwsh，绕过成本为零）。缓解：裁决/提交必须匹配最新 pending（错位 fail-closed 拒绝）。graph_run/resume 同步推进的单次调用时长无上限；客户端超时/断连不影响 run 推进，以 graph_status 轮询。
 
 ## 状态契约
 
