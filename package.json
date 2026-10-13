@@ -1,7 +1,20 @@
 {
   "name": "@sakura12/oh-my-deepseekharness",
-  "version": "0.4.5",
-  "description": "Multi-agent orchestration layer for DeepSeek Harness (OMC/OMX adaptation)",
+  "version": "0.4.6",
+  "description": "Multi-agent orchestration layer for DeepSeek Harness — 44 skills, 55 MCP tools, graph DAG runtime, team pipeline & HUD (OMC/OMX adaptation)",
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "multi-agent",
+    "orchestration",
+    "claude-code",
+    "oh-my-claudecode",
+    "graph-dag",
+    "mcp",
+    "hud",
+    "autopilot",
+    "ralph"
+  ],
   "type": "module",
   "main": "lib/index.js",
   "exports": {
