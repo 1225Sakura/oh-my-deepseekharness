@@ -158,7 +158,7 @@ oh-my-dsh:
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（36 files / 519 tests）
+npm test            # vitest 全量（43 files / 519 tests）
 npm run test:watch
 ```
 
