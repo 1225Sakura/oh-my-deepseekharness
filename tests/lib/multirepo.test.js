@@ -146,7 +146,7 @@ test('C3 豁免解析：父级 .omd-workspace 锚在场，树内解析（含懒�
 test('C3 边界：非运行树（普通仓/非 git 目录）不豁免——树内写显式拒绝（纯多仓语义留执行期）', async () => {
   const plain = await mkdtemp(join(tmpdir(), 'omd-c8-plain-'))
   try {
-    const r = resolveRunStateDir(join(plain, 'x'))
+    const r = resolveRunStateDir(join(plain, 'x'), { ceiling: tmpdir() }) // ceiling 封闭：用户级 ~/.omd 等合法祖先锚不泄漏进夹具判定
     expect(r.anchored).toBe('none') // 无锚不猜测
     expect(r.resolved).toBeNull()
     await expect(writeTreeRunState({ startDir: plain, rel: 'state/x.json', data: {} }))
