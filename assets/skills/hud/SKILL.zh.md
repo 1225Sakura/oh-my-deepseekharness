@@ -51,7 +51,8 @@ when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可�
 - `toolCalls={total, byTier:{low,medium,high,explicit}, fallbackCount}`：聚合自 `.omd/state/events.jsonl`（append-only 派发事件总线，route/fallback 两类事件）；byTier.explicit 桶计 explicit=true 事件，low/medium/high 桶仅计 explicit=false 且 tier 非 null 事件。
 - **events.jsonl 尾部窗口语义**：读面只取尾部 64 KiB（DEFAULT_EVENTS_WINDOW_BYTES）——`total`/`fallbackCount` 均为窗口内计数；旧 fallback 滑出窗口后 fallback>0 的 warn 色档自动消退，这是有意的「近期信号」语义，不是 bug。
 - **toolCalls.total 计数口径=路由判定**：落盘挂钩点在 model 校验/spawn 闸门之前，故含后续校验失败/spawn 失败车次（与 [routing] logLine 的 1:1 口径仅对成功派发成立）。
-- **full preset 两区**：「队员」区（workerId/role/status/心跳时长，truncated 时附截断提示行；一期纯时长显示、无 stale 阈值推导）与「工具调用」区（路由判定计数/tier 分布/fallback 行，fallback>0 时数值带 warn 色）——focused/minimal preset 不含两区，payload 缺键时跳过不炸。
+- **full preset 两区**：「队员」区（U6 起为**自适应 run 分组两级树**——workers.list 含 ≥2 个 distinct runId 时渲染组头行「run …<runId 末 8 字符> · N 名」（N=组内已渲染队员行数；截断腰斩 run 时由截断提示行兜底联读消歧）+ 队员行缩进（paddingLeft 12）；队员行内容仍为 workerId/role/status/心跳时长，truncated 时附截断提示行，一期纯时长显示、无 stale 阈值推导。单 run（list 全同 runId）保持 U8 平铺原状零组头；树上限=run 根→队员行两级，不虚构更深层级）与「工具调用」区（路由判定计数/tier 分布/fallback 行，fallback>0 时数值带 warn 色）——focused/minimal preset 不含两区，payload 缺键时跳过不炸。
+- **版本交叉免疫（U6）**：旧 client 收到含 runId 的新 payload → 忽略新键照 U8 平铺渲染，不炸；新 client + 旧 server（payload 缺 workers/toolCalls 键）→ 两区整体跳过不炸；runId 字段缺席时组头兜底「-」（server 侧 `registry.runId ?? run.name` 恒非空，lib/hud-route.js:52）。
 
 tier 色档（仅 client 面板；MCP 卡恒纯文本、禁 ANSI）：ok=状态正常（活跃且非 stale）；warn=警告（主模式 stale，或活跃模式 current_phase 为 fix 且 fixLoops≥2）；danger=危险（任意活跃模式 state 为 failed）。hud-route 私有侧另在 toolCalls.fallbackCount>0 且原档为 ok 时把下发的 detail.tier 提升为 warn（danger 不降级，lib/hud.js deriveTier 零改动）。色档经 data-tier 属性落 DOM，且必带文字标记（状态正常/警告/危险）——颜色不是唯一信息载体。
 
