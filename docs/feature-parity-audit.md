@@ -13,7 +13,7 @@
 
 - 快照锚（`git log -1` 实证，本会话复核）：OMC HEAD `8262f9f` = tag v5.7.0；OMX HEAD `02ef37e` = tag v0.21.9。
 - 上游权威数字复核（本会话实测，与 S1 勘误表逐项一致）：OMC skills **48**（目录枚举 = `.claude-plugin/plugin.json` 注册 48 项，双口径一致）｜hooks **30 条注册**（14 matcher / 11 事件类型，逐事件分布与 u7-drift §1 一致）｜agents **19**｜commands **21**；OMX root skills **29**（0.21.5→0.21.9 零增删）。
-- omd 侧实测（2026-10-13）：`assets/skills/` **42 目录**｜`assets/agents/` **66 文件**（33 角色×双语）｜MCP `server.registerTool` 逐文件枚举 **55**（9 个工具文件）｜斜杠命令 2（`lib/commands.js`：omd-doctor / omd-cancel）｜tests **43 文件 / 519 tests 全绿**（`npm test` 本轮新鲜实测）。
+- omd 侧实测（2026-10-13）：`assets/skills/` **42 目录**｜`assets/agents/` **66 文件**（33 角色×双语）｜MCP `server.registerTool` 逐文件枚举 **55**（9 个工具文件）｜斜杠命令 2（`lib/commands.js`：omd-doctor / omd-cancel）｜tests **44 文件 / 523 tests 全绿**（`npm test` 2026-10-14 复核；较 10-13 的 43/519 +1 文件 +4 tests = upstream-forms 守门纳入）。
 - 口径声明：①team/ralph 全流程 E2E 仍受 autopilot 模式互斥硬约束（v0.4.1 口径延续），以测试矩阵 + 接线证据判定；②S1 判定「不纳入」的 14 项上游增量（u7-drift §3.2/§3.3）按契约不重评，结论直接复用；③`.omd/` 下证据指针为文件系统级事实（gitignored）；④本轮重基线基于 v0.4.4 代码事实；U10（tiers 默认值改为 inherit）已在 ec96619 落地、随 0.4.5 发版，#16/#17 证据行经落地核对机制面未变、无需随行改写，dsh 0.2.0 stable 二次复评仍待触发。
 
 ## 总览计数（45 点 + 11 项上游新增评估行）
@@ -28,7 +28,7 @@
 | 上游新增评估行（U7-S1 纳入，不并入 45 点基数） | — | **11** | ⚠️部分 4 + ❌未做 7（无 ✅/🚫）；移植裁决留共识流程 |
 | **评估全集** | 45 | **56** | — |
 
-体量对照（v0.4.4 实测）：omd = 1 根 hook 电线（agent/pre-step）+ 插件侧 heartbeat 定时器 / **42 skills**（双语）/ 33 角色（双语）/ 2 斜杠命令 / **55 MCP 工具** / 4 宿主工具（口径沿 v0.4.0 存档节：dsh 原生 goal/ralph/subagent/workflow 编排面）/ **43 files / 519 tests 全过**。
+体量对照（v0.4.4 实测）：omd = 1 根 hook 电线（agent/pre-step）+ 插件侧 heartbeat 定时器 / **42 skills**（双语）/ 33 角色（双语）/ 2 斜杠命令 / **55 MCP 工具** / 4 宿主工具（口径沿 v0.4.0 存档节：dsh 原生 goal/ralph/subagent/workflow 编排面）/ **44 files / 523 tests 全过**（2026-10-14 复核更新）。
 
 ## 45 点逐行重评
 
@@ -139,7 +139,7 @@ R-1～R-8 全文在下方 v0.4.0 存档节（一个含义一个家，此处不�
 | OMC skill 资产数（存档节 #9 记「OMC 38」） | 38（工作态旧数，与任何 tag 不齐） | **48**（v5.7.0） | 目录枚举 = plugin.json 注册，双口径一致；v5.4.0 tag 实为 39（u7-drift §2） |
 | omd assets/skills（存档节体量行记 44） | 44（v0.4.0 时点） | **42** | 本轮实测再证；−2 = configure-notifications / omc-doctor（47b5050 删除） |
 | OMC hooks 注册数（轮 9 曾记「hooks 40」） | 40（无实证记忆值，作废） | **30 条注册**（14 matcher / 29 引用脚本） | hooks.json 解析：UserPromptSubmit 2 · SessionStart 7 · PreToolUse 2 · PermissionRequest 1 · PostToolUse 4 · PostToolUseFailure 1 · SubagentStart 1 · SubagentStop 2 · PreCompact 3 · Stop 5 · SessionEnd 2（本轮解析与 u7-drift §1 逐项一致） |
-| omd 体量行（存档节记 49 MCP / 251 tests） | 49 MCP / 251 tests（30 文件） | **55 MCP 工具 / 43 files / 519 tests** | registerTool 逐文件枚举 + `npm test` 本轮新鲜全绿 |
+| omd 体量行（存档节记 49 MCP / 251 tests） | 49 MCP / 251 tests（30 文件） | **55 MCP 工具 / 44 files / 523 tests**（2026-10-14 复核） | registerTool 逐文件枚举 + `npm test` 本轮新鲜全绿 |
 
 ## 上游新增能力评估（U7-S1 纳入 11 项，逐条裁决）
 
