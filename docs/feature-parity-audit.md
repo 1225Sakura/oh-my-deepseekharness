@@ -1,7 +1,8 @@
 # omd 双源功能点对齐审查报告（v0.4.4 重基线）
 
 > 重基线日期：2026-10（omd v0.4.4，U7 执行循环 S2 全量重评）
-> 对比基线：`reference/oh-my-claudecode`（OMC **v5.7.0**，HEAD `8262f9f`）、`reference/oh-my-codex`（OMX **0.21.9**，HEAD `02ef37e`）——本地快照，git tag 级锚定（本会话实测复核）
+> 对比基线：`reference/oh-my-claudecode`（OMC **v5.7.0**，HEAD `8262f9f`）、`reference/oh-my-codex`（OMX **v0.21.9**，HEAD `02ef37e`）——本地快照，git tag 级锚定（本会话实测复核）
+> 形态速查：上游形态卡 `docs/upstream-form-omc.md` / `docs/upstream-form-omx.md`；reference/ 快照升级时本文与形态卡**同轮更新**，并必跑 `npm test -- upstream-forms`（两层门：仓内一致性恒跑 + reference 漂移检测缺席 skip）拦数字漂移
 > 口径：行 = 用户/agent 可见能力；两源共有能力合并一行标双来源；源库内部实现细节不单独成行
 > 状态图例：✅ 已完成（有接线/测试证据）｜⚠️ 降级完成（库能力或文档级，接线未做）｜❌ 未做（未见决定记录）｜🚫 决定不做 / 不适用
 > 历史存档原则：v0.4.0 复审（基线 OMC v5.4.0 / OMX 0.21.5）与 v0.4.1 复验节原样保留于本文后半，旧证据不删不作废；存档节内数字只反映其时点，**本节为当前权威段**。U7-S1 勘误表（`.omd/state/u7-drift.md`）为重基线输入。
@@ -10,7 +11,7 @@
 
 ## 方法与全局证据
 
-- 快照锚（`git log -1` 实证，本会话复核）：OMC HEAD `8262f9f` = tag v5.7.0；OMX HEAD `02ef37e` = tag 0.21.9。
+- 快照锚（`git log -1` 实证，本会话复核）：OMC HEAD `8262f9f` = tag v5.7.0；OMX HEAD `02ef37e` = tag v0.21.9。
 - 上游权威数字复核（本会话实测，与 S1 勘误表逐项一致）：OMC skills **48**（目录枚举 = `.claude-plugin/plugin.json` 注册 48 项，双口径一致）｜hooks **30 条注册**（14 matcher / 11 事件类型，逐事件分布与 u7-drift §1 一致）｜agents **19**｜commands **21**；OMX root skills **29**（0.21.5→0.21.9 零增删）。
 - omd 侧实测（2026-10-13）：`assets/skills/` **42 目录**｜`assets/agents/` **66 文件**（33 角色×双语）｜MCP `server.registerTool` 逐文件枚举 **55**（9 个工具文件）｜斜杠命令 2（`lib/commands.js`：omd-doctor / omd-cancel）｜tests **43 文件 / 519 tests 全绿**（`npm test` 本轮新鲜实测）。
 - 口径声明：①team/ralph 全流程 E2E 仍受 autopilot 模式互斥硬约束（v0.4.1 口径延续），以测试矩阵 + 接线证据判定；②S1 判定「不纳入」的 14 项上游增量（u7-drift §3.2/§3.3）按契约不重评，结论直接复用；③`.omd/` 下证据指针为文件系统级事实（gitignored）；④本轮重基线基于 v0.4.4 代码事实；U10（tiers 默认值改为 inherit）已在 ec96619 落地、随 0.4.5 发版，#16/#17 证据行经落地核对机制面未变、无需随行改写，dsh 0.2.0 stable 二次复评仍待触发。

@@ -166,11 +166,13 @@ oh-my-dsh:
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（43 files / 519 tests）
+npm test            # vitest 全量（44 files / 523 tests）
 npm run test:watch
 ```
 
 `lib/client.js`（HUD client half）是**手工维护的懒加载 CJS bundle**（无构建步骤），格式经 `tests/lib/client-bundle.test.js` 沙箱断言；dsh web 宿主需重启以装载/更新 client 插件。
+
+上游快照约定：`reference/`（gitignored 本机快照）升级 OMC/OMX 版本后，必须同轮更新 `docs/upstream-form-*.md` 形态卡与 `docs/feature-parity-audit.md`，并跑 `npm test -- upstream-forms` 守门（两层门：仓内一致性恒跑；reference 缺席环境漂移层 skip 属预期）。
 
 ## License
 
