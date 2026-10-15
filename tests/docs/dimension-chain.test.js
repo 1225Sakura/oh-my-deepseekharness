@@ -8,7 +8,7 @@
 import { test, expect, describe } from 'vitest'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { readFile, access } from 'node:fs/promises'
+import { readFile, access, readdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -138,6 +138,29 @@ describe('Layer 1：恒跑层（git 内事实，fresh clone 可分发）', () =>
     const docKeys = new Set([...s6.matchAll(/\| `((?:omd|ref):[^`]+)` \|/g)].map(m => m[1]))
     expect([...scriptKeys].filter(k => !docKeys.has(k)), '仅脚本有: ').toEqual([])
     expect([...docKeys].filter(k => !scriptKeys.has(k)), '仅文档有: ').toEqual([])
+  })
+
+  test('L1f README 测试计数三面一致（IC-13/IC-22：徽章↔正文互断 + files 锚实数）', async () => {
+    const readme = await read('README.md')
+    const badgeAlt = readme.match(/Tests: (\d+) passed/)
+    const badgeUrl = readme.match(/tests-(\d+)%20passed/)
+    const body = readme.match(/vitest 全量（(\d+) files \/ (\d+) tests）/)
+    expect(badgeAlt, '徽章 alt 文本可解析').not.toBeNull()
+    expect(badgeUrl, '徽章 URL 可解析').not.toBeNull()
+    expect(body, '正文快速上手行可解析').not.toBeNull()
+    expect(badgeAlt[1], '徽章 alt == 徽章 URL').toBe(badgeUrl[1])
+    expect(badgeUrl[1], '徽章 == 正文 tests 数').toBe(body[2])
+    // files 锚实数（tests/**/*.test.js 递归计数）；tests 绝对数由徽章↔正文互断+files 锚定联动覆盖
+    const countTestFiles = async (dir) => {
+      let n = 0
+      for (const e of await readdir(dir, { withFileTypes: true })) {
+        if (e.isDirectory()) n += await countTestFiles(join(dir, e.name))
+        else if (e.name.endsWith('.test.js')) n++
+      }
+      return n
+    }
+    const actualFiles = await countTestFiles(join(ROOT, 'tests'))
+    expect(Number(body[1]), '正文 files 数 == 实测 test 文件数（' + actualFiles + '）').toBe(actualFiles)
   })
 })
 

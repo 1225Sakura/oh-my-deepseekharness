@@ -53,7 +53,7 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-10 | D15 | 测试盲区五处 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
 | IC-11 | D15 | flake 二次现形（publish 环境 npm test 红/隔离绿，worktree.test.js 同族）——已去化 | empirical | root-caused | approved | done | conditional-review(下次 publish 链全量绿即终验) | P1 |
 | IC-12 | D11 | omd_delegate 状态写锚定 home（并发会话错锚 ~/.omd） | empirical | pending | pending | pending | conditional-review(独立共识) | P1 |
-| IC-13 | D16 | README 徽章漂移 519 vs 523（27dea74 只同步 audit 未刷徽章） | diff | root-caused | none-needed | pending | assertion-live(tests/docs/dimension-chain.test.js) | P2 |
+| IC-13 | D16 | README 徽章漂移 519 vs 523——已修复（徽章+正文刷 538，L1f 守门断言覆盖） | diff | root-caused | none-needed | done | assertion-live(tests/docs/dimension-chain.test.js) | P2 |
 | IC-14 | D2 | tdd 独立 skill 立项评估 | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
 | IC-15 | D2 | refit 回顾工作流立项评估（须先析与 remember/self-improve 分工） | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
 | IC-16 | D2 | architecture-survey 移植形态评估 | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
@@ -62,7 +62,7 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-19 | D5 | MAGIC KEYWORD 注入实发未观察（已观察：IC-20 误触发实例证明注入链路真实发效） | injected | root-caused | none-needed | done | none-justified | P2 |
 | IC-20 | D12 | c2 keyword-hook 对 delegate prompt 正文「ralplan」字样误触发并预写状态——已修复（provisional 不绑定所有权） | empirical | root-caused | approved | done | assertion-live(tests/mcp-server/state.test.js) | P1 |
 | IC-21 | D11 | inactive/残留模式状态无自动回收，阻塞新模式启动——已修复（inactive 不绑定所有权，supersede 留痕） | empirical | root-caused | approved | done | assertion-live(tests/mcp-server/state.test.js) | P1 |
-| IC-22 | D16 | README 测试计数（files/tests）无恒跑守门覆盖，三源漂移实证（徽章 519 / 正文 523 / 实际 529） | diff | root-caused | none-needed | pending | assertion-live(待扩展 tests/docs/dimension-chain.test.js) | P2 |
+| IC-22 | D16 | README 测试计数（files/tests）无恒跑守门覆盖——已修复（L1f：徽章 alt↔URL↔正文三面互断 + files 锚实测 test 文件数） | diff | root-caused | none-needed | done | assertion-live(tests/docs/dimension-chain.test.js) | P2 |
 | IC-23 | D13 | casWriteRunState/runstate CAS 以 ISO 毫秒 updatedAt 为唯一 token——同毫秒并发双写碰撞即丢更新（version 同值互覆）——已修复（单调 token helper monotonicIsoNow 三处归一） | manual | root-caused | approved | done | assertion-live(tests/lib/worktree.test.js) | P2 |
 
 ### 排序表（provisional，S6 终稿；P0/P1/P2 语义对齐轮 17 发版前审查制：P0=阻塞发版/数据损坏/宿主崩溃级；P1=功能缺陷无绕行/契约破坏；P2=质量债/文档漂移/盲区）
