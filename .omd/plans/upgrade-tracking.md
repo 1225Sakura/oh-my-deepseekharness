@@ -177,7 +177,7 @@ README 测试计数根因：徽章行（L3）与正文快速上手行（L169）�
 
 #### IC-11
 
-根因（2026-10-15 AC8+去化轮定案）：vitest 非 browser 默认 testTimeout=**5000ms**（node_modules/vitest/dist/chunks/coverage.DfSpMS-b.js:3921 实证），worktree.test.js 每条测试串行 4-8 次 git 子进程（mkdtemp fixture→init→config→commit→worktree add×2→rev-parse/diff/rm），Windows spawn+AV 扫描下单次 git 可达数百 ms——全量并行（graph e2e 七条真实跨进程测试同期占 22s）与 publish 环境（npm prepublish 链）负载下，单测墙钟顶破 5s → 偶发红；隔离负载低 → 恒绿。**同族反证**：graph-e2e 作者已为全部重测试显式加 20-45s 第三参超时，worktree.test.js 被漏。修法（heartbeat 先例同款：去人工天花板、零断言削弱）=9 条重测试显式 20s 第三参（tests/lib/worktree.test.js）。两次历史现形（轮 17 补记 publish 被拦 + S4a 全量并行红）均被此机制解释。验证：套件 16/16 绿 ×2、全量 45/529 绿 ×1（本轮）+后续 publish 链终验。
+根因（2026-10-15 AC8+去化轮定案）：vitest 非 browser 默认 testTimeout=**5000ms**（node_modules/vitest/dist/chunks/coverage.DfSpMS-b.js:3921 实证），worktree.test.js 每条测试串行 4-8 次 git 子进程（mkdtemp fixture→init→config→commit→worktree add×2→rev-parse/diff/rm），Windows spawn+AV 扫描下单次 git 可达数百 ms——全量并行（graph e2e 七条真实跨进程测试同期占 22s）与 publish 环境（npm prepublish 链）负载下，单测墙钟顶破 5s → 偶发红；隔离负载低 → 恒绿。**同族反证**：graph-e2e 作者已为全部重测试显式加 20-45s 第三参超时，worktree.test.js 被漏。修法（heartbeat 先例同款：去人工天花板、零断言削弱）=9 条重测试显式 20s 第三参（tests/lib/worktree.test.js）。两次历史现形（轮 17 补记 publish 被拦 + S4a 全量并行红）均被此机制解释。验证：套件 16/16 绿 ×2、全量 45/529 绿 ×1（本轮）；**终验已过**：0.4.8 publish 的 prepublishOnly 门禁在 publish 环境全量绿（75a4766 链，exit 0）——conditional-review 触发条件满足，本条终局闭环。
 
 #### IC-23
 
