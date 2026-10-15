@@ -281,3 +281,13 @@ c2 keyword-hook 误触发实证（2026-10-14 本访谈会话）：主会话经 o
 - **S5 发现**：三批子代理因宿主子代理路由异常（glm-5.3-flash stopReason=error，轮 11 同族）全部失败，改主会话直采。净新增 IC-22（README files/tests 计数无守门，三源漂移 519/523/529）；IC-19 闭环（IC-20 误触发实例反证注入链路真实，本账首条 closed 终态）；D1-D4/D6-D9 零发现；D14 的 IC-01~10 经 git 实证维持开放（lib/graph 自 f95952a 零后续提交）。
 - **验证**：守门 6/6 绿+负例四连红（非法枚举/伪 closed/排序漏 ID/wontfix 缺 approved）；全量 45 文件/529 tests 绿；fresh-clone 真模拟（临时 clone→npm install→两守门）8 passed+2 skipped+WARNING 可见——台账随 git 分发实证；独立 verifier VERIFIED（抽样五段/负例复演/断言强度/全量回归五项全过）。
 - **剩余积压**：P1 档 IC-11（flake 去化）/IC-12（home 锚定）/IC-20（keyword 误触发）/IC-21（残留状态回收）待各自共识立项；P2 档按排序表台账消化；执行期顺手修订 m1/m2/NTH-R2-1 已按修正口径执行（porcelain -uall/check-ignore 负向行断言），计划文本不回改。
+
+## 轮 19 附记（2026-10-15 0.4.8 发版——IC-11 去化 + IC-20/21 生命周期修复）
+
+- **IC-11 去化**（68f2818）：根因=vitest 非 browser 默认 testTimeout 5000ms × worktree.test.js git 子进程链在并行/publish 负载下顶破；修=9 条重测试显式 20s（graph-e2e 同款先例）；负例四连验证。
+- **IC-20/IC-21 修复**（75a4766）：共识链=ralplan-mode-state-lifecycle.md（Architect R1 SOUND-WITH-CHANGES + Critic R1 ITERATE 全吸收，15 条对照表）；state.mjs write 所有权谓词收窄——仅存活态（active===true 且非 provisional 合取签名）绑定所有权；inactive/keyword-hook 未确认预写被取代（supersede：active:false + supersededBy/At + 重打 _meta.updatedAt 单调 token）。hook.js 补 provisional 语义注释。测试 +6 → 15/15。
+- **IC-23 实证升格**：ABA 守门测试当场活捉同毫秒 token 碰撞（supersede 重打为 no-op）——「理论低概率」→「实测必现」；state.mjs 侧单调 token 已修；lib/worktree.js 与 lib/runstate.js 同族修法照搬即可（随下次涉 CAS 轮次收口）。
+- **0.4.8 发版链**：门禁 45/529（68f2818 时点）→ bump+修复提交 75a4766 → npm publish exit 0（shasum ffad75a8；**prepublishOnly 全量绿=IC-11 conditional-review 终验通过**）→ web profile 升 0.4.8（第 3 次重试，CDN 传播后到位；profile node_modules 版本断言 ✓）。
+- **测试面**：45 文件/535 tests 全绿（529+6 条所有权生命周期测试）。
+- **用户手动作业**：重启宿主 → /omd-doctor 验装 → 冒烟（复现一次 keyword 误触发场景验证不再阻塞：leaf 残留 provisional 后主会话可直接激活同 mode）。回退段：dsh plugin --profile web add @sakura12/oh-my-deepseekharness@0.4.7；宿主级崩溃且回退恢复 → npm deprecate 0.4.8。
+- **剩余积压**：P1 档仅剩 IC-12（home 锚定，涉宿主边界待析）；P2 档 IC-01~10/13/14~19/22/23 按排序表台账消化（IC-23 已升格实测必现，建议随下次涉 CAS 轮次优先）。
