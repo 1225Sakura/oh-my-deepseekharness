@@ -3,6 +3,11 @@ reference/
 node_modules/
 
 # omd 运行时状态（dogfooding 时插件在自身仓库生成的 stateDir）
-.omd/
+# 外科式再包含（C-1 方案 A，ralplan-full-dimension-issue-chain）：父目录排除时子文件无法再包含，
+# 故排除目录内容而非目录本身，仅放行 plans/upgrade-tracking.md（全维度问题链台账，须随 git 分发）
+.omd/*
+!.omd/plans/
+.omd/plans/*
+!.omd/plans/upgrade-tracking.md
 # 本地打包产物
 *.tgz
