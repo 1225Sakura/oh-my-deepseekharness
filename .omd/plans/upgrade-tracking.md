@@ -63,7 +63,7 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-20 | D12 | c2 keyword-hook 对 delegate prompt 正文「ralplan」字样误触发并预写状态——已修复（provisional 不绑定所有权） | empirical | root-caused | approved | done | assertion-live(tests/mcp-server/state.test.js) | P1 |
 | IC-21 | D11 | inactive/残留模式状态无自动回收，阻塞新模式启动——已修复（inactive 不绑定所有权，supersede 留痕） | empirical | root-caused | approved | done | assertion-live(tests/mcp-server/state.test.js) | P1 |
 | IC-22 | D16 | README 测试计数（files/tests）无恒跑守门覆盖，三源漂移实证（徽章 519 / 正文 523 / 实际 529） | diff | root-caused | none-needed | pending | assertion-live(待扩展 tests/docs/dimension-chain.test.js) | P2 |
-| IC-23 | D13 | casWriteRunState/runstate CAS 以 ISO 毫秒 updatedAt 为唯一 token——同毫秒并发双写碰撞即丢更新（version 同值互覆） | manual | root-caused | pending | pending | conditional-review(独立共识) | P2 |
+| IC-23 | D13 | casWriteRunState/runstate CAS 以 ISO 毫秒 updatedAt 为唯一 token——同毫秒并发双写碰撞即丢更新（version 同值互覆）——已修复（单调 token helper monotonicIsoNow 三处归一） | manual | root-caused | approved | done | assertion-live(tests/lib/worktree.test.js) | P2 |
 
 ### 排序表（provisional，S6 终稿；P0/P1/P2 语义对齐轮 17 发版前审查制：P0=阻塞发版/数据损坏/宿主崩溃级；P1=功能缺陷无绕行/契约破坏；P2=质量债/文档漂移/盲区）
 
@@ -142,6 +142,8 @@ README 测试计数根因：徽章行（L3）与正文快速上手行（L169）�
 #### IC-23
 
 S6 审查 worktree.test.js 顺带发现（manual）：lib/worktree.js casWriteRunState:72-76 与 lib/runstate.js:118 的 CAS 均以 updatedAt（toISOString 毫秒串）为唯一比对 token——同毫秒内 A 写后 B 读 cur.updatedAt 判 CAS 通过、写回同串 updatedAt，第三写者 C 对 B 的 expectUpdatedAt 校验恒真 → 并发同毫秒双写静默丢更新（version 双方同值 +1 互覆，无告警）。触发面：team run 两阶段拆除与镜像 CAS 写在真实并发下的同毫秒窗口（低概率但非零，且静默）。修法方向（须共识）：token 加单调保证（max(now, cur+1ms) 或 version 参与比对）——涉 CAS 语义行为面，单独立项。
+
+**2026-10-15 闭环**：单调 token helper `monotonicIsoNow(prev)`（lib/worktree.js）三处归一——casWriteRunState 咽喉（runstate 镜像写经它）+ runstate.js 覆盖写路径 + state.mjs 常规写路径（supersede 内联逻辑归并同 helper）。专属断言两条：state.mjs 面（同毫秒双写旧 token 必 conflict）+ worktree 面（casWriteRunState 同毫秒单调递增 + helper 单测面）。37/37 绿。
 
 **2026-10-15 实证更新**：IC-23 在 0.4.8 轮被 ABA 守门测试当场活捉——supersede 重打 _meta.updatedAt 与 leaf 预写落在同一毫秒，「重打」为 no-op、旧 token 照样过 CAS（首次验证即红）。state.mjs supersede 路径已按单调 token 修（now <= prev 时取 prev+1ms，mcp-server/tools/state.mjs），ABA 测试随之绿。**此实证把 IC-23 从「理论低概率」升格为「实测必现」**——lib/worktree.js 与 lib/runstate.js 两处同族修法照搬单调 token 即可，建议随下次涉 CAS 轮次顺带收口。
 

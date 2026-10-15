@@ -13,6 +13,7 @@ import { existsSync } from 'node:fs'
 import {
   TERMINAL_STATES, worktreesPath, runStatePath, ensureGitignored,
   beginTeamRun, listTreeDiff, disposeRunWorktree, cancelTeamRun, scanOrphans,
+  casWriteRunState, monotonicIsoNow,
 } from '../../lib/worktree.js'
 import { readJson } from '../../mcp-server/lib/atomic.mjs'
 
@@ -207,3 +208,22 @@ test('begin 拒绝覆写存活 run：前一 run 非终态且会话仍活跃 → 
     await rm(dir, { recursive: true, force: true })
   }
 }, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
+
+test('IC-23：casWriteRunState 同毫秒双写 token 单调递增——旧 expectUpdatedAt 必然 conflict', async () => {
+  const { dir } = await makeFixtureRepo()
+  try {
+    await beginTeamRun({ cwd: dir, runId: 'run-mono' })
+    const a = await casWriteRunState({ cwd: dir, mutate: s => ({ ...s, note: 1 }) })
+    const b = await casWriteRunState({ cwd: dir, mutate: s => ({ ...s, note: 2 }) })
+    expect(b.updatedAt > a.updatedAt).toBe(true) // 单调严格递增（IC-23 防线）
+    await expect(casWriteRunState({ cwd: dir, expectUpdatedAt: a.updatedAt, mutate: s => s }))
+      .rejects.toThrow(/conflict/)
+    // helper 单测面：prev 非法/缺席按现状；同毫秒 prev 时严格 +1ms
+    expect(monotonicIsoNow('not-a-date')).toMatch(/^\d{4}-/)
+    const pinned = '2026-10-15T00:00:00.000Z'
+    const bumped = monotonicIsoNow(pinned)
+    expect(Date.parse(bumped)).toBeGreaterThan(Date.parse(pinned)) // pinned 在过去 → 现状时间必大于之（确定性）
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}, 20_000) // IC-11 同款显式超时（fixture 含 git 子进程链）

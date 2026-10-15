@@ -168,3 +168,14 @@ test('存活常规态绑定保持：active:true 无 phase 的他 session 文件�
   await expect(t.write({ cwd, sessionId: 'other', mode: 'ralph', state: { active: true } }))
     .rejects.toThrow(/owned by session/)
 })
+
+test('IC-23：同毫秒双写 token 单调递增——旧 expectUpdatedAt 必然失配', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 's1', mode: 'ralph', state: { active: true } })
+  const w1 = await t.read({ cwd, sessionId: 's1', mode: 'ralph' })
+  await t.write({ cwd, sessionId: 's1', mode: 'ralph', state: { active: true, iteration: 2 } }) // 同毫秒高发
+  const w2 = await t.read({ cwd, sessionId: 's1', mode: 'ralph' })
+  expect(w2._meta.updatedAt > w1._meta.updatedAt).toBe(true) // 单调严格递增（IC-23 防线）
+  await expect(t.write({ cwd, sessionId: 's1', mode: 'ralph', state: { active: true }, expectUpdatedAt: w1._meta.updatedAt }))
+    .rejects.toThrow(/conflict/)
+})

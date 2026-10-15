@@ -3,6 +3,7 @@ import { readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { z } from 'zod'
 import { atomicWriteJson, readJson } from '../lib/atomic.mjs'
+import { monotonicIsoNow } from '../../lib/worktree.js'
 import { omdPaths } from '../lib/paths.mjs'
 
 const ECHO_MAX = 1200
@@ -38,10 +39,7 @@ export function makeStateTools(env) {
       //  本写是首次引入的跨会话写路径；失败仅丢审计不阻塞主流程。）
       // 同毫秒碰撞防线（IC-23）：supersede 与预写常落在同一毫秒——ISO 串相同则「重打」为 no-op，
       // 旧 token 照样过 CAS。此处保证 token 单调严格递增（必要时取 prev+1ms），ABA 测试实证必要。
-      const prevUpdatedAt = other._meta?.updatedAt ?? ''
-      let now = new Date().toISOString()
-      if (Number.isFinite(Date.parse(prevUpdatedAt)) && now <= prevUpdatedAt)
-        now = new Date(Date.parse(prevUpdatedAt) + 1).toISOString()
+      const now = monotonicIsoNow(other._meta?.updatedAt) // IC-23 同毫秒碰撞防线（helper 归一）
       try {
         await atomicWriteJson(otherPath, {
           ...other, active: false, supersededBy: sessionId, supersededAt: now,
@@ -60,7 +58,8 @@ export function makeStateTools(env) {
       state = { ...state, prompt_echo: state.prompt_echo.slice(0, ECHO_MAX) }
     await atomicWriteJson(file, {
       ...state,
-      _meta: { mode, sessionId, updatedAt: new Date().toISOString(), updatedBy: sessionId },
+      // IC-23 同族：常规写路径同样加同毫秒碰撞防线（同会话快速双写时旧 expectUpdatedAt 不失效）
+      _meta: { mode, sessionId, updatedAt: monotonicIsoNow(cur?._meta?.updatedAt), updatedBy: sessionId },
     })
     return { ok: true }
   }
