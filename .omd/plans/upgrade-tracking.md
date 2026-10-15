@@ -256,3 +256,11 @@ c2 keyword-hook 误触发实证（2026-10-14 本访谈会话）：主会话经 o
 - 用户问「插件市场简介更新了吗」→ 核实：README 市场页已随 0.4.5 生效，但 **description 仍是老句、keywords 字段缺失**（市场搜索面为零）。→ 0.4.6 patch：description 刷新（44 skills/55 MCP tools/graph DAG runtime/team pipeline & HUD）+ keywords 12 项（deepseek-harness/dsh-plugin/multi-agent/orchestration/claude-code/oh-my-claudecode/graph-dag/mcp/hud/autopilot/ralph）。提交 871d781，push+publish exit 0；registry 侧 description/keywords 实测生效。
 - ⚠️ **flake 二次现形**：首次 publish 被 prepublishOnly 拦下（npm test 在 publish 环境红，隔离复跑全绿）——与 S4a 报告的 worktree.test.js 全量并行偶发红同族，累计两现。建议后续单独立项：定位抖动用例并去化（heartbeat 同款疗法）。
 - profile 是否升 0.4.6：元数据变更对插件运行零影响（代码与 0.4.5 逐字节同），**不必升级**；下个功能版一起走。
+
+## 轮 18 附记（2026-10-15 全维度问题链机制落地，deep-interview→共识计划→执行）
+
+- **共识链**：spec=.omd/specs/deep-interview-full-dimension-issue-chain.md（7 轮访谈，模糊度 53%→18% PASSED；含勘误节 E-1——约束 5「git 分发」在访谈时点失实，C-1 方案 A 落地后成立）；计划=.omd/plans/ralplan-full-dimension-issue-chain.md（R2 修订版；Architect R1 SOUND-WITH-CHANGES→R2 SOUND + Critic R1 ITERATE→R2 APPROVE，15 条评审意见 100% 吸收；档案 .omd/state/ralplan-reviews/fd-{architect,critic}-r{1,2}.md）；用户拍板 C-1=方案 A 外科式 .gitignore 再包含。
+- **交付**（提交 8ffb212，5 文件 +1096 行）：docs/dimension-framework.md（16 维八字段权威+45 点映射+114 键映射表）；scripts/audit-dimension-closure.mjs（闭包取数：根域自闭合白名单 15 项+reference 漂移哨兵+零孤儿）；tests/docs/dimension-chain.test.js（两层门 L1a-L1e 恒跑+L2 缺席 skip）；本文件 IC 节（22 条问题链+排序表+逐维发现登记 16/16）首次入 git。
+- **S5 发现**：三批子代理因宿主子代理路由异常（glm-5.3-flash stopReason=error，轮 11 同族）全部失败，改主会话直采。净新增 IC-22（README files/tests 计数无守门，三源漂移 519/523/529）；IC-19 闭环（IC-20 误触发实例反证注入链路真实，本账首条 closed 终态）；D1-D4/D6-D9 零发现；D14 的 IC-01~10 经 git 实证维持开放（lib/graph 自 f95952a 零后续提交）。
+- **验证**：守门 6/6 绿+负例四连红（非法枚举/伪 closed/排序漏 ID/wontfix 缺 approved）；全量 45 文件/529 tests 绿；fresh-clone 真模拟（临时 clone→npm install→两守门）8 passed+2 skipped+WARNING 可见——台账随 git 分发实证；独立 verifier VERIFIED（抽样五段/负例复演/断言强度/全量回归五项全过）。
+- **剩余积压**：P1 档 IC-11（flake 去化）/IC-12（home 锚定）/IC-20（keyword 误触发）/IC-21（残留状态回收）待各自共识立项；P2 档按排序表台账消化；执行期顺手修订 m1/m2/NTH-R2-1 已按修正口径执行（porcelain -uall/check-ignore 负向行断言），计划文本不回改。
