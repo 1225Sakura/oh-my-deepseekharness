@@ -45,7 +45,7 @@ test('非法 runId（路径分隔/空/非法字符）在写入任何状态前抛
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
 
 // ---- C1 断言①：run 启动 → .omd/worktrees/{run-id} 存在（gitignored，从当前 HEAD 建） ----
 test('C1 run 启动建树：目录存在、gitignored、树 HEAD == 主仓 HEAD、run-state 记 active', async () => {
@@ -65,7 +65,7 @@ test('C1 run 启动建树：目录存在、gitignored、树 HEAD == 主仓 HEAD�
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
 
 test('ensureGitignored：未忽略仓恰追加一行且幂等；整仓忽略 .omd/ 的仓库零追加', async () => {
   const { dir } = await makeFixtureRepo()
@@ -89,7 +89,7 @@ test('ensureGitignored：未忽略仓恰追加一行且幂等；整仓忽略 .om
   } finally {
     await rm(dir2, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11 同上
 
 // ---- C2 断言②：CAS 写 disposed → 删树（时序：终态先于删树；CAS 不成功绝不删树） ----
 test('C2 两阶段拆除：disposed 先落 run-state（CAS 成功）→ 树消失；终态时间戳 < 删树时间', async () => {
@@ -113,7 +113,7 @@ test('C2 两阶段拆除：disposed 先落 run-state（CAS 成功）→ 树消�
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
 
 test('C2 负例：stale expectUpdatedAt → CAS 冲突抛错且树原样保留（CAS 不成功绝不删树）', async () => {
   const { dir } = await makeFixtureRepo()
@@ -133,7 +133,7 @@ test('C2 负例：stale expectUpdatedAt → CAS 冲突抛错且树原样保留�
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
 
 // ---- C3 断言③：取消列差异只提示不阻塞；孤儿扫描只提示绝不自动删 ----
 test('C3 取消：删树前列出树内与 HEAD 差异（tracked 修改 ∪ untracked），差异非空也继续拆除', async () => {
@@ -155,7 +155,7 @@ test('C3 取消：删树前列出树内与 HEAD 差异（tracked 修改 ∪ untr
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
 
 test('C3 孤儿扫描：崩溃遗留（非终态无活跃会话）→ 报告且绝不自动删；活跃会话/终态不报', async () => {
   const { dir } = await makeFixtureRepo()
@@ -176,7 +176,7 @@ test('C3 孤儿扫描：崩溃遗留（非终态无活跃会话）→ 报告且�
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
 
 test('C3 孤儿扫描：权威 run-state 不描述的遗留树按 unknown 报告（不描述 = 按非终态论）', async () => {
   const { dir } = await makeFixtureRepo()
@@ -193,7 +193,7 @@ test('C3 孤儿扫描：权威 run-state 不描述的遗留树按 unknown 报告
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
 
 test('begin 拒绝覆写存活 run：前一 run 非终态且会话仍活跃 → 抛错不动 run-state', async () => {
   const { dir } = await makeFixtureRepo()
@@ -206,4 +206,4 @@ test('begin 拒绝覆写存活 run：前一 run 非终态且会话仍活跃 → 
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
-})
+}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）

@@ -51,7 +51,7 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-08 | D14 | projectAfter 裸 catch 降级 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
 | IC-09 | D14 | append/watchdog O(n²) | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
 | IC-10 | D15 | 测试盲区五处 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-11 | D15 | flake 二次现形（publish 环境 npm test 红/隔离绿，worktree.test.js 同族） | empirical | pending | pending | pending | conditional-review(立项去化) | P1 |
+| IC-11 | D15 | flake 二次现形（publish 环境 npm test 红/隔离绿，worktree.test.js 同族）——已去化 | empirical | root-caused | approved | done | conditional-review(下次 publish 链全量绿即终验) | P1 |
 | IC-12 | D11 | omd_delegate 状态写锚定 home（并发会话错锚 ~/.omd） | empirical | pending | pending | pending | conditional-review(独立共识) | P1 |
 | IC-13 | D16 | README 徽章漂移 519 vs 523（27dea74 只同步 audit 未刷徽章） | diff | root-caused | none-needed | pending | assertion-live(tests/docs/dimension-chain.test.js) | P2 |
 | IC-14 | D2 | tdd 独立 skill 立项评估 | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
@@ -63,6 +63,7 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-20 | D10+D12 | c2 keyword-hook 对 delegate prompt 正文「ralplan」字样误触发并预写状态 | empirical | root-caused | pending | pending | conditional-review(独立共识) | P1 |
 | IC-21 | D11 | inactive/残留模式状态无自动回收，阻塞新模式启动 | empirical | root-caused | pending | pending | conditional-review(独立共识) | P1 |
 | IC-22 | D16 | README 测试计数（files/tests）无恒跑守门覆盖，三源漂移实证（徽章 519 / 正文 523 / 实际 529） | diff | root-caused | none-needed | pending | assertion-live(待扩展 tests/docs/dimension-chain.test.js) | P2 |
+| IC-23 | D13 | casWriteRunState/runstate CAS 以 ISO 毫秒 updatedAt 为唯一 token——同毫秒并发双写碰撞即丢更新（version 同值互覆） | manual | root-caused | pending | pending | conditional-review(独立共识) | P2 |
 
 ### 排序表（provisional，S6 终稿；P0/P1/P2 语义对齐轮 17 发版前审查制：P0=阻塞发版/数据损坏/宿主崩溃级；P1=功能缺陷无绕行/契约破坏；P2=质量债/文档漂移/盲区）
 
@@ -71,7 +72,7 @@ Status: active（goal 驱动，跨会话续跑）
 | P1 | IC-12 | home 锚定观察项 | - |
 | P1 | IC-20 | keyword-hook 误触发 | - |
 | P1 | IC-21 | 残留模式状态无回收 | - |
-| P1 | IC-11 | flake 二次现形 | - |
+| P1 | IC-11 | flake 二次现形（已去化闭环） | - |
 | P2 | IC-01 | graph runner 错误路径 | - |
 | P2 | IC-02 | parked/failed 终态歧义 | - |
 | P2 | IC-03 | staleGraceMs 不持久化 | - |
@@ -90,6 +91,7 @@ Status: active（goal 驱动，跨会话续跑）
 | P2 | IC-18 | dsh 0.2.0 stable 复评 | - |
 | P2 | IC-19 | MAGIC KEYWORD 观察 | - |
 | P2 | IC-22 | README 测试计数无守门 | - |
+| P2 | IC-23 | 同毫秒 CAS token 碰撞 | - |
 
 ### 逐维发现登记（S5，2026-10-15 三批执行；每维显式登记，禁止沉默维）
 
@@ -116,9 +118,14 @@ Status: active（goal 驱动，跨会话续跑）
 
 （暂无）
 
-### 定档规则（草案，OQ=spec AC8 挂钩首个执行 story 终审）
+### 定档规则（AC8 终版，2026-10-15 成文；量化判据=可判定问句，逐条是/否，不打分）
 
-P0=阻塞发版/数据损坏/宿主崩溃级；P1=功能缺陷无绕行或契约破坏；P2=质量债/文档漂移/测试盲区，台账消化。档内按依赖扇出（blocked-by 链长度）降序。
+**P0**（满足任一即入档）：①阻塞发版门禁（prepublishOnly 红且非测试自身缺陷）②用户数据丢失或跨会话/跨仓状态污染（写错锚、覆盖他会话活数据）③宿主启动级崩溃（plugin tree 加载失败、宿主退出、级联 Invalid effect）。
+**P1**（满足任一即入档）：①功能缺陷且无绕行路径 ②对外契约破坏（MCP wire 形状、Config 键语义、journal/文件格式兼容）③共识流程被机制性绕过或阻塞（如残留状态所有权挡新模式启动）④同族缺陷两现以上且污染可信度信号（flake 咬发版门禁）。
+**P2**：其余一切——质量债、文档/计数漂移、有界性能损耗、测试盲区（存在替代验证路径）、可绕行的功能缺陷。
+**OBS**：上游 OMC/OMX 缺陷，只记录不修，不占 P 级（升格条件见上游观察节）。
+**档内排序**：blocked-by 依赖链深度降序；同深度按发现时间正序。
+**对照先例**：轮 17 发版前审查制（P0=0/P1=0/P2=14 即本判据的首次隐式应用）；本表 IC-11 入 P1 的依据=判据 P1-④。
 
 #### IC-19
 
@@ -127,6 +134,14 @@ S5 批 2 probe 结论（2026-10-15）：「注入实发未观察」已解——I
 #### IC-22
 
 README 测试计数根因：徽章行（L3）与正文快速上手行（L169）的 files/tests 数字无任何守门断言覆盖——upstream-forms L1b 只守 description 42/55 与 omd-doctor 双语计数，不守 README 测试计数；本轮执行新增 tests/docs/dimension-chain.test.js（45 文件/529 tests）即造成第三处漂移实证（徽章 519 / 正文 44 files·523 tests / 实际 45·529）。修复=刷两行数字 + dimension-chain 增一条 README 计数断言。
+
+#### IC-11
+
+根因（2026-10-15 AC8+去化轮定案）：vitest 非 browser 默认 testTimeout=**5000ms**（node_modules/vitest/dist/chunks/coverage.DfSpMS-b.js:3921 实证），worktree.test.js 每条测试串行 4-8 次 git 子进程（mkdtemp fixture→init→config→commit→worktree add×2→rev-parse/diff/rm），Windows spawn+AV 扫描下单次 git 可达数百 ms——全量并行（graph e2e 七条真实跨进程测试同期占 22s）与 publish 环境（npm prepublish 链）负载下，单测墙钟顶破 5s → 偶发红；隔离负载低 → 恒绿。**同族反证**：graph-e2e 作者已为全部重测试显式加 20-45s 第三参超时，worktree.test.js 被漏。修法（heartbeat 先例同款：去人工天花板、零断言削弱）=9 条重测试显式 20s 第三参（tests/lib/worktree.test.js）。两次历史现形（轮 17 补记 publish 被拦 + S4a 全量并行红）均被此机制解释。验证：套件 16/16 绿 ×2、全量 45/529 绿 ×1（本轮）+后续 publish 链终验。
+
+#### IC-23
+
+S6 审查 worktree.test.js 顺带发现（manual）：lib/worktree.js casWriteRunState:72-76 与 lib/runstate.js:118 的 CAS 均以 updatedAt（toISOString 毫秒串）为唯一比对 token——同毫秒内 A 写后 B 读 cur.updatedAt 判 CAS 通过、写回同串 updatedAt，第三写者 C 对 B 的 expectUpdatedAt 校验恒真 → 并发同毫秒双写静默丢更新（version 双方同值 +1 互覆，无告警）。触发面：team run 两阶段拆除与镜像 CAS 写在真实并发下的同毫秒窗口（低概率但非零，且静默）。修法方向（须共识）：token 加单调保证（max(now, cur+1ms) 或 version 参与比对）——涉 CAS 语义行为面，单独立项。
 
 #### IC-13
 
