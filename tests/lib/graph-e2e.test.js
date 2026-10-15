@@ -238,9 +238,13 @@ describe('graph e2e（U4 S4b，真实跨进程）', () => {
     })
     const runId = draftRunId(draftPath)
 
-    const first = spawnDriver(workDir, ['--descriptor', draftPath, '--runs-root', runsRoot], {
-      GRAPH_E2E_MARKER_DIR: workDir,
-    })
+    // P2-3（IC-03）后 stalled 判定以 run 持久化宽限为准——首跑显式给短宽限，
+    // 否则 30s 默认随行，观测侧短宽限不再生效（这正是本修复的语义）。
+    const first = spawnDriver(
+      workDir,
+      ['--descriptor', draftPath, '--runs-root', runsRoot, '--stale-grace-ms', '200'],
+      { GRAPH_E2E_MARKER_DIR: workDir },
+    )
     // 等 n2 的 attempt1 副作用可见（marker 落盘）再杀：此刻 n2 仍在 2500ms
     // sleep 窗口内必然未 committed；杀后孤儿进程存活与否不影响任何断言。
     await pollUntil('n2 attempt1 marker 落盘（副作用已发生）', 15_000, () =>
@@ -435,9 +439,12 @@ describe('graph e2e（U4 S4b，真实跨进程）', () => {
     const runId = draftRunId(draftPath)
 
     const graceMs = 250
-    const first = spawnDriver(workDir, ['--descriptor', draftPath, '--runs-root', runsRoot], {
-      GRAPH_E2E_MARKER_DIR: workDir,
-    })
+    // P2-3（IC-03）后 stalled 判定以 run 持久化宽限为准——首跑带同值短宽限（语义对齐）。
+    const first = spawnDriver(
+      workDir,
+      ['--descriptor', draftPath, '--runs-root', runsRoot, '--stale-grace-ms', String(graceMs)],
+      { GRAPH_E2E_MARKER_DIR: workDir },
+    )
     // 等子进程确已出发（node_scheduled 先于 spawn 收尾落账）再杀 owner。
     await pollUntil('node_scheduled 出现', 15_000, () =>
       readJournalRecords(runsRoot, runId).some(

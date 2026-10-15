@@ -41,16 +41,16 @@ Status: active（goal 驱动，跨会话续跑）
 
 | ID | 维度 | 项 | 发现 | 诊断 | 共识 | 执行 | 守门 | 定档 |
 |---|---|---|---|---|---|---|---|---|
-| IC-01 | D14 | graph runner 错误路径不杀在飞子进程 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-02 | D14 | parked 优先于 failed 的终态歧义 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-03 | D14 | staleGraceMs 不持久化 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-04 | D14 | 护栏前缀计入 32768 上限 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-05 | D14 | schema parse 死导出 vs graph.mjs 手写校验双轨 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-06 | D14 | outputs/ 直写无 symlink 防护 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-07 | D14 | fence epoch 续号崩溃窗口（写序对调即闭合） | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-08 | D14 | projectAfter 裸 catch 降级 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-09 | D14 | append/watchdog O(n²) | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
-| IC-10 | D15 | 测试盲区五处 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
+| IC-01 | D14 | graph runner 错误路径不杀在飞子进程——已修复（catch 收割 inflight childPid） | injected | root-caused | approved | done | assertion-live(tests/lib/graph-runner.test.js) | P2 |
+| IC-02 | D14 | parked 优先于 failed 的终态歧义——已修复（park 返回体附 failed 摘要） | injected | root-caused | approved | done | assertion-live(tests/lib/graph-runner.test.js) | P2 |
+| IC-03 | D14 | staleGraceMs 不持久化——已修复（owner.json 持久化 + readOwnerJson 白名单透传 + inspect 读回） | injected | root-caused | approved | done | assertion-live(tests/lib/graph-fence.test.js) | P2 |
+| IC-04 | D14 | 护栏前缀计入 32768 上限——已修复（instructionsSchema 作者面上限独立） | injected | root-caused | approved | done | assertion-live(tests/lib/graph-schema.test.js) | P2 |
+| IC-05 | D14 | schema parse 死导出 vs graph.mjs 手写校验双轨——已修复（wire 长度帽补强 + 头注权威分工声明） | injected | root-caused | approved | done | assertion-live(tests/mcp-server/graph.test.js) | P2 |
+| IC-06 | D14 | outputs/ 直写无 symlink 防护——已修复（openNoFollow+assertPrivateRegularFile 同款纪律） | injected | root-caused | approved | done | assertion-live(tests/lib/graph-journal.test.js) | P2 |
+| IC-07 | D14 | fence epoch 续号崩溃窗口——已修复（sidecar 先于 payload 写序对调） | injected | root-caused | approved | done | assertion-live(tests/lib/graph-fence.test.js) | P2 |
+| IC-08 | D14 | projectAfter 裸 catch 降级——已修复（JournalCorruptionError 透传 20，三调用点包装） | injected | root-caused | approved | done | assertion-live(tests/mcp-server/graph.test.js) | P2 |
+| IC-09 | D14 | append/watchdog O(n²)——已修复（maxSeq epoch 键缓存 + watchdog 快照复用） | injected | root-caused | approved | done | assertion-live(tests/lib/graph-e2e.test.js) | P2 |
+| IC-10 | D15 | 测试盲区五处——已补齐（双 takeover/unlink ENOENT/watchdog 重排/truncate 回退/status fence 形状） | injected | root-caused | approved | done | assertion-live(tests/lib/graph-fence.test.js) | P2 |
 | IC-11 | D15 | flake 二次现形（publish 环境 npm test 红/隔离绿，worktree.test.js 同族）——已去化 | empirical | root-caused | approved | done | conditional-review(下次 publish 链全量绿即终验) | P1 |
 | IC-12 | D12 | omd_delegate 落盘锚=宿主进程 cwd（GUI 从 home 启动时污染 ~/.omd）——已修复（args.cwd 工作区优先 + 主目录锚守卫 + 死代码 stateRoot 删除） | empirical | root-caused | approved | done | assertion-live(tests/lib/delegate.test.js) | P1 |
 | IC-13 | D16 | README 徽章漂移 519 vs 523——已修复（徽章+正文刷 538，L1f 守门断言覆盖） | diff | root-caused | none-needed | done | assertion-live(tests/docs/dimension-chain.test.js) | P2 |
@@ -134,6 +134,46 @@ S5 批 2 probe 结论（2026-10-15）：「注入实发未观察」已解——I
 #### IC-22
 
 README 测试计数根因：徽章行（L3）与正文快速上手行（L169）的 files/tests 数字无任何守门断言覆盖——upstream-forms L1b 只守 description 42/55 与 omd-doctor 双语计数，不守 README 测试计数；本轮执行新增 tests/docs/dimension-chain.test.js（45 文件/529 tests）即造成第三处漂移实证（徽章 519 / 正文 44 files·523 tests / 实际 45·529）。修复=刷两行数字 + dimension-chain 增一条 README 计数断言。
+
+#### IC-01
+
+修复（2026-10-15，轮 20）：lib/graph/runner.js 错误路径收割在飞子进程——inflight 表提升函数级（catch 可见）、executeCommandNode 经 entry.childPid 追踪/结算清除、catch 逐个 killProcessTree。回归钉=「运行中途失权 → taskkill 实证」（fake spawn/execFileImpl 注入，双并发编排：B 结算触发失权写账抛错、A 仍在飞被收割）。
+
+#### IC-02
+
+修复：park 优先于 failed 系 OQ2 设计定案保留，返回体附 failed 摘要（projection.failed）消除 status:failed 派生读与 terminal_status:null 的双读矛盾。回归钉=「bad 终态失败 + gate 未决 → park 且 failed 含 bad」。探针实证：gate 若带入边会被 blocked 而非 waiting（拓扑教训记录在测试注释）。
+
+#### IC-03
+
+修复：stale_grace_ms 写入 owner.json（writeOwnerJson），readOwnerJson 白名单透传，inspect 优先读回持久化值、缺席回落实例默认。观测/接管口径与原 run 保护意图一致。回归钉=「60s 持久化宽限下默认 30s 观测实例不误判 stalled」+ 旧形状回落对照。e2e ①⑤ 首跑改显式短宽限（语义对齐；观测侧短宽限不再生效正是修复语义）。
+
+#### IC-04
+
+修复：schema.js 新增 instructionsSchema（作者面 32768 + 前缀长 + 2），护栏前缀不计入作者上限。回归钉=32768 封印通过 / 32769 拒绝。
+
+#### IC-05
+
+修复：上游 schema 类型（graphNodeResultSchema 等）与 MCP wire 校验形状本就不同（outcome/attempt_id vs node_id/attempt）——定案=wire 校验为权威并补长度帽（node_id ≤128 / output_ref ≤2048 / output_summary ≤8192），graph.mjs 头注声明分工，上游类型留 port 保真测试覆盖。回归钉=长度帽拒绝测试。
+
+#### IC-06
+
+修复：writeOutput 复用 openNoFollow + assertPrivateRegularFile（与 journal 主路径同款纪律）。回归钉=outputs 目标为 symlink → JournalCorruptionError（环境不支持建 symlink 时按 ⑤ 先例跳过断言）。
+
+#### IC-07
+
+修复：fence 写序对调（先 sidecar epoch 后 lock payload）——崩溃窗口侧从「takeover 重发同号」变为无害跳号空洞。既有 epoch 单调钉（release 续号不回退/落败者 FENCED_OUT）保持绿。
+
+#### IC-08
+
+修复：projectAfter 的 JournalCorruptionError 单独透传（调用点包装 projectAfterOrReject → reject(20)），其余降级不变。回归钉=「追加截断半行后 projectAfter 抛 JournalCorruptionError」。
+
+#### IC-09
+
+修复：journal maxSeq 进程内缓存（键=fence epoch，失权/换主自动失效；append 成功推进缓存；无 fence 不缓存）+ watchdog 快照每轮一份（原每 waiting 每轮全读）。回归=全套件含真实跨进程 e2e 绿。
+
+#### IC-10
+
+五盲区全补：①双 takeover 恰一胜出（fence 单测近似竞态）②unlink ENOENT 容忍（unlinkImpl 测试缝，忠实模拟文件先消失再抛）③watchdog retryable:true 重排新 agent_pending ④truncateSuffixViaFreshFd 导出直钉 size 守卫 ⑤graph_status fence 字段补 epoch=null 断言。
 
 #### IC-11
 

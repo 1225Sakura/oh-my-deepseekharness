@@ -35,6 +35,7 @@ import {
   JOURNAL_FILE_NAME,
   JOURNAL_RECORD_TYPES,
   JournalCorruptionError,
+  truncateSuffixViaFreshFd,
 } from '../../lib/graph/journal.js'
 
 // ---------- fixtures ----------
@@ -475,4 +476,45 @@ describe('fence injection seam (assertOwnership)', () => {
     expect(records[0].seq).toBe(1)
     expect(records[0].type).toBe('run_started')
   })
+})
+
+// ---------- IC-10 盲区④：win32 EPERM 回退原语直钉（轮 20 graph P2 批次） ----------
+
+it('truncateSuffixViaFreshFd：size 守卫一致才截回自家后缀；不符（他人已写）绝不动', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'omd-journal-trunc-'))
+  try {
+    const file = join(dir, 'journal.jsonl')
+    writeFileSync(file, 'aaaaBBBB', 'utf8')
+    truncateSuffixViaFreshFd(file, 8, 4) // size 恰 8 → 截回 initialSize 4
+    expect(readFileSync(file, 'utf8')).toBe('aaaa')
+    writeFileSync(file, 'aaaaXY', 'utf8')
+    truncateSuffixViaFreshFd(file, 8, 4) // expectedSize 8 ≠ 实际 6 → 绝不动
+    expect(readFileSync(file, 'utf8')).toBe('aaaaXY')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+// ---------- IC-06/P2-6：outputs/ 旁路写 safe-fs（轮 20 graph P2 批次） ----------
+
+it('IC-06：outputs/ 旁路写遇 symlink → fail-closed 拒绝（与 journal 主路径同款纪律）', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'omd-journal-out-sym-'))
+  try {
+    const runDir = join(dir, 'run-sym')
+    mkdirSync(join(runDir, 'outputs'), { recursive: true })
+    const journal = new FileJournal(dir, 'run-sym', { allowUnfencedAppend: true, outputRefThreshold: 0 })
+    const target = join(dir, 'real-output.md')
+    writeFileSync(target, 'x', 'utf8')
+    let linked = true
+    try {
+      // Windows 建文件 symlink 需开发者模式/管理员；不可建则环境跳过（同 ⑤ 先例）
+      symlinkSync(target, join(runDir, 'outputs', 'n1.1.md'), 'file')
+    } catch { linked = false }
+    if (!linked) return
+    expect(() => journal.append({
+      type: 'node_committed', node_id: 'n1', attempt: 1, exit_code: 0, output: 'big-payload',
+    })).toThrow(JournalCorruptionError) // 修复前：writeFileSync 直写穿透 symlink
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })

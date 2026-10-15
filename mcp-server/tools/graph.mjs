@@ -11,6 +11,11 @@
 //   入口共用 lib/graph/guardrails.js，双入口同 hash）；
 // - graph_node_result / graph_gate_resolve 的匹配校验与幂等在工具层入口即做
 //   （Q11/Q6），append 经 OwnerFence 绑定（跨进程 OCC 互斥，Q3 口径）。
+// - 校验权威分工（P2-5/IC-05 定案）：MCP wire 参数校验以本文件入口检查为权威
+//   （含 128/2048/8192 长度帽）；lib/graph/schema.js 的 graphNodeResultSchema /
+//   graphApprovalDecisionSchema / graphEvidenceReferenceSchema 是上游移植的
+//   descriptor 层契约参考（形状不同：outcome/attempt_id vs wire 的 node_id/attempt），
+//   由 graph-schema.test.js 保真覆盖，运行时提交面不消费之——双轨已合并为单轨语义。
 //
 // 授权面诚实声明（计划 Principle 5）：graph_gate_resolve / graph_node_result
 // 信任 MCP 调用者、无用户在场证明——gate 是工作流构造而非安全边界（模型本就
@@ -100,8 +105,11 @@ function reject(exitCode, message, runId = null) {
   return { exit_code: exitCode, terminal_status: null, status: 'in_progress', run_id: runId, error: message }
 }
 
-/** append 后重投影（快照缺席/畸形时不阻塞提交回报，降级为空投影）。 */
-function projectAfter(runsRoot, runId) {
+/**
+ * append 后重投影（快照缺席/畸形时不阻塞提交回报，降级为空投影）。
+ * （P2-10/IC-08：导出为测试缝——JournalCorruptionError 透传语义的直接钉。）
+ */
+export function projectAfter(runsRoot, runId) {
   try {
     const journal = new FileJournal(runsRoot, runId)
     const projection = projectGraph(
@@ -113,8 +121,22 @@ function projectAfter(runsRoot, runId) {
       status: projection.status,
       waiting: projection.waiting,
     }
-  } catch {
+  } catch (error) {
+    // P2-10（IC-08）：journal 损坏单独透传（CORRUPT_JOURNAL=20 语义）——裸 catch 会把
+    // 已落账提交的终态信号降级为 status:in_progress 谎报；其余（快照缺席/畸形）维持降级。
+    if (error instanceof JournalCorruptionError) throw error
     return { terminal_status: null, status: 'in_progress', waiting: [] }
+  }
+}
+
+/** projectAfter 调用包装：journal 损坏 → reject(20)，其余按投影返回。 */
+function projectAfterOrReject(runsRoot, runId) {
+  try {
+    return { settled: projectAfter(runsRoot, runId), rejection: null }
+  } catch (error) {
+    if (error instanceof JournalCorruptionError)
+      return { settled: null, rejection: reject(EXIT_CODES.CORRUPT_JOURNAL, error.message, runId) }
+    throw error
   }
 }
 
@@ -222,8 +244,8 @@ export function makeGraphTools(env) {
      */
     async nodeResult({ cwd, run_id, node_id, attempt, exit_code, output_ref, output }) {
       try {
-        if (typeof node_id !== 'string' || node_id.length === 0) {
-          return reject(EXIT_CODES.FAILED_TERMINAL, 'node_id must be a non-empty string', run_id)
+        if (typeof node_id !== 'string' || node_id.length === 0 || node_id.length > 128) {
+          return reject(EXIT_CODES.FAILED_TERMINAL, 'node_id must be a non-empty string (≤128 chars)', run_id)
         }
         if (!Number.isInteger(attempt) || attempt < 1) {
           return reject(EXIT_CODES.FAILED_TERMINAL, 'attempt must be an integer >= 1', run_id)
@@ -231,8 +253,8 @@ export function makeGraphTools(env) {
         if (!Number.isInteger(exit_code) || exit_code < 0) {
           return reject(EXIT_CODES.FAILED_TERMINAL, 'exit_code must be an integer >= 0', run_id)
         }
-        if (output_ref !== undefined && (typeof output_ref !== 'string' || output_ref.length === 0)) {
-          return reject(EXIT_CODES.FAILED_TERMINAL, 'output_ref must be a non-empty string', run_id)
+        if (output_ref !== undefined && (typeof output_ref !== 'string' || output_ref.length === 0 || output_ref.length > 2048)) {
+          return reject(EXIT_CODES.FAILED_TERMINAL, 'output_ref must be a non-empty string (≤2048 chars)', run_id)
         }
         if (output !== undefined && typeof output !== 'string') {
           return reject(EXIT_CODES.FAILED_TERMINAL, 'output must be a string', run_id)
@@ -291,7 +313,8 @@ export function makeGraphTools(env) {
               run_id,
             )
           }
-          const settled = projectAfter(runsRoot, run_id)
+          const { settled, rejection } = projectAfterOrReject(runsRoot, run_id)
+          if (rejection) return rejection
           return {
             exit_code: 0,
             terminal_status: settled.terminal_status,
@@ -322,7 +345,8 @@ export function makeGraphTools(env) {
             // best-effort；遗留 lock 由 stale 判定收割。
           }
         }
-        const settled = projectAfter(runsRoot, run_id)
+        const { settled, rejection } = projectAfterOrReject(runsRoot, run_id)
+        if (rejection) return rejection
         return {
           exit_code: 0,
           terminal_status: settled.terminal_status,
@@ -346,14 +370,14 @@ export function makeGraphTools(env) {
      */
     async gateResolve({ cwd, run_id, node_id, decision, output_summary }) {
       try {
-        if (typeof node_id !== 'string' || node_id.length === 0) {
-          return reject(EXIT_CODES.FAILED_TERMINAL, 'node_id must be a non-empty string', run_id)
+        if (typeof node_id !== 'string' || node_id.length === 0 || node_id.length > 128) {
+          return reject(EXIT_CODES.FAILED_TERMINAL, 'node_id must be a non-empty string (≤128 chars)', run_id)
         }
         if (decision !== 'approved' && decision !== 'denied') {
           return reject(EXIT_CODES.FAILED_TERMINAL, "decision must be 'approved' or 'denied'", run_id)
         }
-        if (output_summary !== undefined && (typeof output_summary !== 'string' || output_summary.length === 0)) {
-          return reject(EXIT_CODES.FAILED_TERMINAL, 'output_summary must be a non-empty string', run_id)
+        if (output_summary !== undefined && (typeof output_summary !== 'string' || output_summary.length === 0 || output_summary.length > 8192)) {
+          return reject(EXIT_CODES.FAILED_TERMINAL, 'output_summary must be a non-empty string (≤8192 chars)', run_id)
         }
         const runsRoot = graphRoot(cwd, stateDir)
         const journal = new FileJournal(runsRoot, run_id) // 构造即校验 run_id charset
@@ -423,7 +447,8 @@ export function makeGraphTools(env) {
             // best-effort；遗留 lock 由 stale 判定收割。
           }
         }
-        const settled = projectAfter(runsRoot, run_id)
+        const { settled, rejection } = projectAfterOrReject(runsRoot, run_id)
+        if (rejection) return rejection
         return {
           exit_code: 0,
           terminal_status: settled.terminal_status,

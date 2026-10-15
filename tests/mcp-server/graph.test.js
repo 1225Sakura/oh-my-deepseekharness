@@ -12,7 +12,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
-import { makeGraphTools, registerGraphTools } from '../../mcp-server/tools/graph.mjs'
+import { makeGraphTools, projectAfter, registerGraphTools } from '../../mcp-server/tools/graph.mjs'
+import { JournalCorruptionError } from '../../lib/graph/journal.js'
 import { AGENT_GUARDRAIL_PREFIX } from '../../lib/graph/guardrails.js'
 import { JOURNAL_FILE_NAME } from '../../lib/graph/journal.js'
 
@@ -183,6 +184,7 @@ test('全链绿（验收 1）：run→gate_resolve→resume→node_result→resu
     expect(st1.waiting).toEqual([{ node_id: 'gate', kind: 'gate_waiting' }])
     expect(st1.fence.occupied).toBe(false)
     expect(st1.fence.stalled).toBe(false)
+    expect(st1.fence.epoch).toBeNull() // IC-10 盲区⑤：fence 字段形状钉死（parked 释放后 epoch=null）
     expect(st1.max_seq).toBeGreaterThan(0)
 
     // ③ gate_resolve 错位拒绝（Q6）：未知 node / 非法 decision。
@@ -403,3 +405,33 @@ test('bin/graph-runner.mjs：agent 图 park（exit 0 waiting）+ 护栏前缀与
     expect(crashResult.exit_code).toBe(70)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 }, 60000)
+
+// ---------- IC-08/P2-10：projectAfter journal 损坏透传（轮 20 graph P2 批次） ----------
+
+test('IC-08：projectAfter 遇 journal 损坏 → JournalCorruptionError 透传（不降级谎报 in_progress）', async () => {
+  const { cwd, graph } = await setup()
+  const runId = 'run-p2-10-corrupt'
+  try {
+    const run = await graph.run({ cwd, descriptor: allKindsDescriptor(runId) })
+    expect(run.exit_code).toBe(0) // parked at gate_waiting
+    const runsRoot = join(cwd, '.omd', 'graph-runs')
+    // 提交已落账后 journal 损坏（追加截断半行）——修复前：提交回包谎报 status:in_progress
+    await writeFile(join(runsRoot, runId, JOURNAL_FILE_NAME), '{"type":"broke', { flag: 'a' })
+    expect(() => projectAfter(runsRoot, runId)).toThrowError(JournalCorruptionError)
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+}, 20_000)
+
+// ---------- IC-05/P2-5：wire 长度帽（轮 20 graph P2 批次） ----------
+
+test('IC-05：node_id >128 / output_summary >8192 → 入口拒绝（wire 长度帽）', async () => {
+  const { cwd, graph } = await setup()
+  try {
+    const longNode = 'n' + 'x'.repeat(128)
+    const r1 = await graph.nodeResult({ cwd, run_id: 'run-none', node_id: longNode, attempt: 1, exit_code: 0 })
+    expect(r1.exit_code).toBe(1)
+    expect(r1.error).toMatch(/128/)
+    const r2 = await graph.gateResolve({ cwd, run_id: 'run-none', node_id: 'g', decision: 'approved', output_summary: 's'.repeat(8193) })
+    expect(r2.exit_code).toBe(1)
+    expect(r2.error).toMatch(/8192/)
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})

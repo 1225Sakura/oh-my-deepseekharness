@@ -501,3 +501,93 @@ describe('退出码映射', () => {
     expect(result.error).toContain('kaboom')
   })
 })
+
+// ---------- IC-10 盲区③ + P2-1/P2-2 回归钉（轮 20 graph P2 批次） ----------
+
+describe('IC-10/P2 回归钉', () => {
+  it('盲区③：agent watchdog retryable:true → node_failed 后重排新 agent_pending（attempt 2），run 仍 parked', async () => {
+    const runsRoot = makeRunsRoot()
+    // agentDescriptor 是内层 describe 局部帮手，此处内联同款形状（a1 agent → term command）
+    const descriptor = makeDescriptor({
+      nodes: [
+        { id: 'a1', kind: 'agent', title: 'a1', timeout_ms: 100, max_attempts: 2,
+          effect_policy: { policy: 'side_effect_free' }, instructions: 'read-only probe' },
+        commandNode('term', 'Write-Output after-agent'),
+      ],
+      edges: [fixedEdge('a1', 'term')],
+      entries: ['a1'],
+      terminal: 'term',
+    })
+    await runGraph({ sealedDescriptor: descriptor, runsRoot })
+    const journalPath = join(runsRoot, descriptor.run_id, 'journal.jsonl')
+    const lines = readFileSync(journalPath, 'utf8').split('\n').filter((l) => l.length > 0)
+    const pending = JSON.parse(lines[lines.length - 1])
+    expect(pending.type).toBe('agent_pending')
+    pending.ts = '2020-01-01T00:00:00.000Z'
+    lines[lines.length - 1] = JSON.stringify(pending)
+    writeFileSync(journalPath, lines.join('\n') + '\n', 'utf8')
+
+    const result = await runGraph({ sealedDescriptor: descriptor, runsRoot })
+    expect(result.exit_code).toBe(EXIT_CODES.OK)
+    expect(result.status).toBe('waiting')
+    const records = readJournal(runsRoot, descriptor.run_id)
+    const failed = records.filter((r) => r.type === 'node_failed')
+    expect(failed).toHaveLength(1)
+    expect(failed[0]).toMatchObject({ node_id: 'a1', attempt: 1, retryable: true })
+    const pendings = records.filter((r) => r.type === 'agent_pending')
+    expect(pendings).toHaveLength(2)
+    expect(pendings[1]).toMatchObject({ node_id: 'a1', attempt: 2 })
+  }, 20_000)
+
+  it('P2-2：park 优先于 failed（设计定案）——返回体附 failed 摘要，消除 status 双读矛盾', async () => {
+    const runsRoot = makeRunsRoot()
+    const descriptor = makeDescriptor({
+      nodes: [
+        commandNode('bad', 'exit 1'),
+        { id: 'gate', kind: 'human-approval', title: 'gate', prompt: 'Proceed?' },
+        commandNode('term', 'Write-Output after-gate'),
+      ],
+      // bad 直达 term（结构校验要求可达终验），gate 独立 entry（无入边才首轮即 waiting）
+      edges: [fixedEdge('bad', 'term'), fixedEdge('gate', 'term')],
+      entries: ['bad', 'gate'],
+      terminal: 'term',
+    })
+    const result = await runGraph({ sealedDescriptor: descriptor, runsRoot })
+    expect(result.exit_code).toBe(EXIT_CODES.OK)
+    expect(result.status).toBe('waiting')
+    expect(Array.isArray(result.failed)).toBe(true)
+    expect(result.failed.some((x) => x.node_id === 'bad')).toBe(true)
+  }, 20_000)
+
+  it('P2-1：运行中途失权（lock 外部消失）→ 错误路径收割在飞子进程（taskkill 实证）', async () => {
+    const runsRoot = makeRunsRoot()
+    const childA = { pid: 4242, stdout: null, stderr: null, on() {} }
+    let closeB = null
+    const childB = { pid: 4343, stdout: null, stderr: null, on(evt, cb) { if (evt === 'close') closeB = cb } }
+    let spawnCount = 0
+    const spawnImpl = () => (spawnCount++ === 0 ? childA : childB)
+    const killed = []
+    const execFileImpl = (cmd, args, opts, cb) => { killed.push(args); if (cb) cb() }
+    const descriptor = makeDescriptor({
+      nodes: [commandNode('a', 'sleep-A'), commandNode('b', 'sleep-B'), commandNode('term', 'Write-Output end')],
+      edges: [fixedEdge('a', 'term'), fixedEdge('b', 'term')],
+      entries: ['a', 'b'],
+      terminal: 'term',
+      concurrency: 2,
+    })
+    const lockPath = join(runsRoot, descriptor.run_id, 'owner.lock')
+    const runPromise = runGraph({
+      sealedDescriptor: descriptor, runsRoot, spawnImpl, execFileImpl,
+    })
+    for (let i = 0; i < 200; i++) {
+      const recs = readJournal(runsRoot, descriptor.run_id).filter((r) => r.type === 'node_scheduled')
+      if (recs.length >= 2) break
+      await new Promise((r2) => setTimeout(r2, 25))
+    }
+    rmSync(lockPath, { force: true })
+    closeB(0)
+    const result = await runPromise
+    expect(result.exit_code).toBe(EXIT_CODES.FENCED_OUT)
+    expect(killed.some((args) => args.includes('4242'))).toBe(true)
+  }, 20_000)
+})

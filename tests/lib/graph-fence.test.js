@@ -277,3 +277,66 @@ describe('失权与 FileJournal 绑定', () => {
     holder.release()
   })
 })
+
+// ---------- IC-10 盲区①② + P2-3 回归钉（轮 20 graph P2 批次） ----------
+
+describe('IC-10/P2 回归钉', () => {
+  it('盲区①：双 takeover 竞态（同进程两实例近似）——恰一胜出，落败者收 FENCED_OUT', () => {
+    const runsRoot = makeRunsRoot()
+    const a = new OwnerFence(runsRoot, 'run-a')
+    a.acquire()
+    // 构造 stalled 现场：死 pid + 旧 lease（owner.json 覆写，lock payload 仍在）
+    plantStaleOwnerJson(runsRoot, 'run-a', { leaseTs: '2020-01-01T00:00:00.000Z' })
+    const b = new OwnerFence(runsRoot, 'run-a', { staleGraceMs: 10 })
+    const c = new OwnerFence(runsRoot, 'run-a', { staleGraceMs: 10 })
+    const rb = b.takeover()
+    expect(rb.tookOver).toBe(true)
+    // 落败者：b 的新 owner.json 是活 pid+新 lease → 不 stalled → FENCED_OUT（恰一胜出）
+    expect(() => c.takeover()).toThrowError(
+      expect.objectContaining({ code: FENCED_OUT_CODE, exitCode: 19 }),
+    )
+    b.release()
+  })
+
+  it('盲区②：takeover 中 lock 在 inspect 后消失（unlink ENOENT）→ 容忍并续接管', () => {
+    const runsRoot = makeRunsRoot()
+    const a = new OwnerFence(runsRoot, 'run-a')
+    a.acquire()
+    plantStaleOwnerJson(runsRoot, 'run-a', { leaseTs: '2020-01-01T00:00:00.000Z' })
+    // 忠实模拟：文件先真消失，unlink 再抛 ENOENT（竞态窗口的原子序）
+    const unlinkImpl = (p) => {
+      rmSync(p, { force: true })
+      const err = new Error('ENOENT: no such file or directory')
+      err.code = 'ENOENT'
+      throw err
+    }
+    const b = new OwnerFence(runsRoot, 'run-a', { staleGraceMs: 10, unlinkImpl })
+    const r = b.takeover() // 容忍 ENOENT → O_EXCL 重建成功
+    expect(r.tookOver).toBe(true)
+    expect(b.held).toBe(true)
+    b.release()
+  })
+
+  it('P2-3：stale_grace_ms 持久化 owner.json——观测面读回原 run 宽限（默认 30s 实例不误判）', () => {
+    const T0 = Date.parse('2020-06-01T00:00:00.000Z')
+    const runsRoot = makeRunsRoot()
+    const a = new OwnerFence(runsRoot, 'run-a', { staleGraceMs: 60_000, now: () => T0 })
+    a.acquire() // 原 run：自定义 60s 宽限
+    // a 崩溃现场（不 release）：死 pid + 45s 前的 lease + 持久化的 60s 宽限
+    writeFileSync(
+      join(runsRoot, 'run-a', FENCE_OWNER_NAME),
+      JSON.stringify({ pid: 999999, started_at: new Date(T0).toISOString(), lease_ts: new Date(T0).toISOString(), stale_grace_ms: 60_000 }),
+      'utf8',
+    )
+    const observer = new OwnerFence(runsRoot, 'run-a', { now: () => T0 + 45_000 }) // 默认 30s grace
+    // 修复面：读回持久化 60s → 45s 未过期 → 不 stalled（修复前：用观测方 30s → 误判 stalled）
+    expect(observer.inspect().stalled).toBe(false)
+    // 对照：旧形状 owner.json（无持久化字段）→ 回落观测方默认 30s → stalled
+    writeFileSync(
+      join(runsRoot, 'run-a', FENCE_OWNER_NAME),
+      JSON.stringify({ pid: 999999, started_at: new Date(T0).toISOString(), lease_ts: new Date(T0).toISOString() }),
+      'utf8',
+    )
+    expect(observer.inspect().stalled).toBe(true)
+  })
+})

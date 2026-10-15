@@ -27,6 +27,7 @@ import {
   graphNodeResultSchema,
   graphNodeSchema,
 } from '../../lib/graph/schema.js'
+import { AGENT_GUARDRAIL_PREFIX, applyAgentGuardrails } from '../../lib/graph/guardrails.js'
 
 // ---------- fixtures（移植自上游 __tests__/fixtures.ts） ----------
 
@@ -1144,4 +1145,20 @@ describe('M1 - edge schema malformed rejection matrix (fixed/conditional/fan_out
     expect(graphFanOutEdgeSchema.safeParse({ ...fanOut, extra: 1 }).success).toBe(false)
     expect(graphBackEdgeSchema.safeParse({ ...backEdge, extra: 1 }).success).toBe(false)
   })
+})
+
+// ---------- IC-04：护栏前缀不计入 32768 作者上限（轮 20 graph P2 批次） ----------
+
+it('IC-04：32768 字符原文本 + 护栏前缀封印通过；32769 原文本拒绝（前缀不进作者上限）', () => {
+  const base = {
+    descriptor_version: 1, run_id: 'run-guard-cap', revision_id: 'rev-1', goal: 'cap boundary',
+    concurrency_limit: 1, entry_node_ids: ['a1'], terminal_verification_node_id: 'a1', edges: [],
+    nodes: [{ id: 'a1', kind: 'agent', title: 'a1', timeout_ms: 1000, max_attempts: 1,
+      effect_policy: { policy: 'side_effect_free' }, instructions: 'x'.repeat(32_768) }],
+  }
+  const sealed = sealGraphDescriptor(applyAgentGuardrails(parseGraphDescriptor(base)))
+  expect(sealed.nodes[0].instructions.length)
+    .toBe(32_768 + AGENT_GUARDRAIL_PREFIX.length + 2) // 前缀幂等拼上且不破上限
+  const over = { ...base, nodes: [{ ...base.nodes[0], instructions: 'x'.repeat(32_769) }] }
+  expect(() => sealGraphDescriptor(applyAgentGuardrails(parseGraphDescriptor(over)))).toThrow()
 })
