@@ -52,7 +52,7 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-09 | D14 | append/watchdog O(n²) | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
 | IC-10 | D15 | 测试盲区五处 | injected | pending | pending | pending | conditional-review(发版前审查) | P2 |
 | IC-11 | D15 | flake 二次现形（publish 环境 npm test 红/隔离绿，worktree.test.js 同族）——已去化 | empirical | root-caused | approved | done | conditional-review(下次 publish 链全量绿即终验) | P1 |
-| IC-12 | D11 | omd_delegate 状态写锚定 home（并发会话错锚 ~/.omd） | empirical | pending | pending | pending | conditional-review(独立共识) | P1 |
+| IC-12 | D12 | omd_delegate 落盘锚=宿主进程 cwd（GUI 从 home 启动时污染 ~/.omd）——已修复（args.cwd 工作区优先 + 主目录锚守卫 + 死代码 stateRoot 删除） | empirical | root-caused | approved | done | assertion-live(tests/lib/delegate.test.js) | P1 |
 | IC-13 | D16 | README 徽章漂移 519 vs 523——已修复（徽章+正文刷 538，L1f 守门断言覆盖） | diff | root-caused | none-needed | done | assertion-live(tests/docs/dimension-chain.test.js) | P2 |
 | IC-14 | D2 | tdd 独立 skill 立项评估 | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
 | IC-15 | D2 | refit 回顾工作流立项评估（须先析与 remember/self-improve 分工） | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
@@ -146,6 +146,10 @@ S6 审查 worktree.test.js 顺带发现（manual）：lib/worktree.js casWriteRu
 **2026-10-15 闭环**：单调 token helper `monotonicIsoNow(prev)`（lib/worktree.js）三处归一——casWriteRunState 咽喉（runstate 镜像写经它）+ runstate.js 覆盖写路径 + state.mjs 常规写路径（supersede 内联逻辑归并同 helper）。专属断言两条：state.mjs 面（同毫秒双写旧 token 必 conflict）+ worktree 面（casWriteRunState 同毫秒单调递增 + helper 单测面）。37/37 绿。
 
 **2026-10-15 实证更新**：IC-23 在 0.4.8 轮被 ABA 守门测试当场活捉——supersede 重打 _meta.updatedAt 与 leaf 预写落在同一毫秒，「重打」为 no-op、旧 token 照样过 CAS（首次验证即红）。state.mjs supersede 路径已按单调 token 修（now <= prev 时取 prev+1ms，mcp-server/tools/state.mjs），ABA 测试随之绿。**此实证把 IC-23 从「理论低概率」升格为「实测必现」**——lib/worktree.js 与 lib/runstate.js 两处同族修法照搬单调 token 即可，建议随下次涉 CAS 轮次顺带收口。
+
+#### IC-12
+
+根因（2026-10-15 定案）：lib/delegate.js 的事件/fallback 落盘锚是 **process.cwd()**（宿主进程工作目录）——四处调用点（原 L126 死代码 stateRoot + L156/158/191 三处真实写）。GUI 从用户主目录启动时锚即 ~/.omd，轮 15 流浪锚（C:\\Users\\36084\\.omd 被并发会话写 5 条 delegate 事件）由此而来。修复：①omd_delegate 参数面加可选 cwd（工作区绝对路径优先）；②守卫=锚恰为主目录本身才跳过落盘+告警（收窄后形态——初版「主目录之下」误伤 %TEMP% 夹具，被既有 c3 fallback 测试当场抓回）；③死代码 stateRoot() 删除。断言三条：cwd 透传/主目录锚跳过+告警/cwd 缺席回落行为不变。20/20 绿。
 
 #### IC-13
 

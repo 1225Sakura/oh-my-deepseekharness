@@ -6,7 +6,7 @@
 import { test, expect } from 'vitest'
 import { join } from 'node:path'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { tmpdir, homedir } from 'node:os'
 import { Config } from '../../lib/config.js'
 import { buildRoutingTable } from '../../lib/routing.js'
 import {
@@ -293,4 +293,35 @@ test('output.render：成功 = 路由日志行 + 子代理文本；失败 = 可�
   const bad = def.output.render({}, { ok: false })
   expect(bad[0].type).toBe('text')
   expect(typeof bad[0].text).toBe('string')
+})
+
+// ---- IC-12：落盘锚修复（process.cwd() 主目录污染 → 工作区 cwd 优先 + home 守卫） ----
+
+test('IC-12：args.cwd 透传为事件落盘锚（工作区优先，不再用宿主进程 cwd）', async () => {
+  const { def, events } = await setupTool()
+  await def.execute({ description: 'x', prompt: 'p', cwd: join(tmpdir(), 'fake-ws-ic12') }, { agent: makeFakes().parent })
+  expect(events).toHaveLength(1)
+  expect(events[0].cwd).toBe(join(tmpdir(), 'fake-ws-ic12'))
+})
+
+test('IC-12：落盘锚在用户主目录下 → 跳过落盘 + 告警（绝不在 ~/.omd 建孤儿状态树）', async () => {
+  const fakes = makeFakes()
+  const warns = []
+  const events = []
+  let captured
+  const ctx = { tools: { register(d) { captured = d } }, logger: { info() {}, warn(m) { warns.push(String(m)) } } }
+  await registerDelegateTool(ctx, d => d, {
+    config: Config.parse({}), roles: [],
+    subagents: fakes.subagents, llm: fakes.llm,
+    recordRouteEvent: async e => { events.push(e) },
+  })
+  await captured.execute({ description: 'x', prompt: 'p', cwd: homedir() }, { agent: fakes.parent }) // 锚=主目录本身（GUI 从 home 启动形态）
+  expect(events).toHaveLength(0) // 守卫：零落盘调用
+  expect(warns.some(m => m.includes('IC-12'))).toBe(true) // 告警在位
+})
+
+test('IC-12 回归钉：cwd 缺席时回落 process.cwd()（既有行为不变）', async () => {
+  const { def, events } = await setupTool()
+  await def.execute({ description: 'x', prompt: 'p' }, { agent: makeFakes().parent })
+  expect(events[0].cwd).toBe(process.cwd())
 })
