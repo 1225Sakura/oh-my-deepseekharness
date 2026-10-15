@@ -337,3 +337,13 @@ c2 keyword-hook 误触发实证（2026-10-14 本访谈会话）：主会话经 o
 - **测试面**：45 文件/535 tests 全绿（529+6 条所有权生命周期测试）。
 - **用户手动作业**：重启宿主 → /omd-doctor 验装 → 冒烟（复现一次 keyword 误触发场景验证不再阻塞：leaf 残留 provisional 后主会话可直接激活同 mode）。回退段：dsh plugin --profile web add @sakura12/oh-my-deepseekharness@0.4.7；宿主级崩溃且回退恢复 → npm deprecate 0.4.8。
 - **剩余积压**：P1 档仅剩 IC-12（home 锚定，涉宿主边界待析）；P2 档 IC-01~10/13/14~19/22/23 按排序表台账消化（IC-23 已升格实测必现，建议随下次涉 CAS 轮次优先）。
+
+## 轮 20 附记（2026-10-15 剩余积压清零 + 0.4.9 发版）
+
+- **清零批次**：IC-23 单调 token 三处归一（e74e63a，monotonicIsoNow helper：casWriteRunState 咽喉+runstate 覆盖写+state.mjs 常规/supersede 归并，专属断言两条）；IC-13/IC-22 README 计数根治（7e47e01，数字刷 538 + dimension-chain L1f 徽章三面互断+files 锚实数）；IC-12 home 锚定（79e21c0，根因=delegate.js 四处 process.cwd() 落盘锚——GUI 从 home 启动污染 ~/.omd；修=args.cwd 工作区优先+主目录锚守卫+死代码 stateRoot 删除；守卫谓词初版误伤 %TEMP% 夹具被既有测试抓回后收窄为「锚恰为主目录本身」）；IC-01~10 graph 十项清零（4026199，轮 17 P2 台账全落地：收割/park 摘要/grace 持久化/前缀上限/wire 帽/outputs safe-fs/epoch 写序/corruption 透传/maxSeq 缓存/五盲区）。
+- **自体捕获两则**：P2-3 落地使 e2e ①⑤ 变红——观测侧短宽限失效正是修复语义（首跑显式短宽限对齐）；P2-2 测试暴露「带 in-边的 entry 不会首轮 waiting」拓扑事实。
+- **IC-11 终局闭环**：0.4.8 publish prepublishOnly 全量绿=conditional-review 终验通过。
+- **0.4.9 发版链**：门禁 45/552 绿 → 2091403（bump+README 552）→ push 1eef5a5..2091403 → npm publish exit 0（shasum 13eaae9d）→ web profile 升 0.4.9（第 3 次重试 CDN 传播到位；版本断言 ✓）。
+- **测试面**：45 文件/552 tests 全绿（新增：生命周期 6+CAS 2+IC-12 3+graph 九钉+盲区五补+L1f 等）。
+- **台账终态**：P1 清零（IC-11/12/20/21）；P2 清零（IC-01~10/13/22/23）；仅剩 gated 项 IC-14~17（新能力立项，待用户拍板）+ IC-18（dsh 0.2.0 stable 上游触发）。
+- **用户手动作业**：重启宿主 → /omd-doctor 验装（应见 0.4.9）→ HUD 冒烟。回退段：dsh plugin --profile web add @sakura12/oh-my-deepseekharness@0.4.8。
