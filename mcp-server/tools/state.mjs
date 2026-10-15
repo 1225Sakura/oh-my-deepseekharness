@@ -22,9 +22,34 @@ export function makeStateTools(env) {
       if (sid === sessionId) continue
       const otherPath = join(sessionsRoot, sid, `${mode}-state.json`)
       const other = await readJson(otherPath)
-      if (other && other._meta?.sessionId !== sessionId)
-        // 孤儿文件（缺 _meta）时显示 <unknown> + 文件路径，不出现 'undefined'（终审 L3）
+      if (!other) continue
+      // 所有权绑定谓词（IC-20/IC-21 修复，.omd/plans/ralplan-mode-state-lifecycle.md）：
+      // 只有「存活」状态绑定所有权。两种非绑定形态由本会话 state_write 取代（supersede）：
+      //   ① inactive/已交接（active !== true）——历史档案不挡路（IC-21）；
+      //   ② keyword-hook 未确认预写（provisional：current_phase==='keyword-detected' 且
+      //      keyword_route.source==='keyword-hook' 合取签名，见 lib/hook.js writeModeState）——
+      //      模型从未以 expectUpdatedAt 续写接管，无生命权（IC-20）。
+      // 其余（含 active:true 孤儿文件）仍绑定所有权，报错文案不变（孤儿显示 <unknown>，终审 L3）。
+      const provisional = other.current_phase === 'keyword-detected' && other.keyword_route?.source === 'keyword-hook'
+      if (other.active === true && !provisional)
         throw new Error(`state is owned by session '${other._meta?.sessionId ?? '<unknown>'}' (file: ${otherPath}) and cannot be modified by session '${sessionId}'`)
+      // supersede 取代留痕：置 inactive + supersededBy/At 审计，并重打 _meta.updatedAt
+      // （ABA 防线：被取代会话携预写注入块旧 expectUpdatedAt 续写时得显式 conflict，绝不静默复活。
+      //  本写是首次引入的跨会话写路径；失败仅丢审计不阻塞主流程。）
+      // 同毫秒碰撞防线（IC-23）：supersede 与预写常落在同一毫秒——ISO 串相同则「重打」为 no-op，
+      // 旧 token 照样过 CAS。此处保证 token 单调严格递增（必要时取 prev+1ms），ABA 测试实证必要。
+      const prevUpdatedAt = other._meta?.updatedAt ?? ''
+      let now = new Date().toISOString()
+      if (Number.isFinite(Date.parse(prevUpdatedAt)) && now <= prevUpdatedAt)
+        now = new Date(Date.parse(prevUpdatedAt) + 1).toISOString()
+      try {
+        await atomicWriteJson(otherPath, {
+          ...other, active: false, supersededBy: sessionId, supersededAt: now,
+          _meta: { ...other._meta, updatedAt: now },
+        })
+      } catch (e) {
+        console.warn(`[state] supersede 审计写失败（${otherPath}）: ${e?.message ?? e}`)
+      }
     }
     const cur = await readJson(file)
     if (cur && cur._meta.sessionId !== sessionId)

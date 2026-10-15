@@ -26,7 +26,7 @@ test('跨会话写被拒绝（所有权强制）', async () => {
     .rejects.toThrow(/owned by session/)
 })
 
-test('写前读检查：expectRevision 不匹配时拒绝', async () => {
+test('写前读检查：expectUpdatedAt 不匹配时拒绝', async () => {
   const { t, cwd } = await tools()
   await t.write({ cwd, sessionId: 's1', mode: 'autopilot', state: { active: true, current_phase: 'plan' } })
   const cur = await t.read({ cwd, sessionId: 's1', mode: 'autopilot' })
@@ -105,3 +105,66 @@ test('getStatus U3/AC10 加性透传：state 与 fixLoops（两种拼法兜底�
   expect(st3.modes.find(m => m.mode === 'autopilot').fixLoops).toBeUndefined()
 })
 
+
+// ---------- IC-20/IC-21 修复：所有权绑定谓词收窄（.omd/plans/ralplan-mode-state-lifecycle.md） ----------
+
+test('IC-21：inactive/已交接状态不绑定所有权——新会话直接激活取代（审计+active:false+listActive 不含）', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 'old', mode: 'ralph', state: { active: false, handed_off_to: 'ralph' } })
+  const before = await t.read({ cwd, sessionId: 'old', mode: 'ralph' })
+  await t.write({ cwd, sessionId: 'new', mode: 'ralph', state: { active: true, current_phase: 'consensus' } }) // 不抛
+  const oldFile = await t.read({ cwd, sessionId: 'old', mode: 'ralph' })
+  expect(oldFile.active).toBe(false)
+  expect(oldFile.supersededBy).toBe('new')
+  expect(typeof oldFile.supersededAt).toBe('string')
+  expect(oldFile._meta.updatedAt !== before._meta.updatedAt).toBe(true) // ABA 防线：_meta 重打
+  expect(oldFile._meta.sessionId).toBe('old') // 原 sessionId 保留（审计归属）
+  const list = await t.listActive({ cwd })
+  expect(list.find(x => x._meta.sessionId === 'old')).toBeUndefined()
+})
+
+test('IC-20：provisional 预写（keyword-detected + keyword_route.source）不绑定所有权——主会话直接取代', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 'leaf', mode: 'ralph', state: { active: true, current_phase: 'keyword-detected',
+    keyword_route: { target: 'ralph', trigger: 'ralph', intent: 'explicit', source: 'keyword-hook' } } })
+  await t.write({ cwd, sessionId: 'main', mode: 'ralph', state: { active: true, current_phase: 'running' } }) // 不抛
+  const leafFile = await t.read({ cwd, sessionId: 'leaf', mode: 'ralph' })
+  expect(leafFile.active).toBe(false)
+  expect(leafFile.supersededBy).toBe('main')
+})
+
+test('IC-20 ABA 防线：被取代会话携预写注入块旧 expectUpdatedAt 续写 → conflict 拒绝', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 'leaf', mode: 'ralph', state: { active: true, current_phase: 'keyword-detected',
+    keyword_route: { target: 'ralph', trigger: 'ralph', intent: 'explicit', source: 'keyword-hook' } } })
+  const injected = await t.read({ cwd, sessionId: 'leaf', mode: 'ralph' })
+  await t.write({ cwd, sessionId: 'main', mode: 'ralph', state: { active: true, current_phase: 'running' } }) // supersede 重打 _meta.updatedAt
+  // 不变量：陈旧续写绝不静默通过。取代后 main 已是活跃所有者，故 leaf 续写落在
+  // 所有权拒绝（owned by main）；若无活跃接管者则落在 conflict——两种显式拒绝皆合法。
+  await expect(t.write({ cwd, sessionId: 'leaf', mode: 'ralph', state: { active: true }, expectUpdatedAt: injected._meta.updatedAt }))
+    .rejects.toThrow(/conflict|owned by session/) // 陈旧续写显式认输（conflict 或所有权拒绝），绝不静默复活
+})
+
+test('IC-20 合取签名负例：keyword-detected 但缺 keyword_route.source → 仍绑定拒绝', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 's1', mode: 'ralph', state: { active: true, current_phase: 'keyword-detected' } })
+  await expect(t.write({ cwd, sessionId: 's2', mode: 'ralph', state: { active: true } }))
+    .rejects.toThrow(/owned by session/)
+})
+
+test('双 stale 全被取代：循环 continue 扫全部 session，不因首个非绑定态短路', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 'stale1', mode: 'ralph', state: { active: false } })
+  await t.write({ cwd, sessionId: 'stale2', mode: 'ralph', state: { active: true, current_phase: 'keyword-detected',
+    keyword_route: { source: 'keyword-hook' } } })
+  await t.write({ cwd, sessionId: 'new', mode: 'ralph', state: { active: true, current_phase: 'running' } }) // 不抛
+  expect((await t.read({ cwd, sessionId: 'stale1', mode: 'ralph' })).supersededBy).toBe('new')
+  expect((await t.read({ cwd, sessionId: 'stale2', mode: 'ralph' })).supersededBy).toBe('new')
+})
+
+test('存活常规态绑定保持：active:true 无 phase 的他 session 文件仍拒绝（回归钉）', async () => {
+  const { t, cwd } = await tools()
+  await t.write({ cwd, sessionId: 'live', mode: 'ralph', state: { active: true, current_phase: 'running' } })
+  await expect(t.write({ cwd, sessionId: 'other', mode: 'ralph', state: { active: true } }))
+    .rejects.toThrow(/owned by session/)
+})
