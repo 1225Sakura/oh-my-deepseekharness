@@ -211,7 +211,7 @@
 | id | D15 |
 | name | 测试与发布门禁 |
 | 类别 | omd-quality |
-| 定义 | tests/ 套件健康（44 文件 / 523 tests 口径随版本刷新）+ package.json prepublishOnly 门禁链 + vitest 配置 + 依赖锁定 |
+| 定义 | tests/ 套件健康（45 文件 / 552 tests 口径随版本刷新）+ package.json prepublishOnly 门禁链 + vitest 配置 + 依赖锁定 |
 | 判定标准 | `npm test` 全绿；prepublishOnly 链完整（测试 → 构建 → 打包门禁次序）；peer range 断言在案 |
 | 发现手段 | manual（主）：prepublishOnly 门禁链逐步核对；辅 probe：`npm test` 全量复跑 |
 | 对照面锚点 | `tests/` + `package.json`（prepublishOnly）+ `vitest.config.js` + `package-lock.json` |
