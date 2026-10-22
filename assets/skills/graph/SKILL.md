@@ -40,7 +40,7 @@ When NOT to use: exploratory one-off work (use conversation or team); anything n
 
 ### Runtime exit codes (live in the omd phase-1 runtime)
 
-Normative for the future runtime, recorded here so descriptors stay forward-compatible: `0` succeeded | `1` terminal failed | `19` another writer owns this run (busy) | `20` corrupt/tampered journal (fail-closed) | `21` descriptor drift on resume | `70` runtime crash. Model-driven execution reports the same states in prose instead of exit codes.
+Normative for the future runtime, recorded here so descriptors stay forward-compatible: `0` succeeded | `1` terminal failed / input-class rejections (invalid schema, UNSUPPORTED_EDGE, reconcile without executor — bin and MCP entries aligned since v0.5.1) | `2` CLI usage error (bin entry only) | `19` another writer owns this run (busy) | `20` corrupt/tampered journal (fail-closed) | `21` descriptor drift on resume | `70` runtime crash (genuine crashes only). Model-driven execution reports the same states in prose instead of exit codes.
 
 ## Descriptor Schema (minimal)
 
@@ -71,7 +71,7 @@ Edge kinds: `fixed` and `fan_out`/`join` pairs run today; `conditional` and `bac
 
 ## Capability Boundary & Semantics (read before authoring)
 
-- **Edge support**: `fixed` edges and `fan_out`/`join` pairs run today. `conditional` and `back_edge` routes are **unsupported in the phase-1 runtime**: entries (graph_validate/graph_run) fail fast with `UNSUPPORTED_EDGE` (exit 1, listing the offending edges) — say so instead of guessing routes.
+- **Edge support**: `fixed` edges and `fan_out`/`join` pairs run today. `conditional` and `back_edge` routes are **unsupported in the phase-1 runtime**: entries (graph_validate/graph_run) fail fast with `UNSUPPORTED_EDGE` (exit 1, listing the offending edges) — say so instead of guessing routes. Likewise `effect_policy.policy='reconcile'` is **unsupported in phase 1** (upstream contract requires a custom executor; omd has none) — rejected at entry with `RECONCILE_REQUIRES_CUSTOM_EXECUTOR` (exit 1); do not use it in descriptors.
 - **Crash-recovery guarantee is at-least-once** for command nodes: a crash between an external side effect and its journal append re-executes that node on resume. For `idempotent` commands, expose the resolved key to the command as the `GRAPH_IDEMPOTENCY_KEY` environment value and record it for downstream dedupe. Exactly-once for external side effects is out of scope.
 - **Command trust boundary**: command nodes are arbitrary shell lines run via `pwsh` with real process authority in the current working directory. Only run descriptors you wrote or trust. Commands are not filesystem/process sandboxed.
 - **Agent authority boundary**: built-in agent nodes are read-only by convention — in omd this is prompt-level discipline (dsh `subagent` has no tool-restriction parameter), so state it in the node's `instructions` and prefer read-only role cards. Treat `.omd/graph-runs/<run_id>/descriptor.json` as executable content.

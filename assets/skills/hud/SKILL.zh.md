@@ -8,7 +8,7 @@ when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可�
 
 > **v0.4 现状（诚实）**：OMC 的 HUD 是 Claude Code 的 `statusLine` 脚本，dsh 没有状态栏面——但 omd 的 HUD 已经以 dsh 原生形态落地三层：
 >
-> 1. **Client half 面板**（`lib/client.js`）：dsh web GUI 右侧边栏注册 tab 类型 `omd-hud`（guide 页「omd HUD」胶囊打开），5s 轮询 `/oh-my-dsh/hud.json` 渲染语义化面板：preset 三档（minimal/focused/full，缺省 focused）、idle 空态引导（渲染下发 modeCatalog：模式名+中文名同现）、活跃态主模式卡（中文标签：模式/阶段/轮次/任务/记忆；stale 时附「未更新」提示行）与 tier 三档色档（正常/警告/危险，颜色仅 CSS 变量视觉档、必带文字标记）。面板可见性前提：dsh web 宿主加载 omd 插件并已重启以装载 client bundle（HMR 不覆盖新插件激活）。
+> 1. **Client half 面板**（`lib/client.js`）：dsh web GUI 右侧边栏注册 tab 类型 `omd-hud`（guide 页「omd HUD」胶囊打开），自适应轮询 `/oh-my-dsh/hud.json`（活跃 5s，内容不变退避至 ≤30s） 渲染语义化面板：preset 三档（minimal/focused/full，缺省 focused）、idle 空态引导（渲染下发 modeCatalog：模式名+中文名同现）、活跃态主模式卡（中文标签：模式/阶段/轮次/任务/记忆；stale 时附「未更新」提示行）与 tier 三档色档（正常/警告/危险，颜色仅 CSS 变量视觉档、必带文字标记）。面板可见性前提：dsh web 宿主加载 omd 插件并已重启以装载 client bundle（HMR 不覆盖新插件激活）。
 > 2. **数据路由**（`lib/hud-route.js`）：web 宿主 exact GET `/oh-my-dsh/hud.json?cwd=`，面板的取数面（loopback 只读、no-store；?cwd= 可覆盖默认宿主进程锚点）。响应在五要素 summary/card 之外下发 `detail`/`modeCatalog`/`preset` 面板私有键（不进 MCP wire）。CLI 会话无 webServer → `hudRoute` probe 记 skipped，不是降级。
 > 3. **MCP server 面**：`mcp__omd-state__hud_render`（五要素 summary JSON + 至多 8 行中文状态卡文本）/ `hud_summary`（纯 JSON）——任何会话（含 CLI）立即可用，数据源严格只有 `state_get_status` + `notepad_stats` 两个现成读面（lib/hud.js 设计约束——该约束仍适用于 MCP wire 面；/oh-my-dsh/hud.json loopback 私有面已经 P2 一次性修订扩展，修订来源=.omd/plans/ralplan-omd-upgrade-hud-observability.md ADR）。
 >

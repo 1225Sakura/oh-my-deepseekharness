@@ -40,7 +40,7 @@ graph "先构建再测试，部署前问我"   （先撰写 descriptor）
 
 ### 运行时退出码（omd 一期运行时已生效）
 
-记录在此以保持 descriptor 前向兼容：`0` 成功 | `1` 终态失败 | `19` 另一写者持有本 run（忙） | `20` journal 损坏/被篡改（fail-closed） | `21` 恢复时 descriptor 漂移 | `70` 运行时崩溃。模型驱动执行以文字报告同样的状态，不用退出码。
+记录在此以保持 descriptor 前向兼容：`0` 成功 | `1` 终态失败 / 输入类拒绝（schema 非法、UNSUPPORTED_EDGE、reconcile 无执行器——bin 与 MCP 双入口同映射，v0.5.1 起对齐） | `2` CLI 用法错误（缺参/坏 JSON/非法数值；仅 bin 入口） | `19` 另一写者持有本 run（忙） | `20` journal 损坏/被篡改（fail-closed） | `21` 恢复时 descriptor 漂移 | `70` 运行时崩溃（仅真崩溃）。模型驱动执行以文字报告同样的状态，不用退出码。
 
 ## Descriptor Schema（最小集）
 
@@ -71,7 +71,7 @@ graph "先构建再测试，部署前问我"   （先撰写 descriptor）
 
 ## 能力边界与语义（撰写前必读）
 
-- **边支持**：`fixed` 边与 `fan_out`/`join` 对可运行。`conditional` 与 `back_edge` 路由在一期运行时**不支持**：入口（graph_validate/graph_run）以 `UNSUPPORTED_EDGE` fail-fast（exit 1，显式列出违例边），明说而不是猜路由。
+- **边支持**：`fixed` 边与 `fan_out`/`join` 对可运行。`conditional` 与 `back_edge` 路由在一期运行时**不支持**：入口（graph_validate/graph_run/投影）以 `UNSUPPORTED_EDGE` fail-fast（exit 1，显式列出违例边），明说而不是猜路由。同理 `effect_policy.policy='reconcile'` 一期**不支持**（上游契约要求 custom executor，omd 无此面）——入口即拒（`RECONCILE_REQUIRES_CUSTOM_EXECUTOR`，exit 1），请勿在 descriptor 中使用。
 - **崩溃恢复保证是 at-least-once**（command 节点）：外部副作用与 journal 追加之间崩溃，恢复时该节点会重跑。`idempotent` 命令的解析键以 `GRAPH_IDEMPOTENCY_KEY` 环境值暴露给命令并记录供下游去重。外部副作用的 exactly-once 不在范围内。
 - **命令信任边界**：command 节点是经 `pwsh` 执行的任意 shell 行，在当前工作目录拥有真实进程权限。只运行你撰写或信任的 descriptor。命令不做文件系统/进程沙箱。
 - **agent 权限边界**：内建 agent 节点按约定只读——omd 中这是 prompt 层纪律（dsh `subagent` 无工具限制参数），要在节点 `instructions` 里写明并优先用只读角色卡。把 `.omd/graph-runs/<run_id>/descriptor.json` 当作可执行内容对待。
