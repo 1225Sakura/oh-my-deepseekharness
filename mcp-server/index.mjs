@@ -17,7 +17,9 @@ import { registerCodeIntelTools } from './tools/codeintel.mjs'
 const server = new McpServer({ name: 'omd-state', version: '0.1.0' })
 let codeIntel = {}
 try { codeIntel = JSON.parse(process.env.OMD_CODE_INTEL || '{}') } catch { codeIntel = {} }
-const env = { stateDir: process.env.OMD_STATE_DIR || '.omd', codeIntel }
+// R3-⑩：team stale 阈值注入（getStatus 的 per-mode stale 判定用；缺省 300000）
+const teamStaleAfterMs = Number(process.env.OMD_TEAM_STALE_MS)
+const env = { stateDir: process.env.OMD_STATE_DIR || '.omd', codeIntel, teamStaleAfterMs: Number.isFinite(teamStaleAfterMs) ? teamStaleAfterMs : undefined }
 registerStateTools(server, env)
 registerNotepadTools(server, env)
 registerPrdTools(server, env)

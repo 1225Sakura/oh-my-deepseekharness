@@ -21,6 +21,7 @@ import {
   sealGraphDescriptor,
 } from '../../../lib/graph/descriptor.js'
 import { EXIT_CODES, runGraph } from '../../../lib/graph/runner.js'
+import { applyAgentGuardrails } from '../../../lib/graph/guardrails.js'
 
 function argValue(args, name) {
   const index = args.indexOf(name)
@@ -43,7 +44,9 @@ async function main() {
   const staleGraceMs = staleGraceRaw === null ? undefined : Number(staleGraceRaw)
 
   const draft = JSON.parse(readFileSync(descriptorPath, 'utf8'))
-  const sealed = sealGraphDescriptor(parseGraphDescriptor(draft))
+  // 刻板审查修复（R3-⑯）：第三封印入口与 bin/MCP 双入口同款护栏注入——
+  // 同一 draft 跨入口封印同一 hash（此前本入口跳护栏，漂移隐患）
+  const sealed = sealGraphDescriptor(applyAgentGuardrails(parseGraphDescriptor(draft)))
   const result = await runGraph({
     sealedDescriptor: sealed,
     runsRoot,

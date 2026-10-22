@@ -32,6 +32,8 @@ import {
   GraphSchedulerError,
   UnsupportedEdgeError,
   assertSupportedEdges,
+  assertSupportedEffectPolicies,
+  ReconcileUnsupportedError,
   branchTokenIdFor,
   cohortIdFor,
   projectGraph,
@@ -560,6 +562,57 @@ describe('UNSUPPORTED_EDGE 入口拒绝（exit 1 显式文案）', () => {
   it('supported descriptor 不抛', () => {
     expect(() =>
       assertSupportedEdges(sealed(loadFixture('graph-simple-linear.json'))),
+    ).not.toThrow()
+  })
+
+  // 刻板审查修复（R3-④）：reconcile 策略 fail-closed（上游 command.ts L208-214 契约）
+  it('reconcile 策略：assertSupportedEffectPolicies 入口拒绝（code/exitCode/节点清单）', () => {
+    const reconcileDescriptor = sealGraphDescriptor(
+      parseGraphDescriptor({
+        ...base,
+        nodes: base.nodes.map((n) =>
+          n.id === 'b' ? { ...n, effect_policy: { policy: 'reconcile' } } : n,
+        ),
+        edges: [
+          { id: 'e-ab', kind: 'fixed', from: 'a', to: 'b' },
+          { id: 'e-b-term', kind: 'fixed', from: 'b', to: 'term' },
+        ],
+      }),
+    )
+    let caught
+    try {
+      assertSupportedEffectPolicies(reconcileDescriptor)
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(ReconcileUnsupportedError)
+    expect(caught).toBeInstanceOf(GraphSchedulerError)
+    expect(caught.code).toBe('RECONCILE_REQUIRES_CUSTOM_EXECUTOR')
+    expect(caught.exitCode).toBe(1)
+    expect(caught.nodeIds).toEqual(['b'])
+  })
+
+  it('reconcile 策略：projectGraph 投影层同闸兜底', () => {
+    const reconcileDescriptor = sealGraphDescriptor(
+      parseGraphDescriptor({
+        ...base,
+        nodes: base.nodes.map((n) =>
+          n.id === 'b' ? { ...n, effect_policy: { policy: 'reconcile' } } : n,
+        ),
+        edges: [
+          { id: 'e-ab', kind: 'fixed', from: 'a', to: 'b' },
+          { id: 'e-b-term', kind: 'fixed', from: 'b', to: 'term' },
+        ],
+      }),
+    )
+    expect(() =>
+      projectGraph(reconcileDescriptor, [runStarted(reconcileDescriptor)]),
+    ).toThrowError(ReconcileUnsupportedError)
+  })
+
+  it('side_effect_free/idempotent descriptor 过 reconcile 闸', () => {
+    expect(() =>
+      assertSupportedEffectPolicies(sealed(loadFixture('graph-simple-linear.json'))),
     ).not.toThrow()
   })
 })

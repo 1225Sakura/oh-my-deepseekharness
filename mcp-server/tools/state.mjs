@@ -3,7 +3,7 @@ import { readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { z } from 'zod'
 import { atomicWriteJson, readJson } from '../lib/atomic.mjs'
-import { monotonicIsoNow } from '../../lib/worktree.js'
+import { monotonicIsoNow, withCrossProcessFileLock } from '../../lib/worktree.js'
 import { omdPaths } from '../lib/paths.mjs'
 
 const ECHO_MAX = 1200
@@ -13,6 +13,13 @@ export function makeStateTools(env) {
     return await readJson(omdPaths({ cwd, stateDir: env.stateDir, sessionId }).stateFile(mode))
   }
   async function write({ cwd, sessionId, mode, state, expectUpdatedAt }) {
+    // 刻板审查修复（R3-⑨）：所有权扫描+supersede+校验+写此前全程无锁，MCP 并发下
+    // 「模式互斥」不成立（伪 CAS 同族）。整体收进 per-stateDir lockfile 临界区。
+    // 锁文件独立键（state-write.lock），与 run-state 锁互不嵌套，无重入面。
+    const lockPath = join(cwd, env.stateDir, 'state', 'state-write.lock')
+    return withCrossProcessFileLock(lockPath, () => writeLocked({ cwd, sessionId, mode, state, expectUpdatedAt }))
+  }
+  async function writeLocked({ cwd, sessionId, mode, state, expectUpdatedAt }) {
     const file = omdPaths({ cwd, stateDir: env.stateDir, sessionId }).stateFile(mode)
     // 会话所有权强制（规格 §5.1）：per-session 文件布局下，须扫描其他会话的同名 mode 状态文件。
     // 注：计划原代码只检查本文件 cur._meta.sessionId，在 per-session 布局下永远不会冲突，无法满足测试断言，此处修正。
@@ -69,19 +76,21 @@ export function makeStateTools(env) {
   }
   async function listActive({ cwd }) {
     const root = join(cwd, env.stateDir, 'state', 'sessions')
-    const out = []
     let sids = []
-    try { sids = await readdir(root) } catch { return out }
-    for (const sid of sids) {
+    try { sids = await readdir(root) } catch { return [] }
+    // 刻板审查修复（R3-⑭）：有界化 + 并发——会话目录长期膨胀时不再无界串行读
+    // （上限 200 会话 × 50 文件/会话，超限截断；HUD 5s 轮询路径的 I/O 可控）
+    const capped = sids.slice(0, 200)
+    const perSession = await Promise.all(capped.map(async (sid) => {
       let files = []
-      try { files = await readdir(join(root, sid)) } catch { continue }
-      for (const f of files) {
-        if (!f.endsWith('-state.json')) continue
-        const s = await readJson(join(root, sid, f))
-        if (s?.active === true) out.push(s)
-      }
-    }
-    return out
+      try { files = await readdir(join(root, sid)) } catch { return [] }
+      const states = await Promise.all(files
+        .filter(f => f.endsWith('-state.json'))
+        .slice(0, 50)
+        .map(f => readJson(join(root, sid, f))))
+      return states.filter(s => s?.active === true)
+    }))
+    return perSession.flat()
   }
   async function getStatus({ cwd }) {
     const active = await listActive({ cwd })
@@ -93,7 +102,10 @@ export function makeStateTools(env) {
         // c4 HUD 五要素之二：加性透传（现成读面零新宿主槽位；缺席=undefined，消费方自兜底）
         current_story: s.current_story, active_agents: s.active_agents,
         updatedAt: s._meta.updatedAt,
-        stale: Date.now() - Date.parse(s._meta.updatedAt) > 2 * 3600_000,  // 规格 §5.4 stale 2h
+        // 刻板审查修复（R3-⑩）：stale 双语义贯通——team 模式用 team.staleAfterMs
+        // （默认 5min，经 OMD_TEAM_STALE_MS 注入），其余模式维持规格 §5.4 的 2h
+        stale: Date.now() - Date.parse(s._meta.updatedAt)
+          > (s._meta.mode === 'team' ? (env.teamStaleAfterMs ?? 300_000) : 2 * 3600_000),
         // U3/AC10 wire：danger/warn 判定输入加性透传（缺席=undefined；state=模式终态，fixLoops 兼容两种拼法）
         state: s.state, fixLoops: s.fixLoops ?? s.fix_loop_count,
       })),

@@ -405,6 +405,11 @@ test('bin/graph-runner.mjs：agent 图 park（exit 0 waiting）+ 护栏前缀与
     const help = spawnSync(process.execPath, [binPath, '--help'], { encoding: 'utf8', timeout: 30000 })
     expect(help.status).toBe(0)
     expect(help.stdout).toContain('--descriptor')
+
+    // R3-⑧：--stale-grace-ms 非数字 → exit 2 人话（不再 NaN 静默透传）
+    const badGrace = spawnSync(process.execPath, [binPath, '--descriptor', descriptorPath, '--runs-root', runsRoot, '--stale-grace-ms', 'abc'], { encoding: 'utf8', timeout: 30000 })
+    expect(badGrace.status).toBe(2)
+    expect(badGrace.stderr).toContain('须为数字')
   } finally { await rm(cwd, { recursive: true, force: true }) }
 }, 60000)
 

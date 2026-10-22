@@ -107,3 +107,12 @@
 ### verifier 复验记录
 
 独立复验（omd_delegate 前台派发 omdd-mvj7mh1m-9，omd-agent-verifier）裁决 **PASS**：9 条验收命令亲跑全 EXIT=0；6 条抽查（含全部必查：fence 两条 P1 机理、reconcile 丢闸、state_write 无锁、stale 2h 硬编码 + 随机 journal 短写条）亲读源码全部支撑，行号精确，零伪造。Gaps 如实登记：fence 两条 P1 的实证复现声明未重跑测试复核（源码机理已核）。
+
+## 修复记录（2026-10，全量 19/19 已修；21 条查点为无恙登记不在其列）
+
+- **fence 与接管**：①readEpochCeiling 挪进清理 try（坏 epoch 不再泄漏空锁）；②takeover 在 unlink 前重核锁 payload epoch（TOCTOU 窄化，残余微秒窗口如实登记）、owner.json 补 epoch 字段、heartbeat 先 assertOwnership（废黜者心跳不再污染 stalled 判定）；③writeOwnerJson 失败回滚 fd/heldEpoch 并按身份 unlink。
+- **runner 与命令执行**：④reconcile 闸落地——ReconcileUnsupportedError（GraphSchedulerError 家族，exit 1）在 bin/MCP/投影三层入口 fail-closed；⑤bin 输入类错误（schema 非法/UNSUPPORTED_EDGE/reconcile/Zod）与 MCP 同映射 exit 1，真崩溃才 70；⑥stdout/stderr 改 StringDecoder（跨 chunk 多字节不再切碎）；⑦截断按字节计数按字节切；⑧--stale-grace-ms 非数字 exit 2 人话。
+- **MCP 工具内部**：⑨state_write 全路径收进 per-stateDir lockfile 临界区（withCrossProcessFileLock 泛化自 run-state 锁），hook 预写路径同锁域；⑩stale 双语义贯通——team 模式 stale 用 team.staleAfterMs（OMD_TEAM_STALE_MS 注入）；⑪prd_amend criterionAmendments 初始化兜底；⑫prd_uncheck 清 evidence；⑬台账补「原文仍 active / 同文两次修订」检测；⑭listActive 有界化（200×50 上限 + 并发）。
+- **descriptor 与封印**：⑮非 side_effect_free 节点的作者面 32768 由 validateGraphDescriptor 补闸 + schema 注释修真；⑯e2e driver 第三封印入口补护栏注入（跨入口 hash 一致）。
+- **journal 与恢复**：⑰writeSync 短写显式失败；⑱descriptor 快照读取收进 safe-fs 纪律；⑲output_ref 形态钉死 outputs/<safe-name>。
+- 验证：npm test 全量 46 files / 558 tests 全绿（新增 reconcile 闸×2、bin NaN 用例；既有 555 全保）。

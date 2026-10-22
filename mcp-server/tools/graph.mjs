@@ -43,6 +43,7 @@ import {
 import { FenceError, OwnerFence } from '../../lib/graph/fence.js'
 import {
   assertSupportedEdges,
+  assertSupportedEffectPolicies,
   GraphSchedulerError,
   projectGraph,
 } from '../../lib/graph/scheduler.js'
@@ -149,6 +150,7 @@ export function makeGraphTools(env) {
       try {
         const sealed = sealForRun(descriptor)
         assertSupportedEdges(sealed)
+        assertSupportedEffectPolicies(sealed) // R3-④ reconcile 闸（与 bin 入口同款）
         return {
           exit_code: 0,
           terminal_status: null,
@@ -171,6 +173,7 @@ export function makeGraphTools(env) {
       try {
         sealed = sealForRun(descriptor)
         assertSupportedEdges(sealed) // 入口 fail-fast（Q5）；runGraph 投影层同闸兜底
+        assertSupportedEffectPolicies(sealed) // R3-④ reconcile 闸
         return await runGraph({
           sealedDescriptor: sealed,
           runsRoot: graphRoot(cwd, stateDir),

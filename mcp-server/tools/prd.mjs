@@ -43,6 +43,7 @@ export function makePrdTools(env) {
       const s = findStory(prd, storyId)
       s.passes = false
       delete s.passedAt
+      delete s.evidence // 刻板审查修复（R3-⑫）：回退后不再留「未通过但有证据」矛盾态
       await atomicWriteJson(prdFile(cwd, topic), prd)
       await audit(cwd, { action: 'uncheck', topic, storyId, reason })
       return { ok: true }
@@ -53,6 +54,7 @@ export function makePrdTools(env) {
       const s = findStory(prd, storyId)
       const c = s.acceptanceCriteria.find(x => x.id === criterionId)
       if (!c) throw new Error(`fail-closed: criterion ${criterionId} not found in story ${storyId}`)
+      s.criterionAmendments ??= [] // 刻板审查修复（R3-⑪）：手写 PRD 缺该字段不再 TypeError
       s.criterionAmendments.push({
         kind, criterionId, originalText: c.text, newText, reason, evidence,
         authority: authority ?? 'user',   // 终审修复：ralph skill 契约要求台账含 authority
@@ -74,9 +76,18 @@ export function makePrdTools(env) {
         for (const c of s.acceptanceCriteria) lines.push(`  - (${c.id}@r${c.revision ?? 1}) ${c.text}`)
         // 终审修复：台账 fail-closed 校验（warning 级，不硬失败保持兼容）——
         // amendment 引用的 criterionId 在 acceptanceCriteria 中已不存在即为孤儿条目
+        const seenAmendOriginals = new Set()
         for (const a of s.criterionAmendments ?? []) {
-          if (!s.acceptanceCriteria.some(c => c.id === a.criterionId))
+          const target = s.acceptanceCriteria.find(c => c.id === a.criterionId)
+          if (!target)
             warnings.push(`story ${s.id}: amendment 引用的 criterion ${a.criterionId} 已不存在（孤儿台账条目，台账矛盾应 fail-closed 处理）`)
+          // 刻板审查修复（R3-⑬）：补两条契约检测——原文仍 active（修订未生效）与同文重复修订
+          else if (target.text === a.originalText)
+            warnings.push(`story ${s.id}: criterion ${a.criterionId} 的原文在修订后仍 active（台账矛盾）`)
+          const dupKey = a.criterionId + '\0' + a.originalText
+          if (seenAmendOriginals.has(dupKey))
+            warnings.push(`story ${s.id}: criterion ${a.criterionId} 同一原文被修订两次（台账矛盾）`)
+          seenAmendOriginals.add(dupKey)
         }
       }
       return { markdown: lines.join('\n'), raw: prd, stories: prd.stories, warnings }

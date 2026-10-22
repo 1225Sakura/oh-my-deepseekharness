@@ -12,7 +12,8 @@
 //     → sealGraphDescriptor → assertSupportedEdges（UNSUPPORTED_EDGE fail-fast）
 //     → runGraph；
 //   - stdout 末行打印 "GRAPH_RUN_RESULT <json>"（完整返回形状，Q8）；
-//   - 进程退出码 = runGraph exit_code（0/1/19/20/21/70）；
+//   - 进程退出码 = runGraph exit_code（0/1/19/20/21/70）；输入类错误（schema 非法/
+//     UNSUPPORTED_EDGE/reconcile）= 1（与 MCP graph_run 同映射），用法错误 = 2，真崩溃 = 70；
 //   - 顶层 catch 兜底 exit 70（SKILL.zh.md 退出码契约的运行时崩溃语义）；
 //   - 用法/输入错误（缺参、--help、descriptor 不可读/坏 JSON）走 exit 2 + 人话 stderr，
 //     不再与真崩溃同码同文案（刻板审查修复：用法错误≠崩溃）。
@@ -26,7 +27,8 @@ import {
   sealGraphDescriptor,
 } from '../lib/graph/descriptor.js'
 import { applyAgentGuardrails } from '../lib/graph/guardrails.js'
-import { assertSupportedEdges } from '../lib/graph/scheduler.js'
+import { assertSupportedEdges, assertSupportedEffectPolicies, GraphSchedulerError } from '../lib/graph/scheduler.js'
+import { GraphDescriptorValidationError } from '../lib/graph/descriptor.js'
 import { EXIT_CODES, runGraph } from '../lib/graph/runner.js'
 
 function argValue(args, name) {
@@ -57,7 +59,13 @@ async function main() {
   }
   const takeover = args.includes('--takeover')
   const staleGraceRaw = argValue(args, '--stale-grace-ms')
+  // 刻板审查修复（R3-⑧）：非数字不再 NaN 静默透传（NaN 会让 stalled 永不成立、takeover 永久拒绝）
   const staleGraceMs = staleGraceRaw === null ? undefined : Number(staleGraceRaw)
+  if (staleGraceRaw !== null && !Number.isFinite(staleGraceMs)) {
+    process.stderr.write(`graph-runner: --stale-grace-ms 须为数字，收到 '${staleGraceRaw}'\n`)
+    process.exitCode = 2
+    return
+  }
   const commandCwd = argValue(args, '--cwd')
 
   // descriptor 读取/解析失败 = 用户输入错误（exit 2 + 人话），不甩原始 Node 堆栈
@@ -72,6 +80,7 @@ async function main() {
   // 入口契约与 MCP graph_run 一致：护栏前缀 → 封印 → UNSUPPORTED_EDGE fail-fast。
   const sealed = sealGraphDescriptor(applyAgentGuardrails(parseGraphDescriptor(draft)))
   assertSupportedEdges(sealed)
+  assertSupportedEffectPolicies(sealed) // R3-④：reconcile 丢闸修复，与 MCP 入口同闸
   const result = await runGraph({
     sealedDescriptor: sealed,
     runsRoot,
@@ -84,11 +93,17 @@ async function main() {
 }
 
 main().catch((error) => {
+  // 刻板审查修复（R3-⑤）：输入类错误（schema 非法/UNSUPPORTED_EDGE/reconcile）与 MCP 入口
+  // 同映射 exit 1（graph.mjs toolFailure 同款语义），真崩溃才 exit 70——双入口契约对齐。
+  const isInputError =
+    error instanceof GraphDescriptorValidationError ||
+    error instanceof GraphSchedulerError ||
+    (error && error.name === 'ZodError')
   emitResult({
-    exit_code: EXIT_CODES.CRASH,
+    exit_code: isInputError ? 1 : EXIT_CODES.CRASH,
     terminal_status: null,
     status: 'in_progress',
     error: 'graph-runner crash: ' + String((error && error.message) || error),
   })
-  process.exitCode = EXIT_CODES.CRASH
+  process.exitCode = isInputError ? 1 : EXIT_CODES.CRASH
 })
