@@ -320,8 +320,10 @@
 | `omd:lib/runtime.js` | D10 |
 | `omd:lib/skills.js` | D2 |
 | `omd:lib/team.js` | D6 |
+| `omd:lib/tryget.js` | D10 |
 | `omd:lib/worktree.js` | D13 |
 | `omd:mcp-server/tools/codeintel.mjs` | D4 |
+| `omd:mcp-server/tools/codeintel-astgrep.mjs` | D4 |
 | `omd:mcp-server/tools/graph.mjs` | D14 |
 | `omd:mcp-server/tools/handoff.mjs` | D4 |
 | `omd:mcp-server/tools/hud.mjs` | D7 |
@@ -342,6 +344,8 @@
 | `omd:docs/feature-parity-audit.md` | D16 |
 | `omd:docs/upstream-form-omc.md` | D16 |
 | `omd:docs/upstream-form-omx.md` | D16 |
+| `omd:docs/usability-humanization-review.md` | D16 |
+| `omd:docs/code-quality-logic-review.md` | D16 |
 | `omd:scripts/audit-dimension-closure.mjs` | D16 |
 | `omd:scripts/audit-upstream-forms.mjs` | D16 |
 | `omd:bin/graph-runner.mjs` | D14 |

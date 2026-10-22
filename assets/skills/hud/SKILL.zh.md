@@ -28,17 +28,17 @@ when-to-use: 用户问起 HUD/状态栏设置、想要持续的会话状态可�
 
 > **agents 计数语义（U6 过渡澄清）**：该计数读取模式状态里**领队显式写入**的 `active_agents` 字段——team 运行时本身不自动写它，未写时显示 0 属正常而非故障。team 队员的生命周期明细（workerId/role/status/心跳时长）以 `team_registry` MCP 工具与 `.omd/team/<runId>/registry.json` 为权威数据面。多行 agent 树（U6）的数据面方案由其立项 ralplan 裁决。
 
-渲染契约（至多 8 行有界）：`renderCard` 标题「[omd] 编排状态」；活跃态=模式/阶段/轮次/任务/记忆五行（中文标签）+ 次要模式小注（「另有 N 个…」）；stale 时附「状态已超过 2 小时未更新（上次更新：<updatedAt>）」；空态=「当前没有运行中的 omd 模式。」+ 五模式引导行（模式名+中文名）+ 记忆行。活跃样例：
+渲染契约（至多 8 行有界）：`renderCard` 标题「[omd] 编排状态」；活跃态=模式/阶段/轮次/代理/记忆五行（中文标签）+ 可选「故事」行（主模式有 current_story 时，优先于小注）+ 次要模式小注（「另有 N 个…」，行数预算够才补）；stale 时附「状态超过阈值未更新（stale；上次更新：<updatedAt>）」（阈值随模式配置而定，不写死）；空态=「当前没有运行中的 omd 模式。」+ 五模式引导行（模式名+中文名+一句话启动示例）+ 记忆行。活跃样例：
 
 ```
 [omd] 编排状态
-模式: Ralph 循环（ralph）
+模式: ralph（Ralph 循环）
 阶段: exec
 轮次: 3
-任务: 2 个 agent
-记忆: 工作区 1 / 优先区 2 / 手动区 0
-另有 1 个模式：autopilot（自动驾驶）
-状态已超过 2 小时未更新（上次更新：2026-02-06T10:00:00.000Z）
+代理: 2 个活跃代理
+记忆: 永久 1 · 工作 2 · 手动 0
+故事: US-2
+状态超过阈值未更新（stale；上次更新：2026-02-06T10:00:00.000Z）
 ```
 
 面板私有数据面（仅 `/oh-my-dsh/hud.json` 下发，不进 MCP wire）：`detail`（{primary, modes[]}，fresh-first，透传 label/current_phase/stale 等状态字段）、`modeCatalog`（五模式「模式名+中文名」常量目录，单源自 lib，client 只渲染不内置）、`preset`（minimal/focused/full，缺省 focused，来源 dsh Config 键 hud.preset）。

@@ -70,7 +70,8 @@ test('renderCard：活跃卡中文五行至多 8 行；多模式小注；非 sta
   expect(card).toContain('模式: ralph（Ralph 循环）')    // 主模式 + 中文 label
   expect(card).toContain('阶段: 未设置')                 // current_phase 缺席不炸
   expect(card).toContain('轮次: 2')                     // AC3 五标签：轮次
-  expect(card).toContain('任务: 1 个活跃代理')           // AC3 五标签：任务
+  expect(card).toContain('代理: 1 个活跃代理')           // AC3 五标签：代理（原「任务」名实不符修复）
+  expect(card).toContain('故事: S4')                     // 五要素 story 不再缺席（报告一 #87）
   expect(card).toContain('记忆: 永久 1 · 工作 0 · 手动 0')  // AC3 五标签：记忆（非裸 working=）
   expect(card).toContain('另有 1 个活跃模式')            // 一行小注（N3）
   expect(card).not.toContain('未更新')                  // 非 stale 不出现 stale 行

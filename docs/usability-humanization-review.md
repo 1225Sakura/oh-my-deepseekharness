@@ -111,3 +111,10 @@
 - **verifier A**（omd_delegate 前台派发，dispatch omdd-mvj0k5g0-2，omd-agent-verifier）：9 条验收命令重跑全 EXIT=0；6 条抽查（含 P0）全部与原文相符，裁决 PASS/APPROVE。
 - **verifier B**（后台 subagent 213bb8ab）：9 条命令全 0；8 条抽查全支撑，裁决 PASS——并附一处事实修正：P0 的失败模式不是「404」（npm 上 oh-my-dsh 系已停更的同名他包，实测存在），而是**静默装错包**；报告 P0 条目措辞已按此修正，严重度反被加重。
 - 两名 verifier 共同确认：全程未修改报告与检查器；抽查无伪造、无行号错置。
+
+## 修复记录（2026-10，全量 33/33 已修）
+
+- **P0**：omd-setup 双语包名全改 `@sakura12/oh-my-deepseekharness`（pnpm 语义经 dsh 官方 README 核实：add/remove 均用 npm 包名）；守门测试 `tests/docs/setup-package-name.test.js` 落地——双语 add/remove 命令包名与 package.json name 逐条相等断言。
+- **P1×15**：omd-setup 双语计数/工具数/tiers 默认值/软路由表述/Config 表漏 5 键全部更正；README 补 profile 重载步骤与概念解释、兼容性声明对齐 peerDeps 四段 range、probe 探测面措辞精确化；protocol.js 能力矩阵新增「降级详情」块（detail 不再丢弃）；HUD 卡片「任务」改名「代理」名实相符 + story 行补齐（五要素不再缺席）；hud.js 头注更新到 0.4.x 现实。
+- **P2×17**：Config 分组 description 补齐、tiers 描述去版本考古、退役词提示去 OMC 语境并附可照抄示例、/omd-cancel 确认补「结果将由助手报告」、MAGIC KEYWORD 注入块加人话首行、HUD 空态带一句话启动示例、stale 文案不再写死 2h、delegate model 参数示例改为名录安全写法等。
+- 验证：npm test 全量 46 files / 555 tests 全绿（含新增守门与回归测试）。

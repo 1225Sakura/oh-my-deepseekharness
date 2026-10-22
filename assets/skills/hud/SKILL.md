@@ -30,17 +30,17 @@ The five elements (`lib/hud.js#HUD_FIELDS`, the per-field diff traversal order):
 
 ## Render contract and the panel data plane
 
-Render contract (at most 8 bounded lines): `renderCard` titles the card `[omd] 编排状态`; active = five Chinese-labeled lines (模式/阶段/轮次/任务/记忆 = mode/phase/round/tasks/memory) plus a minor-modes footnote (「另有 N 个…」); when stale it appends 「状态已超过 2 小时未更新（上次更新：<updatedAt>）」; empty state = 「当前没有运行中的 omd 模式。」 plus one guidance line per mode (mode name + Chinese label) and a memory line. Active sample:
+Render contract (at most 8 bounded lines): `renderCard` titles the card `[omd] 编排状态`; active = five Chinese-labeled lines (模式/阶段/轮次/代理/记忆 = mode/phase/round/agents/memory) plus an optional 故事 line (when the primary mode carries current_story; takes priority over the footnote) plus a minor-modes footnote (「另有 N 个…」, only when the line budget allows); when stale it appends 「状态超过阈值未更新（stale；上次更新：<updatedAt>）」(threshold is per-mode config, not hardcoded); empty state = 「当前没有运行中的 omd 模式。」 plus one guidance line per mode (mode name + Chinese label + one-line launch example) and a memory line. Active sample:
 
 ```
 [omd] 编排状态
-模式: Ralph 循环（ralph）
+模式: ralph（Ralph 循环）
 阶段: exec
 轮次: 3
-任务: 2 个 agent
-记忆: 工作区 1 / 优先区 2 / 手动区 0
-另有 1 个模式：autopilot（自动驾驶）
-状态已超过 2 小时未更新（上次更新：2026-02-06T10:00:00.000Z）
+代理: 2 个活跃代理
+记忆: 永久 1 · 工作 2 · 手动 0
+故事: US-2
+状态超过阈值未更新（stale；上次更新：2026-02-06T10:00:00.000Z）
 ```
 
 Panel-private data plane (delivered only via `/oh-my-dsh/hud.json`, never on the MCP wire): `detail` ({primary, modes[]}, fresh-first, passing through label/current_phase/stale status fields), `modeCatalog` (the constant five-mode "mode name + Chinese label" catalog, single-sourced in lib — the client renders only what is sent), and `preset` (minimal/focused/full, default focused, from the dsh Config key hud.preset).

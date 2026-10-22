@@ -96,3 +96,9 @@
 - **verifier A**（omd_delegate 前台派发 omdd-mvj3ltja-7）：9 条验收命令重跑全 0；6 条抽查全支撑；指出一处行号精度 nit（runstate.js:5 → :5-6，已修）。
 - **verifier B**（后台 subagent a5775644）：9 条全 0；6 条抽查全支撑——并对「守卫跨行误杀」做了**新鲜实证复现**：`detectKeyword("这个怎么配置？\nralph: 跑任务")` 实测返回 null（真命令被误杀），对照组正常武装。缺陷从「代码推定」升级为「实测复现」。
 - 两名 verifier 共同确认：全程只读，未修改报告与检查器。
+
+## 修复记录（2026-10，全量 18/18 已修）
+
+- **P1×6**：①hook 守卫跨行误杀——行首锚定形态不再套疑问词守卫，「用 X」形态守卫窗口收口不跨行（tests/lib/hook.test.js 补两组正反例回归）；②伪 CAS——casWriteRunState 读-校验-写收进 withRunStateLock（lockfile open('wx') 原子原语 + 60s stale 锁接管），跨进程双写窗口闭合；③heartbeat 扫描失败 debug 静默 → warn 节流呈面（首次即告警，每 10 拍续报）；④hook 会话锚回落补 isHomeAnchor 同款守卫（拒绝落 ~/.omd）；⑤hud.json 加 Config `hudRoute=false` 关闭阀（README 配置表同步）；⑥守卫测试盲区随修复补齐。
+- **P2×12**：createPollingHud 重入防护；原子写 rename 失败清理孤儿 tmp；runstate conflictLine 闭包失真修正（日志带当前 expected）；tryGet 三拷贝单源化（lib/tryget.js）；registerCodeIntelTools 拆分（ast-grep 面独立成 codeintel-astgrep.mjs，23.9KB→18.0+6.9KB）；SAFE_ID 扩展校验 stateDir（禁绝对路径与 .. 段）；graph 声明式信任登记 README + --help 自带授权面提示；aggregateWorkers 有界并发化；HUD client 空转自适应退避（5s→≤30s，变化即复位）；protocol.test.js 弱断言改行锚定相等断言+负例。
+- 验证：npm test 全量 46 files / 555 tests 全绿；四处契约变更（graph-runner exit 2 分流、heartbeat 告警、HUD 卡标签、doctor 分解）均由守门测试锁定新契约。

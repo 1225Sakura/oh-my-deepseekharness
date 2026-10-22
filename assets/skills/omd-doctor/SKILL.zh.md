@@ -29,7 +29,7 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 | 角色卡 | **33** 个 `omd-agent-*`（名册见 `tests/assets/agents.test.js` 的 TIERS） | 技能目录中 `omd-agent-` 前缀条目 |
 | 命令 | **2**（`/omd-doctor`、`/omd-cancel`） | 命令列表 |
 | 插件内工具 | **4**（`omd_memory_set/get/delete` + `omd_delegate`） | 工具列表 |
-| MCP 工具 | **55** 个 `mcp__omd-state__*`（state×5、notepad×6、prd×4、handoff×3、team×16、trace×4、hud×2、codeintel×9、graph×6） | 工具列表前缀计数 |
+| MCP 工具 | **55** 个 `mcp__omd-state__*`（state×5、notepad×6、prd×4、handoff×3、team×16、trace×4、hud×2、codeintel×9、graph×6、codeintel-astgrep×0）——codeintel-astgrep.mjs 是拆出的 ast-grep 实现模块，工具注册仍在 codeintel.mjs | 工具列表前缀计数 |
 
 任何缺口 → ❌ 并列出缺失名字（修复：检查 `assets/skills` / `assets/agents` 是否完整随包发布、加载器注册是否带 `source: 'oh-my-dsh'`；检查 cordis.patch.yml 挂载）。**记忆工具（omd_memory_*）缺失时**：检查 omd 的 `inject` 声明是否含 `storage`、当前 profile 是否 base-backed（dsh-base 挂载了 dsh-storage 三件套——非 base profile 缺 storage 属预期降级）——这是 omd 声明/profile 层问题，不是宿主缺陷。
 
@@ -37,7 +37,7 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 
 - 读生效的 omd Config：`tiers.low/medium/high` 与 `roleOverrides`——生效值从系统提示词 omd 协议段的模型路由表读取（模型无法直接读插件 Config）。
 - 逐个校验：`inherit` 永远合法；其他值必须能被宿主 LLM 服务解析为模型标识符。
-- **实测校验（U9 2g-C，勿只做静态判断）**：用 `list_subagent_models` 实测——先列 provider，再逐 provider 列模型名录，最后对每个非 `inherit` 的 tiers/roleOverrides 值做精确 model 探测；报 "not allowed" / 不在名录 → 按不可解析处理。实证教训（2026-10-12，dsh 0.2.0-rc.2）：默认 `glm-5.3-flash` 不在本部署 sakura provider 允许名录（仅 k3/MiniMax-M3），`omd_delegate` 硬路由两次以 `stopReason=error` 终止；绕过路径=subagent 继承主会话或显式传部署允许的 provider/model。
+- **实测校验（U9 2g-C，勿只做静态判断）**：用 `list_subagent_models` 实测——先列 provider，再逐 provider 列模型名录，最后对每个非 `inherit` 的 tiers/roleOverrides 值做精确 model 探测；报 "not allowed" / 不在名录 → 按不可解析处理。实证教训（2026-10-12，dsh 0.2.0-rc.2，**0.4.5 之前**——当时 tiers 默认写死；现行默认已是 `inherit`）：当时的默认 `glm-5.3-flash` 不在本部署 sakura provider 允许名录（仅 k3/MiniMax-M3），`omd_delegate` 硬路由两次以 `stopReason=error` 终止；绕过路径=subagent 继承主会话或显式传部署允许的 provider/model。
 - 不可解析 → ❌（修复：改正插件配置中的标识符，或设为 `inherit` 跟随主会话模型）。附 MVP 注意：模型路由只在 `workflow`/`omd_delegate` 路径硬生效；`subagent` 继承主会话（软路由），所以标识符错误在该路径是降级而非崩溃。
 
 ### 4. MCP server 冒烟

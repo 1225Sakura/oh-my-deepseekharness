@@ -56,6 +56,24 @@ test('detectKeyword：裸词/解释性提及/回显块不激活（B1 核心）',
   expect(detectKeyword('帮我做个 code review 好吗')).toMatchObject({ target: 'review', hook: { injectGuide: true, arm: false } })
 })
 
+// ---- 刻板审查回归（报告二：守卫跨行误杀，verifier 实测复现后修复）----
+test('detectKeyword：行首锚定不被上一行疑问词误杀（跨行回望修复）', () => {
+  // 修复前：m.index=行首，slice(m.index-8) 读到上一行尾「配置？」→ 误判解释性提及直通
+  expect(detectKeyword('这个怎么配置？\nralph: 跑任务')).toMatchObject({ target: 'ralph', hook: { arm: true } })
+  expect(detectKeyword('如何使用它呢？\nralph: 继续')).toMatchObject({ target: 'ralph' })
+  // 单行无疑问前缀照常武装
+  expect(detectKeyword('ralph: 跑任务')).toMatchObject({ target: 'ralph' })
+})
+
+test('detectKeyword：「用 X」形态守卫窗口不跨行；本行疑问词仍拦截', () => {
+  // 上一行疑问词不伤本行显式调用
+  expect(detectKeyword('这个怎么配置？\n用 ralph 跑任务')).toMatchObject({ target: 'ralph' })
+  // 本行疑问词仍视为解释性提及（守卫主防线不变）
+  expect(detectKeyword('如何用 ralph 配置？')).toBeNull()
+  expect(detectKeyword('怎么用 ralph 跑？')).toBeNull()
+})
+
+
 test('stripNonActivating：保留普通文本，剥离回显块/围栏/行内码/URL/裸反引号（B1 扩展）', () => {
   const s = stripNonActivating('前文 `code ralph` 中 https://x/ralph 尾\n```\nfenced ralph\n```\n回显 [RALPH LOOP - ITERATION 3] 与 [MAGIC KEYWORD: ralph] 残留 ` 反引号')
   expect(s).not.toContain('ralph')

@@ -1,6 +1,6 @@
 # oh-my-dsh (omd)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 552 passed](https://img.shields.io/badge/tests-552%20passed-brightgreen)](./tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 555 passed](https://img.shields.io/badge/tests-555%20passed-brightgreen)](./tests)
 
 **DeepSeek Harness 的多智能体编排层** —— OMC / OMX 编排理念的 dsh 宿主适配实现。
 Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), adapted from:
@@ -8,21 +8,23 @@ Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepse
 - [oh-my-claudecode (OMC)](https://github.com/Yeachan-Heo/oh-my-claudecode) — Claude Code 编排层
 - [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) — Codex 编排层
 
-omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 42 个 skill + 33 个 `omd-agent-*` 角色卡（共 75 个技能目录条目）与 2 个斜杠命令、挂载内置 MCP server 提供 55 个状态/记忆/协调/代码智能/graph 运行时工具。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team 由 `lib/team.js` 领队运行时驱动（阶段状态机 + 队员 UUID 生命周期 + mailbox + heartbeat + merge 计划，无 tmux——dsh 无承载面）。
+omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 42 个 skill 目录 + 33 个 `omd-agent-*` 角色卡（66 个双语文件，会话技能目录共 75 条）与 2 个斜杠命令、挂载内置 MCP server 提供 55 个状态/记忆/协调/代码智能/graph 运行时工具。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team 由 `lib/team.js` 领队运行时驱动（阶段状态机 + 队员 UUID 生命周期 + mailbox + heartbeat + merge 计划，无 tmux——dsh 无承载面）。
 
 ---
 
 ## 安装 / Install
 
 ```bash
-# 发布后（npm 包名 @sakura12/oh-my-deepseekharness）
-dsh plugin --profile <name> add @sakura12/oh-my-deepseekharness
+# 发布后（npm 包名 @sakura12/oh-my-deepseekharness——注意裸 oh-my-dsh 是 npm 上另一个已停更的包）
+dsh plugin --profile <profile> add @sakura12/oh-my-deepseekharness
 
 # 本地开发（指向本仓库路径；以你的检出路径替换）
 dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 ```
 
-要求：Node.js ≥ 22.19，dsh 宿主 0.1.7-rc.1+（session format v4）；0.4.3 起声明兼容 dsh 0.2.0-rc 线（0.2.0-rc.2 实测全绿，集成面证据台账见 .omd/plans/dsh-02-compat-evidence.md）。所有 `@deepseek-ai/*` 依赖均为宿主义务（peerDependencies，缺失自动降级，见下文「依赖边界」）。可选能力依赖（optionalDependencies，缺席显式降级不阻断）：`@ast-grep/napi`（ast_grep_* 工具）、`vscode-jsonrpc` / `vscode-languageserver-protocol` / `vscode-uri`（lsp_* 工具）。
+> `<profile>` 是 dsh 的隔离配置/插件组合单元（本机如 `web`）；`dsh plugin` 实为转发 pnpm 到该 profile 目录，add/remove 均用 npm 包名。**装完必须重启或重载 profile**（重开 `dsh web`）再开新会话，插件树才会重载生效——然后在会话里输入「setup omd」走安装向导，或直接 `/omd-doctor` 验装。
+
+要求：Node.js ≥ 22.19；dsh 宿主兼容范围以 package.json 的 peerDependencies 为权威（0.1.2 / 0.1.5 / 0.1.7 三条 0.1.x 线与 0.2.0-rc 线；0.2.0-rc.2 实测全绿）。兼容性质证的逐条证据台账是仓内审计产物（`.omd/plans/`，gitignored），不随 npm 包发布。所有 `@deepseek-ai/*` 依赖均为宿主义务（peerDependencies，缺失自动降级，见下文「依赖边界」）。可选能力依赖（optionalDependencies，缺席显式降级不阻断）：`@ast-grep/napi`（ast_grep_* 工具）、`vscode-jsonrpc` / `vscode-languageserver-protocol` / `vscode-uri`（lsp_* 工具）。
 
 验装：安装后在会话中输入 `/omd-doctor`。
 
@@ -35,17 +37,19 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 | 模式 | 一句话示例 | 说明 |
 |---|---|---|
 | **autopilot** | `autopilot 帮我做一个 CLI 字数统计工具` | 自然语言触发，goal 驱动的全流程自动编排（访谈→规划→执行→双评审门→沉淀检查点） |
-| **ralph** | `ralph: 把 README 的测试徽章数字同步到当前实际值` | 显式触发（`ralph:` 前缀），PRD + 证据契约的迭代循环，前台阻塞 |
+| **ralph** | `ralph: 把 README 的测试徽章数字同步到当前实际值` | 显式触发：行首 `ralph:` 或「用 ralph …」（锚定守卫防误触发；`/ralph` 斜杠形态经技能面加载，同效）；PRD + 证据契约的迭代循环，前台阻塞 |
 | **team** | `用 team 调研插件市场生态并出报告` | 无关键词，只能显式调用；五阶段流水线 + 领队运行时（`team_phase_transition` 状态机 / `team_register_worker` 生命周期 / `team_mail_*` 信箱 / `team_heartbeat_scan` / `team_merge_plan`） |
 
-取消与诊断：
+仅有的两个斜杠命令与取消/诊断入口：
 
 | 操作 | 命令 |
 |---|---|
 | 取消当前模式 | 输入 `cancelomd`（或 `stopomd`），或斜杠命令 `/omd-cancel` |
 | 验装诊断 | `/omd-doctor`（注册计数 / Config / MCP 冒烟 / `.omd` 可写性） |
 
-> 退役关键词 `ultrawork` / `ulw` / `uw` / `ccg` 不再触发，命中时会提示改用 autopilot 或 team。
+> 退役关键词 `ultrawork` / `ulw` / `uw` / `ccg` 不再触发，命中时会提示改用 autopilot 或 team（如 `autopilot <你的任务>`）。
+>
+> 触发词 `code review` / `代码评审` 命中的是**行内指引块**（轻量提示），不是完整 review 技能流程；要完整评审请显式调用（如「用 review 技能评审这次改动」）。
 
 ---
 
@@ -79,12 +83,13 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 | `tiers.medium` | 同上，默认 `'inherit'` | 同上 |
 | `tiers.high` | 同上，默认 `'inherit'` | 同上 |
 | `roleOverrides` | `dict<string>`，默认 `{}` | 角色级覆盖，优先于 tiers，如 `{ "omd-agent-code-reviewer": "deepseek/deepseek-reasoner" }` |
-| `stateDir` | 字符串，默认 `'.omd'` | 项目状态目录名 |
+| `stateDir` | 字符串，默认 `'.omd'` | 项目状态目录名（改名注意：协议与技能文档多处按 `.omd/` 举例，改名后文档示例同步失效，非必要不建议改） |
 | `autopilot.maxIterations` | 自然数 ≥1，默认 `10` | autopilot 最大轮次（`create_goal` 的 max_goal_rounds 默认值） |
 | `autopilot.maxQaCycles` | 自然数 ≥1，默认 `5` | QA 循环上限 |
 | `autopilot.maxValidationRounds` | 自然数 ≥1，默认 `3` | re-validation 轮次上限 |
 | `team.heartbeatIntervalMs` | 自然数，默认 `60000` | 插件侧 heartbeat 周期检测间隔（0=关闭定时器；`team_heartbeat_scan` 按需扫描仍可用） |
 | `team.staleAfterMs` | 自然数 ≥1，默认 `300000` | 队员无心跳 stale 阈值 |
+| `hudRoute` | 布尔，默认 `true` | HUD 数据路由 `/oh-my-dsh/hud.json` 开关（安全阀：该 loopback 只读路由无鉴权、`?cwd=` 可读任意已存在目录的 `.omd` 摘要——多用户/非可信本机环境可关闭；MCP `hud_render` 不受影响） |
 | `codeIntel.astGrep` | 布尔，默认 `true` | ast_grep_* 开关（`@ast-grep/napi` 缺席时工具显式报错） |
 | `codeIntel.lspServers` | `dict`，默认 `{}` | LSP 注册表：`{ <name>: { command, args?, languages?, env? } }`——语言服务器本体由用户环境提供 |
 
@@ -153,20 +158,21 @@ oh-my-dsh:
 ## 降级与依赖边界 / Graceful Degradation
 
 - **零第三方 dsh 插件依赖**：不依赖任何非 `@deepseek-ai/*` 官方插件。
-- 启动时 probe 探测能力（core / storage / mcpServer / hooksBridge / delegate / keywordHook / teamHeartbeat / hudRoute / codeIntel），结果渲染进系统提示词的能力矩阵，降级时协议指导模型走文件直读兜底：
+- 启动时能力探测与注册结果汇总渲染进系统提示词的能力矩阵（其中 core/storage/hooksBridge 三项由 probe.js 实测探测；mcpServer/delegate/keywordHook/teamHeartbeat/hudRoute/codeIntel 六项为 apply 注册结果的追加记录——「注册成功」不等于「探测通过」），降级时协议指导模型走文件直读兜底：
   - 核心 inject 服务（tools/skills/systemPrompt/commands）缺失 → 插件启动即报错（唯一硬依赖）；
   - `storage` 缺失 → 记忆工具不注册；
   - MCP server 挂载失败 → `state_*`/`notepad_*`/`prd_*`/`handoff_*`/`team_*`/`trace_*`/`hud_*`/`graph_*` 不可用，协议降级为直接读写 `.omd/` 文件；
   - `@ast-grep/napi` 缺失 → `ast_grep_*` 显式报错（probe 记 `codeIntel: unavailable`），LSP 不受影响；
   - `webServer` 缺席（CLI 会话）→ HUD 数据路由不注册（probe 记 `hudRoute: skipped`，MCP `hud_render` 同款可用）；
   - 运行 `/omd-doctor` 可随时查看当前降级状态。
+- **graph 运行时授权面（已知暴露面登记）**：descriptor 内 command 节点是经 pwsh 执行的任意 shell 行，`bin/graph-runner.mjs` 与 MCP `graph_run` 同权——只运行你撰写或信任的 descriptor。MVP 阶段为声明式信任（无 allowlist/沙箱），登记于 docs/code-quality-logic-review.md 安全节。
 
 ---
 
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（45 files / 552 tests）
+npm test            # vitest 全量（46 files / 555 tests）
 npm run test:watch
 ```
 

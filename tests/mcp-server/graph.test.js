@@ -396,13 +396,15 @@ test('bin/graph-runner.mjs：agent 图 park（exit 0 waiting）+ 护栏前缀与
     expect(result2.exit_code).toBe(0)
     expect(result2.status).toBe('waiting')
 
-    // 用法错误（缺参）→ 顶层 catch 兜底 exit 70。
+    // 用法错误（缺参）→ 人话 stderr + exit 2（刻板审查修复：与真崩溃 exit 70 分流）
     const misuse = spawnSync(process.execPath, [binPath], { encoding: 'utf8', timeout: 30000 })
-    expect(misuse.status).toBe(70)
-    const crashResult = JSON.parse(
-      misuse.stdout.trim().split('\n').pop().slice('GRAPH_RUN_RESULT '.length),
-    )
-    expect(crashResult.exit_code).toBe(70)
+    expect(misuse.status).toBe(2)
+    expect(misuse.stderr).toContain('缺必需参数')
+    expect(misuse.stdout).not.toContain('GRAPH_RUN_RESULT')
+    // 显式 --help → 用法打印 + exit 0
+    const help = spawnSync(process.execPath, [binPath, '--help'], { encoding: 'utf8', timeout: 30000 })
+    expect(help.status).toBe(0)
+    expect(help.stdout).toContain('--descriptor')
   } finally { await rm(cwd, { recursive: true, force: true }) }
 }, 60000)
 

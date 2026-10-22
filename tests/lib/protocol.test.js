@@ -25,8 +25,15 @@ test('renderProtocol 输出包含路由表、文本守卫、能力矩阵、委�
   const probe = { core: { status: 'ok' }, storage: { status: 'unavailable' } }
   const roles = [{ name: 'omd-agent-explore', tier: 'low' }, { name: 'omd-agent-planner', tier: 'high' }]
   const text = renderProtocol({ config, probeReport: probe, roles })
-  for (const s of ['cancelomd', 'ralph', '什么是', '能力矩阵', 'unavailable', 'omd-agent-explore', 'glm-5.3-flash', 'inherit', 'leaf-guard', 'state_write', '互斥'])
+  for (const s of ['cancelomd', '什么是', '能力矩阵', 'unavailable', 'leaf-guard', 'state_write', '互斥'])
     expect(text).toContain(s)
+  // 刻板审查加固（报告二：短词子串可被无关叙述蒙混）——路由表/模型表行按行锚定做相等断言
+  expect(text).toMatch(/^\| \d+ \| ralph \| ralph \| explicit \|$/m)
+  expect(text).toMatch(/^\| omd-agent-explore \| low \| glm-5\.3-flash \|$/m)
+  expect(text).toMatch(/^\| omd-agent-planner \| high \| glm-5\.3-flash \|$/m)
+  // 负例（守门必要面）：模型列渲染缺失时上行不得通过
+  const noRoles = renderProtocol({ config, probeReport: probe, roles: [] })
+  expect(noRoles).not.toMatch(/^\| omd-agent-explore \| low \|/m)
 })
 
 test('S8-C1/C2：协议路由表注记 omd_delegate 硬路由语义（档位钳制+不可用 id 显式报错）', () => {

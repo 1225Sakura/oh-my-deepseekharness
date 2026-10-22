@@ -50,7 +50,7 @@ test('周期扫描：scan 返回的告警行全部呈面 logger.warn；dispose �
   expect(ctx.warns.length).toBe(before) // dispose 后定时器已回收
 })
 
-test('扫描抛错静默降级（下周期重试，不阻断宿主）', async () => {
+test('扫描抛错节流告警降级（下周期重试，不阻断宿主；报告二修复：debug 静默→warn 节流呈面）', async () => {
   const ctx = fakeCtx()
   let calls = 0
   registerHeartbeatTimer(ctx, {
@@ -61,6 +61,9 @@ test('扫描抛错静默降级（下周期重试，不阻断宿主）', async ()
   const deadline = Date.now() + 2000 // 全量并发下 50ms 可能饿死 interval tick——轮询等待，断言强度不变
   while (calls < 2 && Date.now() < deadline) await sleep(10)
   expect(calls).toBeGreaterThanOrEqual(2) // 抛错后仍在周期重试
-  expect(ctx.warns).toHaveLength(0)
+  // 新契约：首次失败即 warn 呈面（节流到每 10 拍一次），不再静默失明
+  expect(ctx.warns.length).toBeGreaterThanOrEqual(1)
+  expect(ctx.warns[0]).toContain('heartbeat 扫描连续失败')
+  expect(ctx.warns.length).toBeLessThanOrEqual(1) // 2~9 次失败只 warn 首次（节流生效）
   dispose()
 })

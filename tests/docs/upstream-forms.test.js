@@ -27,7 +27,7 @@ function parseBreakdown(text, marker) {
   if (!m) return null
   const out = {}
   for (const part of m[1].split(/[,、]/)) {
-    const kv = part.trim().match(/^([a-z]+)×(\d+)$/)
+    const kv = part.trim().match(/^([a-z][a-z0-9-]*)×(\d+)$/) // 分量名允许连字符（codeintel-astgrep 拆分模块）
     if (kv) out[kv[1]] = Number(kv[2])
   }
   return out

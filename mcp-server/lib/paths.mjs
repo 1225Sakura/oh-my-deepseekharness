@@ -1,7 +1,14 @@
 // mcp-server/lib/paths.mjs
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 
 const SAFE_ID = /^[A-Za-z0-9_-]+$/
+
+/** stateDir 安全校验（刻板审查修复：此前不进 SAFE_ID 体系，'../x' 可逃逸工作区）。 */
+function assertSafeStateDir(stateDir) {
+  if (typeof stateDir !== 'string' || stateDir.length === 0 || isAbsolute(stateDir) || stateDir.split(/[\\/]/).includes('..'))
+    throw new Error(`unsafe stateDir: ${String(stateDir)}（须为工作区内的相对目录名，禁绝对路径与 .. 段）`)
+  return stateDir
+}
 
 /** 统一输出 POSIX 分隔符（Windows 上 join 产生 \；Node 文件 API 均接受 /，跨平台记录更可移植）。 */
 const pjoin = (...segs) => join(...segs).replaceAll('\\', '/')
@@ -12,6 +19,7 @@ const pjoin = (...segs) => join(...segs).replaceAll('\\', '/')
  */
 export function omdPaths({ cwd, stateDir = '.omd', sessionId }) {
   if (!SAFE_ID.test(sessionId)) throw new Error(`unsafe sessionId: ${sessionId}`)
+  assertSafeStateDir(stateDir)
   const root = pjoin(cwd, stateDir)
   const sessionDir = pjoin(root, 'state', 'sessions', sessionId)
   return {

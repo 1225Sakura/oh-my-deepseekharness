@@ -45,7 +45,8 @@ test('活跃模式 + notepad 条目 → 五要素正确派生', async () => {
     expect(r.summary.todo).toMatchObject({ working: 1, priority: 1, manual: 0 })
     expect(r.card).toContain('模式: team（团队）')            // AC3 中文标签卡
     expect(r.card).toContain('轮次: 3')
-    expect(r.card).toContain('任务: 2 个活跃代理')
+    expect(r.card).toContain('代理: 2 个活跃代理')
+    expect(r.card).toContain('故事: US-2')                // 五要素 story 不再缺席（报告一 #87）
     expect(r.card).toContain('记忆: 永久 1 · 工作 1 · 手动 0')
     expect(r.card.split('\n').length).toBeLessThanOrEqual(8)
     const s = await hud.summary({ cwd })
