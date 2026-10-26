@@ -107,9 +107,11 @@ const MAP = {
   'omd:docs/usability-humanization-review.md': ['D16'],
   'omd:docs/code-quality-logic-review.md': ['D16'],
   'omd:docs/graph-runtime-review.md': ['D16'],
+  'omd:docs/plugin-audit-2026-10-26.md': ['D16'],
   // scripts/ + bin/（逐文件规则）
   'omd:scripts/audit-dimension-closure.mjs': ['D16'],
   'omd:scripts/audit-upstream-forms.mjs': ['D16'],
+  'omd:scripts/install-local.ps1': ['D16'],
   'omd:bin/graph-runner.mjs': ['D14'],
   // reference/oh-my-claudecode 顶层（按名取仓；快照 v5.7.0 实测 32 目录，逐目录规则）
   'ref:oh-my-claudecode/.claude-plugin': ['D8'],

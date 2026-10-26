@@ -275,7 +275,7 @@
 
 ## §6 映射表（= 脚本 MAP 键集，逐字一致；L1e 互断对照面）
 
-> 本表行集与 `scripts/audit-dimension-closure.mjs` 的 MAP 键集**逐字一致**（共 114 键）；脚本为机器权威，本表为人读面。改动协议见 §5-6。
+> 本表行集与 `scripts/audit-dimension-closure.mjs` 的 MAP 键集**逐字一致**（共 116 键）；脚本为机器权威，本表为人读面。改动协议见 §5-6。
 
 | 映射键（前缀规则；以 `/` 结尾者为目录级前缀） | 维度 |
 |---|---|
@@ -347,8 +347,10 @@
 | `omd:docs/usability-humanization-review.md` | D16 |
 | `omd:docs/code-quality-logic-review.md` | D16 |
 | `omd:docs/graph-runtime-review.md` | D16 |
+| `omd:docs/plugin-audit-2026-10-26.md` | D16 |
 | `omd:scripts/audit-dimension-closure.mjs` | D16 |
 | `omd:scripts/audit-upstream-forms.mjs` | D16 |
+| `omd:scripts/install-local.ps1` | D16 |
 | `omd:bin/graph-runner.mjs` | D14 |
 | `ref:oh-my-claudecode/.claude-plugin` | D8 |
 | `ref:oh-my-claudecode/.clawhip` | D11 |
