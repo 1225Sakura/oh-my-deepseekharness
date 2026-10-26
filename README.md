@@ -26,7 +26,15 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 
 要求：Node.js ≥ 22.19；dsh 宿主兼容范围以 package.json 的 peerDependencies 为权威（0.1.2 / 0.1.5 / 0.1.7 三条 0.1.x 线与 0.2.0-rc 线；0.2.0-rc.2 实测全绿）。兼容性质证的逐条证据台账是仓内审计产物（`.omd/plans/`，gitignored），不随 npm 包发布。所有 `@deepseek-ai/*` 依赖均为宿主义务（peerDependencies，缺失自动降级，见下文「依赖边界」）。可选能力依赖（optionalDependencies，缺席显式降级不阻断）：`@ast-grep/napi`（ast_grep_* 工具）、`vscode-jsonrpc` / `vscode-languageserver-protocol` / `vscode-uri`（lsp_* 工具）。
 
-验装：安装后在会话中输入 `/omd-doctor`。
+验装：安装后在会话中输入 `/omd-doctor`（不确定可用入口时先 `/omd` 看速查）。
+
+**开发改动 → GUI 生效（install-local）**：profile 依赖若从 npm 解析（如 `^0.4.9`），仓库里的改动不会到达运行中的 GUI（2026-10-26 审查实证：实装 0.4.9 vs 仓库 0.5.1 漂移）。闭合链路：
+
+```powershell
+pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重启 dsh web
+```
+
+> 注意：该脚本是直接覆盖 profile `node_modules` 的快装路径；下次在 profile 里跑 pnpm install/add 会被冲掉。长期方案是把 profile 依赖改为本地路径（`dsh plugin add <仓库路径>`）或发布新版。
 
 ---
 
@@ -158,7 +166,7 @@ oh-my-dsh:
 ## 降级与依赖边界 / Graceful Degradation
 
 - **零第三方 dsh 插件依赖**：不依赖任何非 `@deepseek-ai/*` 官方插件。
-- 启动时能力探测与注册结果汇总渲染进系统提示词的能力矩阵（其中 core/storage/hooksBridge 三项由 probe.js 实测探测；mcpServer/delegate/keywordHook/teamHeartbeat/hudRoute/codeIntel 六项为 apply 注册结果的追加记录——「注册成功」不等于「探测通过」），降级时协议指导模型走文件直读兜底：
+- 启动时能力探测与注册结果汇总渲染进系统提示词的能力矩阵（其中 core/storage 两项由 probe.js 实测探测；skills/mcpServer/delegate/keywordHook/teamHeartbeat/hudRoute/codeIntel/memoryTools/commands 九项为 apply 注册结果的追加记录——「注册成功」不等于「探测通过」），降级时协议指导模型走文件直读兜底：
   - 核心 inject 服务（tools/skills/systemPrompt/commands）缺失 → 插件启动即报错（唯一硬依赖）；
   - `storage` 缺失 → 记忆工具不注册；
   - MCP server 挂载失败 → `state_*`/`notepad_*`/`prd_*`/`handoff_*`/`team_*`/`trace_*`/`hud_*`/`graph_*` 不可用，协议降级为直接读写 `.omd/` 文件；

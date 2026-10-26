@@ -30,9 +30,10 @@ test('hudSnapshot：真实 .omd 状态 → 五要素摘要 + 至多 8 行卡 + d
     expect(snap.summary).toMatchObject({ mode: 'autopilot', round: 2, agents: 1 })
     expect(snap.summary.todo).toMatchObject({ working: 1 })
     expect(snap.card.split('\n').length).toBeLessThanOrEqual(8)  // B1′：恰 6 行 → ≤8
-    // AC5：顶层键集白名单锁定（U8 S2 扩为 10 键：∪ {detail, modeCatalog, preset, toolCalls, workers}）
+    // AC5：顶层键集白名单锁定（U8 S2 扩为 10 键；2026-10-26 审查 S5 扩为 11 键 ∪ {alerts}）
     expect(Object.keys(snap).sort())
-      .toEqual(['at', 'card', 'cwd', 'detail', 'modeCatalog', 'ok', 'preset', 'summary', 'toolCalls', 'workers'])
+      .toEqual(['alerts', 'at', 'card', 'cwd', 'detail', 'modeCatalog', 'ok', 'preset', 'summary', 'toolCalls', 'workers'])
+    expect(snap.alerts).toEqual([]) // 无 team 目录 → 空告警（ENOENT 不炸）
     expect(snap.detail.primary).toBe('autopilot')
     expect(snap.detail.modes[0]).toMatchObject({ mode: 'autopilot', sessionId: 's1', label: '自动驾驶' })
     expect(snap.detail.tier).toBe('ok') // U3/O2：tier 并入 detail 下发（lib 单源 → client 优先采用；顶层键集白名单不变）
@@ -207,4 +208,79 @@ test('registerHudRoute：webServer 缺席 → skipped 降级；在场 → exact 
   expect(registered).toEqual([{ kind: 'exact', path: HUD_ROUTE_PATH, handler: expect.any(Function) }])
   dispose()
   expect(disposals).toEqual([HUD_ROUTE_PATH]) // 插件重放/卸载摘路由
+})
+
+// ---------- 2026-10-26 审查 S5：alerts=对请求 cwd 的 heartbeat 实弹扫描 ----------
+
+test('S5 alerts：stale 队员 → alerts 非空且 tier 提升 warn；告警含 workerId', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    await writeRegistryFixture(cwd, 'run-stale', {
+      'w-old': { workerId: 'w-old', role: 'omd-agent-executor', status: 'running', spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:00:00.000Z' },
+      'w-done': { workerId: 'w-done', role: 'omd-agent-verifier', status: 'done', spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:00:00.000Z' },
+    }, '2026-01-02T00:00:00.000Z')
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.alerts.length).toBe(1) // 终态队员不报 stale
+    expect(snap.alerts[0]).toContain('stale 队员')
+    expect(snap.alerts[0]).toContain('w-old')
+    expect(snap.detail.tier).toBe('warn') // alerts 非空且原 tier=ok → 提升 warn
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('S5 alerts：全体队员终态 → alerts 空且 tier 不提升', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    await writeRegistryFixture(cwd, 'run-done', {
+      'w-1': { workerId: 'w-1', role: 'omd-agent-executor', status: 'done', spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:00:00.000Z' },
+    }, '2026-01-02T00:00:00.000Z')
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.alerts).toEqual([])
+    expect(snap.detail.tier).toBe('ok')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+// ---------- 2026-10-26 第二轮 S4：alerts 扩展（out-mail 老化 + graph stalled） ----------
+
+test('S4 out-mail 老化：领队信件超 staleAfterMs 未 ack → 告警行；graph 停滞 run → 告警行', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    // team run：registry + out-mail（老 ts 未 ack）
+    await writeRegistryFixture(cwd, 'run-mail', {
+      'w-1': { workerId: 'w-1', role: 'omd-agent-executor', status: 'done', spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:00:00.000Z' },
+    }, '2026-01-02T00:00:00.000Z')
+    const mailDir = join(cwd, '.omd', 'team', 'run-mail', 'mailbox', 'out')
+    await mkdir(mailDir, { recursive: true })
+    await writeFile(join(mailDir, 'w-1.jsonl'),
+      JSON.stringify({ seq: 1, ts: '2020-01-01T00:00:00.000Z', direction: 'out', from: 'leader', workerId: 'w-1', type: 'assign', text: '请处理 X', ack: false }) + '\n', 'utf8')
+    // graph run：合法九字段 descriptor 快照（hash 实算）+ journal（agent_pending 且 mtime 古老）
+    const { computeDescriptorHash } = await import('../../lib/graph/descriptor.js')
+    const desc = {
+      descriptor_version: 1, run_id: 'g-1', revision_id: 'rev-1', goal: 'g',
+      nodes: [{ id: 'n1', kind: 'agent', title: 'A', timeout_ms: 60000, max_attempts: 1, effect_policy: { policy: 'side_effect_free' }, instructions: 'do' }],
+      edges: [], entry_node_ids: ['n1'], concurrency_limit: 1, terminal_verification_node_id: 'n1',
+    }
+    const gHash = computeDescriptorHash(desc)
+    const gr = join(cwd, '.omd', 'graph-runs', 'g-1')
+    await mkdir(gr, { recursive: true })
+    await writeFile(join(gr, 'descriptor.json'), JSON.stringify({ ...desc, descriptor_hash: gHash }), 'utf8') // 封印态快照含 descriptor_hash（parseSealedGraphDescriptor 要求）
+    await writeFile(join(gr, 'journal.jsonl'), [
+      JSON.stringify({ seq: 1, ts: '2020-01-01T00:00:00.000Z', type: 'run_started', run_id: 'g-1', descriptor_hash: gHash }),
+      JSON.stringify({ seq: 2, ts: '2020-01-01T00:00:01.000Z', type: 'agent_pending', node_id: 'n1', attempt: 1 }),
+    ].join('\n') + '\n', 'utf8')
+    const old = new Date('2020-01-01T00:00:00.000Z')
+    await utimes(join(gr, 'journal.jsonl'), old, old)
+
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.alerts.some(a => a.includes('领队信件未应答'))).toBe(true)
+    expect(snap.alerts.some(a => a.includes('[graph]') && a.includes('g-1'))).toBe(true)
+    expect(snap.detail.tier).toBe('warn')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('S4 graph 目录缺席/新鲜 run → 无 graph 告警', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.alerts.filter(a => a.includes('[graph]'))).toEqual([])
+  } finally { await rm(cwd, { recursive: true, force: true }) }
 })

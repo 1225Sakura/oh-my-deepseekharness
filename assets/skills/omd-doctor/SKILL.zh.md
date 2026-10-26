@@ -58,7 +58,7 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 |---|---|---|
 | core（inject 四服务） | … | … |
 | `ctx.storage` 后端（domain API 形态校验） | … | … |
-| hooksBridge（二期前置，M3 关键词 hook——unavailable 不算降级） | … | … |
+| skills（assets 资产加载：目录不可读/零加载 → failure，不再静默） | … | … |
 | mcpServer（apply 动态挂载结果：mounted/failure） | … | … |
 | memoryTools / commands（注册结果） | … | 见下方"memoryTools render 闸"——**注册成功不等于可调用** |
 

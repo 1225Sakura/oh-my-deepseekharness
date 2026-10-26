@@ -58,7 +58,7 @@ Render the capability probe results (protocol-layer probe.js + apply-time additi
 |---|---|---|
 | core (four inject services) | … | … |
 | `ctx.storage` backend (domain-API shape check) | … | … |
-| hooksBridge (phase-2 prerequisite, M3 keyword hooks — unavailable is NOT a degradation) | … | … |
+| skills (assets loading: unreadable dir / zero assets → failure, no longer silent) | … | … |
 | mcpServer (apply-time dynamic mount result: mounted/failure) | … | … |
 | memoryTools / commands (registration outcome) | … | see "memoryTools render gate" below — **registration alone is NOT sufficient** |
 

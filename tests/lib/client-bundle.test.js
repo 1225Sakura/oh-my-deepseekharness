@@ -437,3 +437,67 @@ test('⑲ U6 S1 自适应组头：≥2 distinct runId → 组头行 + 缩进队�
   expect(single.flat).not.toContain('run …')
   expect(single.flat).toContain('w-ab12') // 队员行照常渲染
 })
+
+test('⑳ 2026-10-26 审查 S2：fetch 带会话 cwd（?cwd=encodeURIComponent(...)），拒绝静默锚宿主目录', async () => {
+  const code = await readFile(BUNDLE, 'utf8')
+  expect(code).toContain("'?cwd=' + encodeURIComponent(cwd)")
+  expect(code).toContain('未绑定会话工作区')
+  // 不再存在不带 cwd 的裸 fetch
+  expect(code).not.toContain("fetch(HUD_ROUTE + '?_='")
+})
+
+test('㉑ noCwd 分支：cwd 未知时显式提示（不取数、不静默回落）', async () => {
+  const { loaderCalls } = await loadBundle()
+  const react = fakeReact([null, null, true]) // snap=null err=null noCwd=true
+  const exports = materialize(loaderCalls[0], react)
+  const tree = exports.HudPanel() // 无 props：sessionId/useSessions 缺席 → cwd undefined
+  const flat = JSON.stringify(tree)
+  expect(flat).toContain('未绑定会话工作区')
+  expect(flat).not.toContain('加载中')
+})
+
+test('㉒ 2026-10-26 审查 S3：轮次/任务/故事缺失时显示「未上报」（不谎称 0/-）', async () => {
+  const { loaderCalls } = await loadBundle()
+  const s = snapPayload({
+    detail: { primary: 'ralph', modes: [modeEntry({ iteration: undefined, current_story: undefined, active_agents: undefined })] },
+  })
+  const { flat } = seedPanel(loaderCalls, s)
+  expect(flat).toContain('未上报')
+  expect(flat.match(/未上报/g).length).toBe(3) // 轮次/任务/故事三行各一次
+})
+
+test('㉓ 2026-10-26 审查 S3：idle 空态显示「正在监测目录」+ 实际 cwd', async () => {
+  const { loaderCalls } = await loadBundle()
+  const s = snapPayload({
+    summary: { mode: 'idle', round: null, story: null, agents: 0, todo: { working: 0, priority: 0, manual: 0 } },
+    detail: { primary: null, modes: [] },
+  })
+  const { flat } = seedPanel(loaderCalls, s)
+  expect(flat).toContain('正在监测目录')
+  expect(flat).toContain('D:/omd')
+})
+
+test('㉔ 2026-10-26 审查 S3：minimal preset 也带监测目录行', async () => {
+  const { loaderCalls } = await loadBundle()
+  const s = snapPayload({
+    preset: 'minimal',
+    summary: { mode: 'idle', round: null, story: null, agents: 0, todo: { working: 0, priority: 0, manual: 0 } },
+    detail: { primary: null, modes: [] },
+  })
+  const { flat } = seedPanel(loaderCalls, s)
+  expect(flat).toContain('正在监测')
+  expect(flat).toContain('D:/omd')
+})
+
+test('㉕ 2026-10-26 审查 S5：告警区——alerts 非空渲染 warn 色告警行；空数组显示无告警；键缺席（旧 server）跳过不炸', async () => {
+  const { loaderCalls } = await loadBundle()
+  const withAlerts = seedPanel(loaderCalls, snapPayload({ alerts: ['[team] stale 队员: w-x（executor）'] }))
+  expect(withAlerts.flat).toContain('告警')
+  expect(withAlerts.flat).toContain('stale 队员: w-x')
+  const warnNodes = findNodes(withAlerts.tree, (n) => n.props && n.props.style && n.props.style.color === 'var(--dsh-warn, #d90)')
+  expect(warnNodes.length).toBeGreaterThanOrEqual(1)
+  const empty = seedPanel(loaderCalls, snapPayload({ alerts: [] }))
+  expect(empty.flat).toContain('无 team 告警')
+  const legacy = seedPanel(loaderCalls, snapPayload({})) // 无 alerts 键（旧 server）
+  expect(legacy.flat).not.toContain('告警')
+})

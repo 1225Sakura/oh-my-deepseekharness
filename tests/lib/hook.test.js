@@ -22,9 +22,19 @@ test('detectKeyword：explicit 锚定形态命中（B1：返回带 hook 策略�
   expect(detectKeyword('ralph: 拉起循环')).toMatchObject({ target: 'ralph', hook: { arm: true } })
 })
 
-test('detectKeyword：natural 条目 hook 层直通（B1：语义守卫归模型层）', () => {
-  expect(detectKeyword('帮我做一个 demo 页面')).toBeNull()
-  expect(detectKeyword('如何使用 autopilot？')).toBeNull()
+test('detectKeyword：natural 条目中 deep-interview/ai-slop-cleaner 仍 hook 层直通（B1：语义守卫归模型层）', () => {
+  expect(detectKeyword('帮我深度访谈一下这个需求')).toBeNull() // 深度访谈非行首 → 不武装
+  expect(detectKeyword('深度访谈 这个需求')).toBeNull()         // deep-interview 无 hook 字段 → 直通
+})
+
+test('S3 messageStart：autopilot 句首调用武装（含中文触发词）', () => {
+  for (const t of ['autopilot 帮我做一个 demo', '帮我做一个落地页', '帮我实现一个 todo 应用', '全自动 重构这个模块', 'full auto build me a CLI'])
+    expect(detectKeyword(t), t).toMatchObject({ target: 'autopilot', intent: 'natural', hook: { arm: true, match: 'messageStart' } })
+})
+
+test('S3 messageStart：解释性/疑问/非句首提及不武装', () => {
+  for (const t of ['如何使用 autopilot？', 'autopilot 怎么用？', 'autopilot 是什么', '什么是 autopilot', '上文说 autopilot 怎样', '它能 autopilot 吗', 'autopilot 真的好用吗'])
+    expect(detectKeyword(t), t).toBeNull()
 })
 
 test('detectKeyword：多词命中按注册表数组序（cancel 独占优先）', () => {

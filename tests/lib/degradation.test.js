@@ -1,11 +1,12 @@
 // tests/lib/degradation.test.js
 // 计划任务 17 步骤 1：probe 各探测项降级路径回归防线。
-// 矩阵（M1.1 后）：core/storage/hooksBridge × unavailable/failure/timeout。
+// 矩阵（2026-10-26 审查后）：core/storage × unavailable/failure/timeout。
 // 注意 probe 的真实状态机（lib/probe.js）：
 //   - core      只有 ok/failure（CORE_SERVICES 缺失 → failure），且 apply 在探测前先抛错（§6.1 例外条款）
 //   - storage   ok/unavailable/failure/timeout 四态齐全（唯一有 timeout 的探测项；storage 已进 inject，缺失仍降级）
-//   - hooksBridge 只有 ok/unavailable（二期前置探测，不算降级——不进降级公告）
+//   - hooksBridge 探测残件已移除（宿主无 ctx.hooks 服务，构造性恒 unavailable 纯噪音）
 //   - mcpClient 探测行已删除（服务不存在，固有假阴性）；MCP 真实信号是 probeReport.mcpServer
+//   - skills    资产零加载/目录不可读 → failure（2026-10-26 审查 S4：原 catch{} 静默已修）
 import { test, expect, beforeEach } from 'vitest'
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -26,7 +27,6 @@ function mockCtx({ storage } = {}) {
     on: () => {},
   }
   if (storage !== undefined) ctx.storage = storage
-  // hooksBridge 有意缺席（unavailable 是它唯一的非 ok 态）
   return { ctx, reg }
 }
 
@@ -64,7 +64,7 @@ test('core 缺 systemPrompt：apply 抛错（§6.1 例外条款，断言语义�
 test('core failure 时 renderProtocol 输出对应降级行', () => {
   const report = {
     core: { status: 'failure', detail: '核心 inject 服务缺失，插件无法工作' },
-    storage: { status: 'ok' }, hooksBridge: { status: 'ok' },
+    storage: { status: 'ok' },
   }
   const text = renderProtocol({ config: Config.parse({}), probeReport: report, roles: [{ name: 'omd-agent-r', tier: 'low' }] })
   expect(text).toContain('| core | failure |')
@@ -106,23 +106,32 @@ test('storage timeout：探测超时归 timeout 态，apply 不崩，协议含 t
   expect(protocolText(reg)).toContain('| storage | timeout |')
 })
 
-// ---------- hooksBridge（二期前置，不算降级） ----------
+// ---------- hooksBridge 残件移除（2026-10-26 审查 S4） ----------
 
-test('hooksBridge unavailable：协议矩阵含行但不进降级公告（M3 前置项）', async () => {
+test('hooksBridge 探测残件已移除：report 无该行，协议矩阵与降级公告均无', async () => {
   const { ctx, reg } = mockCtx({ storage: undefined })
+  const report = await probeCapabilities(ctx)
+  expect('hooksBridge' in report).toBe(false)
+  expect('mcpClient' in report).toBe(false)   // M1.1：固有假阴性行已删
   await apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
-  // 矩阵照常展示
-  expect(protocolText(reg)).toContain('| hooksBridge | unavailable |')
-  // 但动态 context 的降级公告过滤它（否则每轮系统提示词带一条无意义的 ⚠️）
-  expect(reg.contexts[0].text()).not.toContain('hooksBridge')
+  expect(protocolText(reg)).not.toContain('hooksBridge')
 })
 
-test('hooksBridge 可用时归 ok', async () => {
+// ---------- skills 资产加载可观测（2026-10-26 审查 S4：原 catch{} 静默零 skill 已修） ----------
+
+test('skills 资产目录不可读：probeReport.skills=failure 且进协议矩阵与降级公告', async () => {
+  const { ctx, reg } = mockCtx({ storage: undefined })
+  const { probeReport } = await setup(ctx, Config.parse({}), { assetsRoot: '/nonexistent', ...OPTS() })
+  expect(probeReport.skills.status).toBe('failure')
+  expect(probeReport.skills.detail).toContain('目录不可读')
+  expect(protocolText(reg)).toContain('| skills | failure |')
+  expect(reg.contexts[0].text()).toContain('skills') // 降级公告可见（真降级，不静默）
+})
+
+test('skills 资产齐备：probeReport.skills=ok', async () => {
   const { ctx } = mockCtx({ storage: undefined })
-  ctx.hooks = {}
-  const report = await probeCapabilities(ctx)
-  expect(report.hooksBridge.status).toBe('ok')
-  expect('mcpClient' in report).toBe(false)   // M1.1：固有假阴性行已删
+  const { probeReport } = await setup(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
+  expect(probeReport.skills.status).toBe('ok')
 })
 
 test('mcpServer mounted（ok）不进降级公告', async () => {

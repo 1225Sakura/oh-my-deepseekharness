@@ -27,6 +27,7 @@ function makeCtx() {
               name: spec.name,
               table: () => ({
                 get: (k) => store.get(k),
+                keys: () => store.keys(), // 宿主 KvTableImpl 真实 API（S7 list 工具消费）
                 async put(k, v) { store.set(k, v) },
                 async delete(k) { const had = store.has(k); store.delete(k); return had },
               }),
@@ -39,10 +40,29 @@ function makeCtx() {
   }
 }
 
-test('注册三个工具且 output schema 不含可空字段陷阱', async () => {
+test('注册四个工具且 output schema 不含可空字段陷阱', async () => {
   const { ctx, tools } = makeCtx()
   await registerMemoryTools(ctx, (x) => x)
-  expect(tools.map(t => t.name).sort()).toEqual(['omd_memory_delete', 'omd_memory_get', 'omd_memory_set'])
+  expect(tools.map(t => t.name).sort()).toEqual(['omd_memory_delete', 'omd_memory_get', 'omd_memory_list', 'omd_memory_set'])
+})
+
+test('S7 list：枚举本项目 key（排序 + 项目隔离 + 空态文案）', async () => {
+  const { ctx, tools } = makeCtx()
+  await registerMemoryTools(ctx, (x) => x)
+  const set = tools.find(t => t.name === 'omd_memory_set').execute
+  const list = tools.find(t => t.name === 'omd_memory_list').execute
+  await set({ projectPath: 'D:\\omd', key: 'b-key', value: 'v1' })
+  await set({ projectPath: 'D:\\omd', key: 'a-key', value: 'v2' })
+  await set({ projectPath: '/other', key: 'x-key', value: 'v3' }) // 他项目不混入
+  const r = await list({ projectPath: 'D:\\omd' })
+  expect(r.ok).toBe(true)
+  expect(JSON.parse(r.value)).toEqual(['a-key', 'b-key']) // 排序 + 去哈希前缀
+  const empty = await list({ projectPath: '/nowhere' })
+  expect(JSON.parse(empty.value)).toEqual([])
+  // render：可发现面文案
+  const listTool = tools.find(t => t.name === 'omd_memory_list')
+  expect(listTool.output.render({ projectPath: 'D:\\omd' }, r)[0].text).toContain('a-key')
+  expect(listTool.output.render({ projectPath: '/nowhere' }, empty)[0].text).toContain('暂无')
 })
 
 test('set/get/delete 按项目路径哈希分键', async () => {
@@ -194,7 +214,7 @@ test('宿主 defineTool 包裹后调 render 不抛 TypeError: userRender（修�
   // Phase 2：fixed 变体（三工具均调用）——不得抛错，且返回非空文本。
   const fixedCtxBag = makeCtx()
   await registerMemoryTools(fixedCtxBag.ctx, defineTool)
-  expect(fixedCtxBag.tools.length).toBe(3)
+  expect(fixedCtxBag.tools.length).toBe(4)
   for (const sample of RENDER_SAMPLES) {
     const t = fixedCtxBag.tools.find((x) => x.name === sample.name)
     expect(t, `fixed tool ${sample.name} registered`).toBeDefined()

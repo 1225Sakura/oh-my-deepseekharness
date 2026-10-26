@@ -17,14 +17,14 @@ test('B1: 可选服务属性访问抛错时 probe 归 unavailable 而不崩', as
     tools: {}, skills: {}, systemPrompt: {}, commands: {},
     get storage() { throw new Error('cannot get property "storage" without inject') },
     get mcpClient() { throw new Error('cannot get property "mcpClient" without inject') },
-    get hooks() { throw new Error('cannot get property "hooks" without inject') },
   }
   const report = await probeCapabilities(ctx)
   expect(report.core.status).toBe('ok')
   expect(report.storage.status).toBe('unavailable')
   // M1.1：mcpClient 探测行已删除（ctx.mcpClient 服务不存在，固有假阴性）
   expect('mcpClient' in report).toBe(false)
-  expect(report.hooksBridge.status).toBe('unavailable')
+  // 2026-10-26 审查 S4：hooksBridge 残件探测行已移除（宿主无 ctx.hooks，恒 unavailable 纯噪音）
+  expect('hooksBridge' in report).toBe(false)
 })
 
 // ---------- M3：cordis 重放（再次 apply）必须重新探测 ----------
