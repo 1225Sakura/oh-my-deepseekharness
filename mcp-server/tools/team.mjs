@@ -5,9 +5,10 @@
 // 写 run-state 快照（c6），关闭时用 `team_dispose` 两阶段拆除（c5）。
 // 路径在 c5 运行树内时自动走 c8 树内锚定（multirepo.writeTreeRunState）；非运行树走主仓。
 import { z } from 'zod'
-import { beginTeamRun, disposeRunWorktree, scanOrphans } from '../../lib/worktree.js'
+import { beginTeamRun, cancelTeamRun, disposeRunWorktree, scanOrphans, runStatePath } from '../../lib/worktree.js'
 import { writeRunStateMirror, buildMirrorPatch, buildTodoSummary } from '../../lib/runstate.js'
 import { writeTreeRunState } from '../../lib/multirepo.js'
+import { readJson } from '../lib/atomic.mjs'
 import { makeNotepadTools } from './notepad.mjs'
 import {
   transitionPhasePersist, readPhaseState,
@@ -27,8 +28,40 @@ export function makeTeamTools(env) {
     return makeNotepadTools({ stateDir: sd }).stats({ cwd })
   }
 
+  /**
+   * isSessionActive 注入实现（2026-10-26 断链#2 修复）：
+   * MCP server 是独立 stdio 进程、无法直查宿主会话面——改用盘上活性信号推导：
+   *   ① run 的 phase.json 已是终态（complete/failed/cancelled）→ 不活跃（run 已收尾）；
+   *   ② 非终态 run：registry 任一队员 lastHeartbeatAt 或 phase.json 最近一次迁移时间
+   *      在活性窗口（默认 2h，与模式状态 stale 同口径）内 → 活跃；
+   *   ③ 无 team 目录信号（未走到 prd 阶段就崩）→ 回落 run-state.json 的 updatedAt 新鲜度。
+   * 方向说明：信号缺失/损坏按「不活跃」论——孤儿扫描只提示绝不自动删（误报代价=一条提示），
+   * begin 覆写防线被绕过时有 team_dispose 先行处置的出路。
+   */
+  const SESSION_ACTIVE_WINDOW_MS = 2 * 60 * 60 * 1000
+  function isSessionActiveFor(cwd, stateDir) {
+    const sd = stateDir ?? '.omd'
+    return async (runId) => {
+      const now = Date.now()
+      const fresh = ts => Number.isFinite(ts) && now - ts <= SESSION_ACTIVE_WINDOW_MS
+      try {
+        const phase = await readPhaseState(cwd, runId, sd).catch(() => null)
+        if (phase && TEAM_TERMINAL.includes(phase.phase)) return false
+        const registry = await readRegistry(cwd, runId, sd).catch(() => null)
+        const beats = Object.values(registry?.workers ?? {})
+          .map(w => Date.parse(w?.lastHeartbeatAt)).filter(Number.isFinite)
+        const lastTransition = Date.parse(phase?.history?.[phase.history.length - 1]?.at)
+        if (beats.some(fresh) || fresh(lastTransition)) return true
+        if (phase || registry) return false // 有 team 信号但全部陈旧 → 崩溃遗留
+      } catch { /* 读失败落 run-state 新鲜度 */ }
+      const rs = await readJson(runStatePath(cwd, sd), null).catch(() => null)
+      if (rs?.runId === runId) return fresh(Date.parse(rs.updatedAt))
+      return false
+    }
+  }
+
   async function begin({ cwd, runId, stateDir = '.omd' }) {
-    const r = await beginTeamRun({ cwd, runId, stateDir })
+    const r = await beginTeamRun({ cwd, runId, stateDir, isSessionActive: isSessionActiveFor(cwd, stateDir) })
     return { ...r, orphans: r.orphans.map(o => o.runId), orphanLines: r.orphanLines }
   }
 
@@ -36,8 +69,15 @@ export function makeTeamTools(env) {
     return await disposeRunWorktree({ cwd, runId, stateDir, reason, expectUpdatedAt })
   }
 
+  /** 断链#1 修复：取消路径接线——先列树内差异（只提示不阻塞），再两阶段拆除 reason=cancelled。 */
+  async function cancel({ cwd, runId, stateDir = '.omd', expectUpdatedAt }) {
+    const lines = []
+    const r = await cancelTeamRun({ cwd, runId, stateDir, expectUpdatedAt, log: l => lines.push(l) })
+    return { diffs: r.diffs, promptLines: r.promptLines, log: lines, disposedAt: r.disposedAt, removed: r.removed }
+  }
+
   async function scanOrphansTool({ cwd, stateDir = '.omd' }) {
-    const r = await scanOrphans({ cwd, stateDir })
+    const r = await scanOrphans({ cwd, stateDir, isSessionActive: isSessionActiveFor(cwd, stateDir) })
     return { orphans: r.orphans, lines: r.lines }
   }
 
@@ -61,7 +101,7 @@ export function makeTeamTools(env) {
   }
 
   return {
-    begin, dispose, scanOrphansTool, writeMirror, writeTreeState,
+    begin, dispose, cancel, scanOrphansTool, writeMirror, writeTreeState,
     // ---- v0.4 领队运行时面（lib/team.js 接线）----
     phaseTransition: ({ cwd, runId, to, note, stateDir = '.omd' }) =>
       transitionPhasePersist({ cwd, runId, to, note, stateDir }),
@@ -104,6 +144,11 @@ export function registerTeamTools(server, env) {
     description: 'c5 孤儿扫描：崩溃遗留（非终态无活跃会话）→ 报告且绝不自动删',
     inputSchema: { cwd: z.string(), stateDir: z.string().optional() },
   }, async a => jsonOut(await t.scanOrphansTool(a)))
+
+  server.registerTool('team_cancel', {
+    description: 'c5 用户取消：删树前先列树内与 HEAD 差异文件（只提示不阻塞），再两阶段拆除（reason=cancelled）',
+    inputSchema: { ...cwdRunId, stateDir: z.string().optional(), expectUpdatedAt: z.string().optional() },
+  }, async a => jsonOut(await t.cancel(a)))
 
   server.registerTool('team_write_mirror', {
     description: 'c6 run-state 快照写：五要素镜像 + version + updatedAt；CAS 冲突重读 ≤3 次，预算耗尽覆盖写',

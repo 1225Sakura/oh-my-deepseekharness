@@ -43,9 +43,9 @@ test('活跃模式 + notepad 条目 → 五要素正确派生', async () => {
     expect(r.summary.story).toBe('US-2')
     expect(r.summary.agents).toBe(2)
     expect(r.summary.todo).toMatchObject({ working: 1, priority: 1, manual: 0 })
-    expect(r.card).toContain('模式: team（团队）')            // AC3 中文标签卡
+    expect(r.card).toContain('模式: team（团队） · 阶段: team-exec')  // AC3 中文标签卡（重设计：模式·阶段合并行）
     expect(r.card).toContain('轮次: 3')
-    expect(r.card).toContain('代理: 2 个活跃代理')
+    expect(r.card).not.toContain('代理:')                         // HUD 重设计：恒 0 自觉填报字段移出卡面
     expect(r.card).toContain('故事: US-2')                // 五要素 story 不再缺席（报告一 #87）
     expect(r.card).toContain('记忆: 永久 1 · 工作 1 · 手动 0')
     expect(r.card.split('\n').length).toBeLessThanOrEqual(8)

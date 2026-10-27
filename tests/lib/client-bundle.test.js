@@ -236,7 +236,7 @@ test('⑥ AC7 idle：渲染下发 modeCatalog（模式名+中文名同现）+ �
   expect(flat).not.toContain('working=')
 })
 
-test('⑦ AC7 focused active：主模式卡（模式/阶段/轮次/任务）+ stale 锁子串 + 次要小注；AC10 warn 档', async () => {
+test('⑦ AC7 focused active：主模式卡（模式/阶段/轮次/代理）+ stale 锁子串 + 次要小注；AC10 warn 档', async () => {
   const { loaderCalls } = await loadBundle()
   const s = snapPayload({
     detail: {
@@ -251,8 +251,9 @@ test('⑦ AC7 focused active：主模式卡（模式/阶段/轮次/任务）+ st
   expect(tree.props['data-tier']).toBe('warn') // AC10：data-tier 标记落 DOM
   expect(flat).toContain('阶段')
   expect(flat).toContain('轮次')
-  expect(flat).toContain('任务')
+  expect(flat).toContain('代理') // 2026-10-26 审查修复：名实相符（原「任务」行实为代理计数）
   expect(flat).toContain('未更新') // A1 受锁子串（stale 行漂移兜底）
+  expect(flat).not.toContain('已超过 2 小时') // P0 修复：stale 文案不再写死 2h（读 server 下发阈值或不说时长）
   expect(flat).toContain('另有 1 个模式') // focused：次要模式小注
   expect(flat).toContain('记忆')
   expect(flat).toContain('最近取数') // U3/O1：focused 档取数时间上下文

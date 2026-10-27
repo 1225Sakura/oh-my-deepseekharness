@@ -58,9 +58,9 @@ export function makeStateTools(env) {
     }
     const cur = await readJson(file)
     if (cur && cur._meta.sessionId !== sessionId)
-      throw new Error(`state is owned by session '${cur._meta.sessionId}' and cannot be modified by session '${sessionId}'`)
+      throw new Error(`conflict: 模式 '${mode}' 的状态归会话 '${cur._meta.sessionId}' 所有，会话 '${sessionId}' 不可修改——若该会话已死，先 state_clear 清理（需持有方会话）或人工删除对应 state 文件后重试`)
     if (expectUpdatedAt !== undefined && cur?._meta.updatedAt !== expectUpdatedAt)
-      throw new Error(`conflict: current updatedAt is '${cur?._meta.updatedAt}', expected '${expectUpdatedAt}'`)
+      throw new Error(`conflict: CAS 冲突：当前 updatedAt='${cur?._meta.updatedAt}'，你携带的是 '${expectUpdatedAt}'——先 state_read 重读，携最新 _meta.updatedAt 重试`)
     if (typeof state.prompt_echo === 'string' && state.prompt_echo.length > ECHO_MAX)
       state = { ...state, prompt_echo: state.prompt_echo.slice(0, ECHO_MAX) }
     await atomicWriteJson(file, {
@@ -75,6 +75,10 @@ export function makeStateTools(env) {
     return { ok: true }
   }
   async function listActive({ cwd }) {
+    return (await scanAll({ cwd })).filter(s => s?.active === true)
+  }
+  /** 全量扫描（active 与否都收），HUD「上次活动」等派生面的数据源；有界化口径同 listActive 历史注释。 */
+  async function scanAll({ cwd }) {
     const root = join(cwd, env.stateDir, 'state', 'sessions')
     let sids = []
     try { sids = await readdir(root) } catch { return [] }
@@ -88,30 +92,49 @@ export function makeStateTools(env) {
         .filter(f => f.endsWith('-state.json'))
         .slice(0, 50)
         .map(f => readJson(join(root, sid, f))))
-      return states.filter(s => s?.active === true)
+      return states.filter(Boolean)
     }))
     return perSession.flat()
   }
   async function getStatus({ cwd }) {
-    const active = await listActive({ cwd })
+    const all = await scanAll({ cwd })
+    const active = all.filter(s => s?.active === true)
+    // HUD 重设计（2026-10-26 审查 R1 修复）：lastActivity=全部状态文件里最新的一次写
+    // （含已收尾模式）——idle 空态从「模式广告页」改为「上次活动: <mode> · <时间>」。
+    let lastActivity = null
+    for (const s of all) {
+      const at = s?._meta?.updatedAt
+      if (!at) continue
+      if (!lastActivity || at > lastActivity.updatedAt)
+        lastActivity = { mode: s._meta.mode, updatedAt: at }
+    }
     return {
       activeCount: active.length,
-      modes: active.map(s => ({
-        mode: s._meta.mode, sessionId: s._meta.sessionId,
-        current_phase: s.current_phase, iteration: s.iteration,
-        // c4 HUD 五要素之二：加性透传（现成读面零新宿主槽位；缺席=undefined，消费方自兜底）
-        current_story: s.current_story, active_agents: s.active_agents,
-        updatedAt: s._meta.updatedAt,
+      lastActivity,
+      modes: active.map(s => {
         // 刻板审查修复（R3-⑩）：stale 双语义贯通——team 模式用 team.staleAfterMs
         // （默认 5min，经 OMD_TEAM_STALE_MS 注入），其余模式维持规格 §5.4 的 2h
-        stale: Date.now() - Date.parse(s._meta.updatedAt)
-          > (s._meta.mode === 'team' ? (env.teamStaleAfterMs ?? 300_000) : 2 * 3600_000),
-        // U3/AC10 wire：danger/warn 判定输入加性透传（缺席=undefined；state=模式终态，fixLoops 兼容两种拼法）
-        state: s.state, fixLoops: s.fixLoops ?? s.fix_loop_count,
-      })),
+        const staleAfterMs = s._meta.mode === 'team' ? (env.teamStaleAfterMs ?? 300_000) : 2 * 3600_000
+        return {
+          mode: s._meta.mode, sessionId: s._meta.sessionId,
+          current_phase: s.current_phase, iteration: s.iteration,
+          // c4 HUD 五要素之二：加性透传（现成读面零新宿主槽位；缺席=undefined，消费方自兜底）
+          current_story: s.current_story, active_agents: s.active_agents,
+          // HUD 重设计（2026-10-26 审查 R3 修复）：任务句与 PRD 路径加性透传——
+          // 面板「在干嘛 / 干到哪了」的数据源（prompt_echo 截断 120 字符有界化）
+          prompt_echo: typeof s.prompt_echo === 'string' ? s.prompt_echo.slice(0, 120) : undefined,
+          prd_path: typeof s.prd_path === 'string' ? s.prd_path : undefined,
+          updatedAt: s._meta.updatedAt,
+          stale: Date.now() - Date.parse(s._meta.updatedAt) > staleAfterMs,
+          // stale 阈值随字段下发（client 不再写死「2 小时」——2026-10-26 审查 P0 修复）
+          staleAfterMs,
+          // U3/AC10 wire：danger/warn 判定输入加性透传（缺席=undefined；state=模式终态，fixLoops 兼容两种拼法）
+          state: s.state, fixLoops: s.fixLoops ?? s.fix_loop_count,
+        }
+      }),
     }
   }
-  return { read, write, clear, listActive, getStatus }
+  return { read, write, clear, listActive, scanAll, getStatus }
 }
 
 /** MCP 绑定层：参数类型化（有意修正 OMC 字符串传输怪癖，规格 §1 分歧表）。 */

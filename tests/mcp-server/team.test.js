@@ -47,6 +47,55 @@ test('team_begin 建树 → run-state active；team_dispose 两阶段拆除；�
   await rm(cwd, { recursive: true, force: true })
 })
 
+// ---------- 2026-10-26 审查断链修复：team_cancel 接线 + isSessionActive 注入 ----------
+
+test('team_cancel：列差异提示（只提示不阻塞）+ reason=cancelled 两阶段拆除', async () => {
+  const cwd = await freshRepo()
+  const t = tools(cwd)
+  try {
+    await t.begin({ cwd, runId: 'mc-cancel' })
+    const tree = join(cwd, '.omd', 'worktrees', 'mc-cancel')
+    await writeFile(join(tree, 'wip.js'), '// wip\n')
+    const r = await t.cancel({ cwd, runId: 'mc-cancel' })
+    expect(r.diffs).toContain('wip.js')                       // 断链#1 修复：差异提示面经 MCP 可达
+    expect(r.promptLines.some(l => l.includes('差异'))).toBe(true)
+    expect(r.removed).toBe(true)
+    expect(existsSync(tree)).toBe(false)
+    const state = JSON.parse(await readFile(join(cwd, '.omd', 'state', 'run-state.json'), 'utf8'))
+    expect(state.status).toBe('disposed')
+    expect(state.disposedReason).toBe('cancelled')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('isSessionActive 接线：陈旧心跳 run 报孤儿；鲜活 run 不报孤儿且 begin 拒绝覆写', async () => {
+  const cwd = await freshRepo()
+  const t = tools(cwd)
+  try {
+    // 崩溃遗留：worktree + run-state active + registry 心跳 27 天前 → 孤儿
+    await t.begin({ cwd, runId: 'mc-crashed' })
+    await t.registerWorker({ cwd, runId: 'mc-crashed', worker: { role: 'x', spawnedAt: '2026-09-29T00:00:00.000Z' } })
+    const scan1 = await t.scanOrphansTool({ cwd })
+    expect(scan1.orphans.map(o => o.runId)).toContain('mc-crashed')   // 断链#2 修复前恒 false 的注入导致语义偏离，现已按心跳新鲜度判定
+    expect(scan1.lines[0]).toContain('team_dispose')                  // 孤儿提示带处置命令（人性化 P1 修复）
+
+    // 鲜活 run（心跳=现在）：begin 另一 run 触发覆写防线（修复前该防线在 MCP 路径永不触发）
+    await t.begin({ cwd, runId: 'mc-live' })                          // mc-crashed 不活跃 → 允许覆写 run-state
+    await t.registerWorker({ cwd, runId: 'mc-live', worker: { role: 'x' } }) // spawnedAt=now
+    await expect(t.begin({ cwd, runId: 'mc-other' })).rejects.toThrow(/拒绝覆写/)
+    const scan2 = await t.scanOrphansTool({ cwd })
+    expect(scan2.orphans.map(o => o.runId)).not.toContain('mc-live')  // 鲜活 run 不报孤儿
+
+    // 终态 phase.json：即使心跳新鲜也判不活跃（run 已收尾）
+    await writeFile(join(cwd, '.omd', 'team', 'mc-live', 'phase.json'),
+      JSON.stringify({ phase: 'complete', fixLoops: 0, history: [] }), 'utf8')
+    const scan3 = await t.scanOrphansTool({ cwd })
+    expect(scan3.orphans.map(o => o.runId)).toContain('mc-live')
+
+    execFileSync('git', ['worktree', 'remove', '--force', join(cwd, '.omd', 'worktrees', 'mc-crashed')], { cwd, stdio: 'ignore' })
+    execFileSync('git', ['worktree', 'remove', '--force', join(cwd, '.omd', 'worktrees', 'mc-live')], { cwd, stdio: 'ignore' })
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
 // ---------- team_write_mirror：七字段镜像 + CAS ----------
 
 test('team_write_mirror：七字段契约成立；mode/round/.../todo/version/updatedAt 齐备', async () => {

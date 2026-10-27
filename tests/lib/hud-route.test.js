@@ -30,9 +30,9 @@ test('hudSnapshot：真实 .omd 状态 → 五要素摘要 + 至多 8 行卡 + d
     expect(snap.summary).toMatchObject({ mode: 'autopilot', round: 2, agents: 1 })
     expect(snap.summary.todo).toMatchObject({ working: 1 })
     expect(snap.card.split('\n').length).toBeLessThanOrEqual(8)  // B1′：恰 6 行 → ≤8
-    // AC5：顶层键集白名单锁定（U8 S2 扩为 10 键；2026-10-26 审查 S5 扩为 11 键 ∪ {alerts}）
+    // AC5：顶层键集白名单锁定（U8 S2 扩为 10 键；S5 扩 {alerts}；HUD 重设计扩 {lastActivity}）
     expect(Object.keys(snap).sort())
-      .toEqual(['alerts', 'at', 'card', 'cwd', 'detail', 'modeCatalog', 'ok', 'preset', 'summary', 'toolCalls', 'workers'])
+      .toEqual(['alerts', 'at', 'card', 'cwd', 'detail', 'lastActivity', 'modeCatalog', 'ok', 'preset', 'summary', 'toolCalls', 'workers'])
     expect(snap.alerts).toEqual([]) // 无 team 目录 → 空告警（ENOENT 不炸）
     expect(snap.detail.primary).toBe('autopilot')
     expect(snap.detail.modes[0]).toMatchObject({ mode: 'autopilot', sessionId: 's1', label: '自动驾驶' })
@@ -99,7 +99,7 @@ test('AC-6 空态/坏 registry：无 team 目录与 events → workers 空包 + 
   try {
     const s0 = await hudSnapshot({ cwd, stateDir: '.omd' })
     expect(s0.ok).toBe(true)
-    expect(s0.workers).toEqual({ list: [], truncated: false })
+    expect(s0.workers).toEqual({ list: [], truncated: false, filteredRuns: 0, filteredWorkers: 0 })
     expect(s0.toolCalls).toEqual({ total: 0, byTier: { low: 0, medium: 0, high: 0, explicit: 0 }, fallbackCount: 0 })
 
     // 坏 registry 注入：run-bad 是坏 JSON（跳过该 run），run-good 正常聚合，整体不 500
@@ -117,29 +117,74 @@ test('AC-6 空态/坏 registry：无 team 目录与 events → workers 空包 + 
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
-test('AC-7 workers 聚合形状：{list,truncated} 对象包；元素恰六键不透传 stale；list 按 spawnedAt 新者优先', async () => {
+test('AC-7 workers 聚合形状：{list,truncated,filteredRuns,filteredWorkers} 对象包；元素恰六键不透传 stale；list 按 spawnedAt 新者优先；终态队员过滤（R4）', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
-    // 两 run 各 1-2 worker；run-a 含 stale:true 注入（vestigial，不得透传）
+    // 两 run 各 1-2 worker；run-a 含 stale:true 注入（vestigial，不得透传）；
+    // w-old status=done → R4 修复后不上屏（面板只呈现非终态队员）
     await writeRegistryFixture(cwd, 'run-a', {
       'w-old': { workerId: 'w-old', role: 'r1', status: 'done', stale: true, spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:01:00.000Z' },
     }, '2026-01-01T01:00:00.000Z')
     await writeRegistryFixture(cwd, 'run-b', {
       'w-mid': { workerId: 'w-mid', role: 'r2', status: 'running', stale: false, spawnedAt: '2026-01-02T00:00:00.000Z', lastHeartbeatAt: '2026-01-02T00:01:00.000Z' },
-      'w-new': { workerId: 'w-new', role: 'r3', status: 'running', stale: false, spawnedAt: '2026-01-03T00:00:00.000Z', lastHeartbeatAt: '2026-01-03T00:01:00.000Z' },
+      'w-new': { workerId: 'w-new', role: 'r3', status: 'blocked', stale: false, spawnedAt: '2026-01-03T00:00:00.000Z', lastHeartbeatAt: '2026-01-03T00:01:00.000Z' },
     }, '2026-01-02T01:00:00.000Z')
     const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
     expect(snap.workers.truncated).toBe(false)
+    expect(snap.workers.filteredWorkers).toBe(1) // w-old（done）被过滤
     // 呈现序=spawnedAt 新者优先（跨 run 全局排序，非按 run 分块）
-    expect(snap.workers.list.map(w => w.workerId)).toEqual(['w-new', 'w-mid', 'w-old'])
+    expect(snap.workers.list.map(w => w.workerId)).toEqual(['w-new', 'w-mid'])
     for (const w of snap.workers.list) {
       // 元素恰含六键——不透传 registry.stale（vestigial，team.js:172 恒 false）
       expect(Object.keys(w).sort()).toEqual(['lastHeartbeatAt', 'role', 'runId', 'spawnedAt', 'status', 'workerId'])
       expect(w.runId).toBeTruthy()
       expect(w.lastHeartbeatAt).toBeTruthy()
     }
-    expect(snap.workers.list.find(w => w.workerId === 'w-old').runId).toBe('run-a')
     expect(snap.workers.list.find(w => w.workerId === 'w-new').runId).toBe('run-b')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('R4 workers 僵尸过滤：终态 phase 的 run 整组跳过（filteredRuns 计数）；坏 phase.json 不误伤', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    // run-dead：phase=complete（终态）→ 整个 run 的队员不上屏（27 天前完结 run 的僵尸名单病灶）
+    const deadDir = await writeRegistryFixture(cwd, 'run-dead', {
+      'w-zombie': { workerId: 'w-zombie', role: 'r', status: 'running', spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:00:00.000Z' },
+    }, '2026-01-03T00:00:00.000Z')
+    await writeFile(join(deadDir, 'phase.json'), JSON.stringify({ phase: 'complete', fixLoops: 0, history: [] }), 'utf8')
+    // run-live：无 phase.json（或损坏）→ 不视为终态，队员保留
+    await writeRegistryFixture(cwd, 'run-live', {
+      'w-live': { workerId: 'w-live', role: 'r', status: 'running', spawnedAt: '2026-01-02T00:00:00.000Z', lastHeartbeatAt: '2026-01-02T00:00:00.000Z' },
+    }, '2026-01-02T00:00:00.000Z')
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.workers.filteredRuns).toBe(1)
+    expect(snap.workers.list.map(w => w.workerId)).toEqual(['w-live'])
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('R3 PRD 进度 join：主模式 prd_path → detail.prd {done,total,current} + 卡面进度行；缺席不炸', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    await mkdir(join(cwd, '.omd', 'prd'), { recursive: true })
+    await writeFile(join(cwd, '.omd', 'prd', 't.json'), JSON.stringify({
+      topic: 't', stories: [
+        { id: 'S1', passes: true }, { id: 'S2', passes: true }, { id: 'S3', passes: false }, { id: 'S4', passes: false },
+      ],
+    }), 'utf8')
+    await makeStateTools({ stateDir: '.omd' }).write({
+      cwd, sessionId: 's1', mode: 'ralph',
+      state: { active: true, iteration: 1, prd_path: '.omd/prd/t.json', prompt_echo: '修复全部 backlog' },
+    })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.detail.prd).toEqual({ path: '.omd/prd/t.json', done: 2, total: 4, current: 'S3' })
+    expect(snap.card).toContain('进度: story 2/4 通过（当前: S3）')
+    expect(snap.card.split('\n')[0]).toBe('[omd] 修复全部 backlog') // 任务句首行
+    // prd_path 缺席 → detail.prd 不存在，不炸
+    const cwd2 = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+    await makeStateTools({ stateDir: '.omd' }).write({ cwd: cwd2, sessionId: 's1', mode: 'ralph', state: { active: true } })
+    const snap2 = await hudSnapshot({ cwd: cwd2, stateDir: '.omd' })
+    expect(snap2.detail.prd).toBeUndefined()
+    await rm(cwd2, { recursive: true, force: true })
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 

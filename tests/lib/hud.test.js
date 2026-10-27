@@ -52,7 +52,7 @@ test('diffSummary：一致=空数组；单字段变=恰该字段；对象键序�
 
 // ---------- renderCard：中文摘要卡（至多 8 行；活跃/空态两态各有恰满预算） ----------
 
-test('renderCard：活跃卡中文五行至多 8 行；多模式小注；非 stale 无 stale 行', () => {
+test('renderCard：活跃卡（HUD 重设计）——模式·阶段合并行 + 故事 + 轮次「未上报」诚实口径；多模式小注；非 stale 无 stale 行', () => {
   const view = buildHudView({
     status: {
       activeCount: 2,
@@ -65,20 +65,37 @@ test('renderCard：活跃卡中文五行至多 8 行；多模式小注；非 sta
   })
   const card = renderCard(view.summary, view.detail)
   const lines = card.split('\n')
-  expect(lines.length).toBeLessThanOrEqual(8)          // B1′：恰 6 行 → ≤8
-  expect(lines[0]).toBe('[omd] 编排状态')               // 新标题
-  expect(card).toContain('模式: ralph（Ralph 循环）')    // 主模式 + 中文 label
-  expect(card).toContain('阶段: 未设置')                 // current_phase 缺席不炸
-  expect(card).toContain('轮次: 2')                     // AC3 五标签：轮次
-  expect(card).toContain('代理: 1 个活跃代理')           // AC3 五标签：代理（原「任务」名实不符修复）
-  expect(card).toContain('故事: S4')                     // 五要素 story 不再缺席（报告一 #87）
-  expect(card).toContain('记忆: 永久 1 · 工作 0 · 手动 0')  // AC3 五标签：记忆（非裸 working=）
+  expect(lines.length).toBeLessThanOrEqual(8)          // B1′：≤8 行预算
+  expect(lines[0]).toBe('[omd] 编排状态')               // 无 prompt_echo 时回退原标题
+  expect(card).toContain('模式: ralph（Ralph 循环） · 阶段: 未设置')  // 主模式 + 中文 label + 阶段合并行
+  expect(card).toContain('轮次: 2')                     // 轮次行
+  expect(card).not.toContain('代理:')                   // R2 修复：恒 0 的自觉填报计数行已移除
+  expect(card).toContain('故事: S4')                     // 无 PRD join 时回退故事行
+  expect(card).toContain('记忆: 永久 1 · 工作 0 · 手动 0')
   expect(card).toContain('另有 1 个活跃模式')            // 一行小注（N3）
   expect(card).not.toContain('未更新')                  // 非 stale 不出现 stale 行
   expect(card).not.toContain('round:')                  // AC2：无 round:- 黑话
 })
 
-test('renderCard：stale 主模式含锁定子串「未更新」；多模式 + stale 恰 8 行', () => {
+test('renderCard：任务句首行 + PRD 进度行（HUD 重设计 R3：回答「在干嘛/到哪了」）', () => {
+  const view = buildHudView({
+    status: {
+      activeCount: 1,
+      modes: [{ mode: 'ralph', sessionId: 's1', iteration: 1, updatedAt: '2026-09-22T11:00:00.000Z',
+        prompt_echo: '全面审查插件：链路闭环 / HUD 价值 / 人性化使用，这是一段很长的任务描述会被截断' }],
+    },
+    stats: {},
+  })
+  const detail = { ...view.detail, prd: { path: '.omd/prd/x.json', done: 2, total: 4, current: 'S3' } }
+  const card = renderCard(view.summary, detail)
+  const lines = card.split('\n')
+  expect(lines[0].startsWith('[omd] 全面审查插件')).toBe(true)  // 任务句首行
+  expect(lines[0].length).toBeLessThanOrEqual(6 + 36 + 1)       // 截断 36 字符 + '…'
+  expect(card).toContain('进度: story 2/4 通过（当前: S3）')     // PRD 进度行优先于故事行
+  expect(card).not.toContain('故事:')                            // PRD 在场时故事行让位
+})
+
+test('renderCard：stale 主模式含锁定子串「未更新」；stale 行保底在行数预算内', () => {
   const view = buildHudView({
     status: {
       activeCount: 2,
@@ -90,24 +107,29 @@ test('renderCard：stale 主模式含锁定子串「未更新」；多模式 + s
     stats: {},
   })
   const card = renderCard(view.summary, view.detail)
+  const lines = card.split('\n')
   expect(card).toContain('未更新')                       // AC3 锁定子串（全计划唯一口径）
   expect(card).toContain('上次更新：2020-01-01T00:00:00.000Z')
   expect(card).toContain('模式: autopilot（自动驾驶）')
-  expect(card.split('\n')).toHaveLength(8)              // 行数预算 1+5+1+1 恰满（N3）
+  expect(lines.length).toBeLessThanOrEqual(8)           // 行数预算（stale 行保底入内）
+  expect(lines[lines.length - 1]).toContain('未更新')    // stale 行保底最后一条
 })
 
-test('renderCard：空态引导——「没有运行」+ 5 模式名各伴随中文 label + 记忆行，恰 8 行', () => {
+test('renderCard：空态（HUD 重设计 R1）——「没有运行」+ 上次活动行 + 启动提示 + 记忆行', () => {
   const card = renderCard(summarize({ status: { activeCount: 0, modes: [] }, stats: { working: 1 } }))
   const lines = card.split('\n')
   expect(lines.length).toBeLessThanOrEqual(8)
   expect(card).toContain('没有运行')                     // AC2 空态表述
   expect(card).not.toContain('round')                    // AC2：无 round:- 黑话
   expect(card).not.toContain('idle')                     // 新空态卡无 idle 字样
-  for (const [mode, label] of Object.entries(MODE_LABELS)) {
-    expect(card).toContain(mode)                         // 每个模式名
-    expect(card).toContain('（' + label + '）')           // 均伴随中文 label
-  }
-  expect(lines).toHaveLength(1 + 1 + Object.keys(MODE_LABELS).length + 1)  // 空态预算恰满
+  expect(card).toContain('启动')                         // 一行启动提示（替代 5 模式广告）
+  expect(card).toContain('记忆:')
+  expect(lines).toHaveLength(4)                          // 标题+没有运行+启动提示+记忆（无 lastActivity）
+  // 有 lastActivity 时插入「上次活动」行
+  const card2 = renderCard(summarize({ status: { activeCount: 0, modes: [] }, stats: {} }),
+    { lastActivity: { mode: 'ralph', updatedAt: '2026-10-26T09:00:00.000Z' } })
+  expect(card2).toContain('上次活动: ralph · 2026-10-26T09:00:00.000Z')
+  expect(card2.split('\n')).toHaveLength(5)
 })
 
 // ---------- buildHudView：detail/modeCatalog/tier 派生（AC4/AC10，只进 hud.json 不进 MCP wire） ----------
@@ -123,7 +145,7 @@ test('buildHudView：detail fresh-first 透传含 sessionId+label；modeCatalog 
     },
     stats: { working: 1, priority: 0, manual: 0 },
   })
-  expect(Object.keys(view).sort()).toEqual(['detail', 'modeCatalog', 'summary', 'tier'])
+  expect(Object.keys(view).sort()).toEqual(['detail', 'lastActivity', 'modeCatalog', 'summary', 'tier'])  // HUD 重设计：+lastActivity（加性）
   expect(view.detail.primary).toBe('ralph')                       // primary=modes[0].mode（fresh-first）
   expect(view.detail.modes[0]).toMatchObject({ mode: 'ralph', sessionId: 's1', iteration: 2, label: 'Ralph 循环' })  // A2：透传含 sessionId
   expect(view.detail.modes.map(m => m.mode)).toEqual(['ralph', 'team'])

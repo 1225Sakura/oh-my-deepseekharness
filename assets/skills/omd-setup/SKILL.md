@@ -22,14 +22,22 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness        # or th
 
 What happens on install:
 
-- `cordis.patch.yml` (shipped in the bundle) **inserts the `oh-my-dsh` plugin** into the profile composition — the protocol section, bilingual skills/role cards, `/omd-doctor` `/omd-cancel` commands, and `omd_memory_*` tools are registered by `lib/index.js`.
-- The bundled MCP server (`omd-state`, 55 tools: state×5, notepad×6, prd×4, handoff×3, team×16, trace×4, hud×2, graph×6, code-intel×9) is **mounted dynamically at runtime** via `ctx.plugin()` inside `apply()` — a static patch cannot express package-internal absolute paths (spec §7-1). `failOnStartupError: false` means a broken MCP mount degrades (protocol announces it) instead of crashing the host.
+- `cordis.patch.yml` (shipped in the bundle) **inserts the `oh-my-dsh` plugin** into the profile composition — the protocol section, bilingual skills/role cards, `/omd-doctor` `/omd` `/omd-cancel` commands, and `omd_memory_*` tools are registered by `lib/index.js`.
+- The bundled MCP server (`omd-state`, 56 tools: state×5, notepad×6, prd×4, handoff×3, team×17, trace×4, hud×2, graph×6, code-intel×9) is **mounted dynamically at runtime** via `ctx.plugin()` inside `apply()` — a static patch cannot express package-internal absolute paths (spec §7-1). `failOnStartupError: false` means a broken MCP mount degrades (protocol announces it) instead of crashing the host.
 
 After adding, **restart or reload the profile** (`dsh web` / the target profile) so the plugin tree reloads, then open a fresh session.
 
 ## Phase 2 — Configure (optional; defaults work)
 
-Config is set on the plugin instance in the profile (cordis Config layer). All keys with defaults:
+Config is set on the plugin instance in the profile (cordis Config layer). **Where**: the profile directory's `cordis.patch.yml` (e.g. `C:\Users\<you>\.dsh\profiles\<profile>\cordis.patch.yml`) — NOT the read-only same-named file shipped inside the package. Append an id-targeted override, then reload the profile:
+
+```yaml
+- id: oh-my-dsh
+  config:
+    hudPreset: full   # example
+```
+
+All keys with defaults:
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -65,7 +73,7 @@ In a fresh session of the configured profile, run:
 /omd-doctor
 ```
 
-Expected green items: host version within peerDep range; registration counts (42 skills / 33 `omd-agent-*` role cards / 2 commands / 4 in-plugin tools = `omd_memory_*`×3 + `omd_delegate` / 55 `mcp__omd-state__*` tools); Config identifiers resolvable; MCP smoke (`state_get_status` answers); `.omd/` writable. Any ❌/⚠️ row comes with a fix suggestion from the doctor itself.
+Expected green items: host version within peerDep range; registration counts (42 skills / 33 `omd-agent-*` role cards / 3 commands / 5 in-plugin tools = `omd_memory_*`×4 + `omd_delegate` / 56 `mcp__omd-state__*` tools); Config identifiers resolvable; MCP smoke (`state_get_status` answers); `.omd/` writable. Any ❌/⚠️ row comes with a fix suggestion from the doctor itself.
 
 Remember: doctor proves installation and wiring health only — **end-to-end usability is the separate E2E gate** (run autopilot / ralph / team once for real, spec §6.4).
 

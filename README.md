@@ -1,6 +1,6 @@
 # oh-my-dsh (omd)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 558 passed](https://img.shields.io/badge/tests-558%20passed-brightgreen)](./tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 581 passed](https://img.shields.io/badge/tests-581%20passed-brightgreen)](./tests)
 
 **DeepSeek Harness 的多智能体编排层** —— OMC / OMX 编排理念的 dsh 宿主适配实现。
 Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), adapted from:
@@ -8,7 +8,7 @@ Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepse
 - [oh-my-claudecode (OMC)](https://github.com/Yeachan-Heo/oh-my-claudecode) — Claude Code 编排层
 - [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) — Codex 编排层
 
-omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 42 个 skill 目录 + 33 个 `omd-agent-*` 角色卡（66 个双语文件，会话技能目录共 75 条）与 2 个斜杠命令、挂载内置 MCP server 提供 55 个状态/记忆/协调/代码智能/graph 运行时工具。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team 由 `lib/team.js` 领队运行时驱动（阶段状态机 + 队员 UUID 生命周期 + mailbox + heartbeat + merge 计划，无 tmux——dsh 无承载面）。
+omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 42 个 skill 目录 + 33 个 `omd-agent-*` 角色卡（66 个双语文件，会话技能目录共 75 条）与 3 个斜杠命令、挂载内置 MCP server 提供 56 个状态/记忆/协调/代码智能/graph 运行时工具。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team 由 `lib/team.js` 领队运行时驱动（阶段状态机 + 队员 UUID 生命周期 + mailbox + heartbeat + merge 计划，无 tmux——dsh 无承载面）。
 
 ---
 
@@ -48,10 +48,11 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 | **ralph** | `ralph: 把 README 的测试徽章数字同步到当前实际值` | 显式触发：行首 `ralph:` 或「用 ralph …」（锚定守卫防误触发；`/ralph` 斜杠形态经技能面加载，同效）；PRD + 证据契约的迭代循环，前台阻塞 |
 | **team** | `用 team 调研插件市场生态并出报告` | 无关键词，只能显式调用；五阶段流水线 + 领队运行时（`team_phase_transition` 状态机 / `team_register_worker` 生命周期 / `team_mail_*` 信箱 / `team_heartbeat_scan` / `team_merge_plan`） |
 
-仅有的两个斜杠命令与取消/诊断入口：
+三个斜杠命令与取消/诊断入口：
 
 | 操作 | 命令 |
 |---|---|
+| 速查帮助 | `/omd`（模式关键词 / 技能总览 / HUD 与记忆入口） |
 | 取消当前模式 | 输入 `cancelomd`（或 `stopomd`），或斜杠命令 `/omd-cancel` |
 | 验装诊断 | `/omd-doctor`（注册计数 / Config / MCP 冒烟 / `.omd` 可写性） |
 
@@ -68,12 +69,12 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 | 执行模式 | **3** 种：autopilot（goal 循环）/ ralph（PRD 迭代）/ team（五阶段流水线 + 领队运行时），模式互斥 + 触发守卫防误触发 |
 | 角色 | **33** 个委派角色卡（`omd-agent-*`：OMC 19 + OMX 移植 14——api-reviewer / style-reviewer / performance-reviewer / quality-reviewer / quality-strategist / build-fixer / dependency-expert / information-architect / vision / product-analyst / product-manager / ux-researcher / researcher / explore-harness），各带档位（low 5 / medium 17 / high 11）与职责资产 |
 | Skills | **42** 个（中英双语资产）：3 执行模式 + 规划 + 质量 + 研究 + 记忆 + 基础设施与元 + OMX 移植 4（analyze / best-practice-research / design / performance-goal） |
-| MCP 工具 | **55** 个（内置 `omd-state` MCP server）：`state_*`×5 / `notepad_*`×6 / `prd_*`×4 / `handoff_*`×3 / `team_*`×16（c5/c6/c8 + 领队运行时）/ `trace_*`×4 / `hud_*`×2 / `graph_*`×6（U4 graph DAG 运行时：validate/run/status/resume/node_result/gate_resolve）/ 代码智能×9（`ast_grep_*`×2 + `lsp_*`×7） |
+| MCP 工具 | **56** 个（内置 `omd-state` MCP server）：`state_*`×5 / `notepad_*`×6 / `prd_*`×4 / `handoff_*`×3 / `team_*`×17（c5/c6/c8 + 领队运行时 + `team_cancel` 取消路径）/ `trace_*`×4 / `hud_*`×2 / `graph_*`×6（U4 graph DAG 运行时：validate/run/status/resume/node_result/gate_resolve）/ 代码智能×9（`ast_grep_*`×2 + `lsp_*`×7） |
 | Team 运行时 | `lib/team.js`：阶段状态机（team-plan→prd→exec→verify→fix(≤3，状态机强制)→终态）/ 队员 registry（workerId=UUID，runId=owner-epoch，终态不可复活）/ mailbox（in=队员→队长 progress/blocker/done/question，out=队长→队员 nudge/assign/answer）/ heartbeat（`team_heartbeat_scan` 按需扫描 + 插件侧周期检测定时器——检测+呈面，催促归队长模型，绝不自动杀）/ merge 计划（树∩主仓冲突候选 + 建议序，执行归模型） |
 | HUD | 三层承载：web GUI 右侧边栏 `omd-hud` 面板（client half，`lib/client.js`，自适应轮询五要素卡：活跃 5s，空转退避至 ≤30s；full preset 另渲染「队员」「工具调用」两区）/ 数据路由 `GET /oh-my-dsh/hud.json`（loopback 私有面另聚合 team registry 为 `workers`、聚合 `.omd/state/events.jsonl` 派发事件总线为 `toolCalls`，MCP wire 零变化）/ MCP `hud_render` `hud_summary`（CLI 会话同款摘要） |
 | 代码智能 | `ast_grep_search` / `ast_grep_replace`（结构化语法检索/重写，$VAR/$$$VARS 元变量，dryRun 默认不落盘）；`lsp_start/stop/status/document_symbols/references/definition/diagnostics`（Config `codeIntel.lspServers` 注册表驱动，单实例/崩溃重启 ≤2/随 MCP server 退出回收） |
 | Hook 与定时 | c2 keyword-hook（`agent/pre-step` 原生拦截点，唯一 hook 电线）+ team heartbeat 周期检测定时器（Config `team.heartbeatIntervalMs`，默认 60s，0=关闭） |
-| 跨会话记忆 | `omd_memory_set/get/delete`（宿主 storage domain 承载）+ notepad 三区（priority 永久 / working 7 天 / MANUAL 永不清理）+ autopilot/ralph 收尾沉淀检查点（替代 OMC hook 自动 learner） |
+| 跨会话记忆 | `omd_memory_set/get/list/delete`（宿主 storage domain 承载）+ notepad 三区（priority 永久 / working 7 天 / MANUAL 永不清理）+ autopilot/ralph 收尾沉淀检查点（替代 OMC hook 自动 learner） |
 | 路由 | c3 自适应路由（4 特征 + 表上限钳制 + fallback 审计）+ `omd_delegate` 硬路由工具（tier/model 经 spawn 路径强制生效） |
 
 功能点对齐全景（OMC/OMX 45 功能点：✅34 / ⚠️1 / ❌0 / 🚫10 含决定记录）见 `docs/feature-parity-audit.md`。
@@ -98,31 +99,42 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 | `team.heartbeatIntervalMs` | 自然数，默认 `60000` | 插件侧 heartbeat 周期检测间隔（0=关闭定时器；`team_heartbeat_scan` 按需扫描仍可用） |
 | `team.staleAfterMs` | 自然数 ≥1，默认 `300000` | 队员无心跳 stale 阈值 |
 | `hudRoute` | 布尔，默认 `true` | HUD 数据路由 `/oh-my-dsh/hud.json` 开关（安全阀：该 loopback 只读路由无鉴权、`?cwd=` 可读任意已存在目录的 `.omd` 摘要——多用户/非可信本机环境可关闭；MCP `hud_render` 不受影响） |
+| `hudPreset` | `'minimal' \| 'focused' \| 'full'`，默认 `'focused'` | HUD 面板预设：minimal=纯卡文本 / focused=主模式卡+告警 / full=追加记忆三区/队员/工具调用/数据面 |
+| `graph.stalledAfterMs` | 自然数 ≥1，默认 `600000` | graph run 停滞告警阈值（HUD 告警面扫描用，默认 10 分钟） |
 | `codeIntel.astGrep` | 布尔，默认 `true` | ast_grep_* 开关（`@ast-grep/napi` 缺席时工具显式报错） |
 | `codeIntel.lspServers` | `dict`，默认 `{}` | LSP 注册表：`{ <name>: { command, args?, languages?, env? } }`——语言服务器本体由用户环境提供 |
 
-配置示例：
+配置示例（写在 **profile 目录的 `cordis.patch.yml`**——如 `C:\Users\<你>\.dsh\profiles\<profile>\cordis.patch.yml`，不是包内自带的同名只读挂载补丁；用 `- id: oh-my-dsh` + `config:` 覆盖形式，改完重载 profile）：
 
 ```yaml
-# cordis.patch.yml
-oh-my-dsh:
-  language: zh
-  tiers:
-    low: inherit          # 继承主会话
-    high: deepseek-reasoner
-  roleOverrides:
-    omd-agent-verifier: deepseek/deepseek-reasoner
-  autopilot:
-    maxIterations: 15
-  team:
-    heartbeatIntervalMs: 60000
-  codeIntel:
-    lspServers:
-      typescript:
-        command: typescript-language-server
-        args: ["--stdio"]
-        languages: [typescript]
+# <profile 目录>/cordis.patch.yml（追加一条；文件里已有其他插件条目则并列）
+- id: oh-my-dsh
+  config:
+    language: zh
+    tiers:
+      low: inherit          # 继承主会话
+      high: deepseek-reasoner
+    roleOverrides:
+      omd-agent-verifier: deepseek/deepseek-reasoner
+    autopilot:
+      maxIterations: 15
+    team:
+      heartbeatIntervalMs: 60000
+    codeIntel:
+      lspServers:
+        typescript:
+          command: typescript-language-server
+          args: ["--stdio"]
+          languages: [typescript]
 ```
+
+### 「stale」阈值总表（同一术语三处语义，一处可查）
+
+| 面 | 阈值 | 配置键 | 含义 |
+|---|---|---|---|
+| team 队员心跳 | 5 分钟 | `team.staleAfterMs` | 队员超阈值无心跳 → stale（检测+呈面，绝不自动杀） |
+| 模式状态（ralph/autopilot 等非 team） | 2 小时 | 无（规格 §5.4 定值） | 状态文件超阈值未更新 → HUD/协议判 stale（只报告不自动续跑） |
+| graph run 停滞 | 10 分钟 | `graph.stalledAfterMs` | journal 超阈值未推进且有等待节点 → HUD 告警行 |
 
 ### 迁移说明 / Migration（0.4.4 → 0.4.5 行为变更）
 
@@ -180,7 +192,7 @@ oh-my-dsh:
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（46 files / 558 tests）
+npm test            # vitest 全量（46 files / 581 tests）
 npm run test:watch
 ```
 

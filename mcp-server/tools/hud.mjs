@@ -17,7 +17,8 @@ export function makeHudTools(env) {
         status: await stateTools.getStatus({ cwd }),
         stats: await notepadTools.stats({ cwd }),
       })
-      return { summary: view.summary, card: renderCard(view.summary, view.detail) }
+      // lastActivity 并入 detail 供 renderCard 空态「上次活动」行消费（HUD 重设计 R1）
+      return { summary: view.summary, card: renderCard(view.summary, { ...view.detail, lastActivity: view.lastActivity }) }
     },
     /** 只回五要素 JSON（client half / 机器消费面）。 */
     async summary({ cwd }) {
@@ -32,7 +33,7 @@ export function registerHudTools(server, env) {
   const jsonOut = (v) => ({ content: [{ type: 'text', text: typeof v === 'string' ? v : JSON.stringify(v) }] })
   const base = { cwd: z.string() }
   server.registerTool('hud_render', {
-    description: 'HUD 编排状态卡渲染：中文摘要卡（至多 8 行：模式/阶段/轮次/任务/记忆，空态含模式引导）+ summary JSON；数据源=state_get_status+notepad_stats',
+    description: 'HUD 编排状态卡渲染：中文摘要卡（至多 8 行：任务句/模式·阶段/PRD 进度/轮次/记忆，空态含上次活动与启动提示）+ summary JSON；数据源=state_get_status+notepad_stats',
     inputSchema: base,
   }, async a => jsonOut(await t.render(a)))
   server.registerTool('hud_summary', {

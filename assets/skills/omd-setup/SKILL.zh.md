@@ -22,14 +22,24 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness        # 换�
 
 安装时发生了什么：
 
-- 包内自带的 `cordis.patch.yml` 把 **`oh-my-dsh` 插件插入** profile 组合——协议段、双语 skill/角色卡、`/omd-doctor` `/omd-cancel` 命令、`omd_memory_*` 工具都由 `lib/index.js` 注册。
-- 内置 MCP server（`omd-state`，55 个工具：state×5、notepad×6、prd×4、handoff×3、team×16、trace×4、hud×2、graph×6、代码智能×9）在运行时经 `apply()` 里的 `ctx.plugin()` **动态挂载**——静态 patch 表达不了包内绝对路径（规格 §7-1）。`failOnStartupError: false` 意味着 MCP 挂载坏了会降级（协议层播报）而不是炸掉宿主。
+- 包内自带的 `cordis.patch.yml` 把 **`oh-my-dsh` 插件插入** profile 组合——协议段、双语 skill/角色卡、`/omd-doctor` `/omd` `/omd-cancel` 命令、`omd_memory_*` 工具都由 `lib/index.js` 注册。
+- 内置 MCP server（`omd-state`，56 个工具：state×5、notepad×6、prd×4、handoff×3、team×17、trace×4、hud×2、graph×6、代码智能×9）在运行时经 `apply()` 里的 `ctx.plugin()` **动态挂载**——静态 patch 表达不了包内绝对路径（规格 §7-1）。`failOnStartupError: false` 意味着 MCP 挂载坏了会降级（协议层播报）而不是炸掉宿主。
 
 装完后**重启或重载 profile**（`dsh web` / 目标 profile）让插件树重载，再开新会话。
 
 ## 第二步 —— 配置（可选；默认值即可用）
 
-Config 设在 profile 的插件实例上（cordis Config 层）。全部键与默认值：
+Config 写在 **profile 目录的 `cordis.patch.yml`**（Windows 如 `C:\Users\<你>\.dsh\profiles\<profile>\cordis.patch.yml`）——**不是**包内自带的同名文件（那是只读挂载补丁）。用 `- id: oh-my-dsh` + `config:` 的覆盖形式追加一条：
+
+```yaml
+- id: oh-my-dsh
+  config:
+    hudPreset: full          # 例子：HUD 面板 full 档
+    team:
+      staleAfterMs: 600000   # 例子：队员 stale 阈值 10 分钟
+```
+
+改完重载 profile 生效。全部键与默认值：
 
 | 键 | 默认 | 含义 |
 |---|---|---|
@@ -42,6 +52,9 @@ Config 设在 profile 的插件实例上（cordis Config 层）。全部键与�
 | `stateDir` | `.omd` | 项目状态目录名（改名注意：协议/技能文档多处按 `.omd/` 举例，改名后文档示例同步失效，非必要不建议改） |
 | `team.heartbeatIntervalMs` | `60000` | team heartbeat 周期检测间隔（0=关闭定时器，按需扫描仍可用） |
 | `team.staleAfterMs` | `300000` | 队员无心跳 stale 阈值 |
+| `hudRoute` | `true` | HUD 数据路由开关（false=不注册 loopback 只读路由） |
+| `hudPreset` | `focused` | HUD 面板预设：`minimal` / `focused` / `full` |
+| `graph.stalledAfterMs` | `600000` | graph run 停滞告警阈值（HUD 告警面扫描用） |
 | `codeIntel.astGrep` | `true` | ast_grep_* 开关（@ast-grep/napi 缺席时工具显式报错） |
 | `codeIntel.lspServers` | `{}` | LSP 注册表：`{ <名>: { command, args?, languages?, env? } }`，语言服务器本体由用户环境提供 |
 | `autopilot.maxIterations` | `10` | autopilot goal 轮数上限（即 `create_goal` 的 `max_goal_rounds`） |
@@ -65,7 +78,7 @@ Config 设在 profile 的插件实例上（cordis Config 层）。全部键与�
 /omd-doctor
 ```
 
-预期全绿：宿主版本落在 peerDep 范围；注册计数（42 个 skill / 33 个 `omd-agent-*` 角色卡 / 2 个命令 / 4 个插件内工具＝`omd_memory_*`×3 + `omd_delegate` / 55 个 `mcp__omd-state__*` 工具）；Config 标识符可解析；MCP 冒烟（`state_get_status` 有响应）；`.omd/` 可写。任何 ❌/⚠️ 行都由 doctor 自带修复建议。
+预期全绿：宿主版本落在 peerDep 范围；注册计数（42 个 skill / 33 个 `omd-agent-*` 角色卡 / 3 个命令 / 5 个插件内工具＝`omd_memory_*`×4 + `omd_delegate` / 56 个 `mcp__omd-state__*` 工具）；Config 标识符可解析；MCP 冒烟（`state_get_status` 有响应）；`.omd/` 可写。任何 ❌/⚠️ 行都由 doctor 自带修复建议。
 
 记住：doctor 只证明安装与接线健康——**端到端可用性是独立的 E2E 门禁**（autopilot / ralph / team 各真实跑通一次，规格 §6.4）。
 
