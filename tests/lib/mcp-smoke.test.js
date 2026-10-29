@@ -151,3 +151,14 @@ test('W1-3 兼容：opts.mcpSmoke=null 显式关闭 → 旧形态 { status: ok }
   expect(out.probeReport.mcpServer).toEqual({ status: 'ok' })
   expect(out.mcpSmokePromise).toBe(null)
 })
+
+test('超时后输掉竞速的 promise reject 不得成为 unhandled rejection（宿主崩溃路径回归钉）', async () => {
+  const factory = async () => ({
+    connect: () => new Promise((_, rej) => setTimeout(() => rej(new Error('ConnectionClosed')), 120)),
+    request: async () => { throw new Error('unreachable') },
+    close: async () => {},
+  })
+  const r = await smokeMcpServer({ clientFactory: factory, timeoutMs: 50 })
+  expect(r.smoke).toBe('fail')
+  await new Promise(r2 => setTimeout(r2, 220)) // 给输掉的竞速时间 reject——无修复时此处触发进程级 unhandled rejection
+})

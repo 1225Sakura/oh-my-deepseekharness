@@ -59,8 +59,27 @@ test('zh 文件缺失时 fallback 到英文资产', async () => {
   expect(skill.content).toContain('EN body')
 })
 
-test('缺 frontmatter 的资产生成明确报错', async () => {
+test('缺 frontmatter 的资产不再炸整插件——降级进 errors（主动深审轮 R1 契约变更）', async () => {
   const root = await fixture()
   await writeFile(join(root, 'skills', 'demo', 'SKILL.md'), '没有 frontmatter')
-  await expect(loadAssets({ assetsRoot: root, language: 'en' })).rejects.toThrow(/frontmatter/)
+  const assets = await loadAssets({ assetsRoot: root, language: 'en' })
+  expect(assets.skills).toEqual([])
+  expect(assets.errors.some(e => e.includes('资产解析失败') && e.includes('demo'))).toBe(true)
+})
+
+test('损坏 frontmatter 回归钉（主动深审轮 R1 重要项）：单文件损坏只降级该文件，不炸整插件', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'omd-broken-'))
+  try {
+    await mkdir(join(root, 'skills', 'broken'), { recursive: true })
+    await writeFile(join(root, 'skills', 'broken', 'SKILL.md'), '没有 frontmatter 的纯文本\n')
+    await mkdir(join(root, 'skills', 'good'), { recursive: true })
+    await writeFile(join(root, 'skills', 'good', 'SKILL.md'), '---\nname: good\ndescription: good skill\n---\nbody\n')
+    await mkdir(join(root, 'agents'), { recursive: true })
+    await writeFile(join(root, 'agents', 'broken-agent.zh.md'), 'no frontmatter here\n')
+    const assets = await loadAssets({ assetsRoot: root, language: 'zh' })
+    expect(assets.skills.some(s => s.name === 'good')).toBe(true)
+    expect(assets.skills.some(s => s.name === 'broken')).toBe(false)
+    expect(assets.roles.some(r => r.name === 'broken-agent')).toBe(false)
+    expect(assets.errors.filter(e => e.includes('资产解析失败')).length).toBe(2) // skill+agent 各一条
+  } finally { await rm(root, { recursive: true, force: true }) }
 })
