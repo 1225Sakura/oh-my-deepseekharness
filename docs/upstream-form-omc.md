@@ -46,7 +46,7 @@ __tests__ / agents / alias-retirement / autoresearch / cli / commands / config /
 | agents 19 角色卡 | `assets/agents/` 66 文件（33 角色×双语，含 OMX 扩编 14 张） | `## 45 点逐行重评 › ### C. 角色卡与模型路由（5）` |
 | hooks 30 actions / 14 matchers / 11 事件类型 | omd 单电线 c2 keyword-hook（agent/pre-step）；R-2 维持 | `## 45 点逐行重评 › ### E. Hook 矩阵（3）` |
 | team skill + bridge/team*.cjs 形态 | `lib/team.js` 运行时 + 16 个 team_* MCP 工具（超越形态） | `## 45 点逐行重评 › ### F. Team 运行时（6）` |
-| HUD effort level（v5.7.0 #4249）/ statusline | 右栏 omd-hud 面板 + hud_render/hud_summary；effort 字段 ❌未做待核 | `## 45 点逐行重评 › ### G. HUD 与通知（3）` |
+| HUD effort level（v5.7.0 #4249）/ statusline | 右栏 omd-hud 面板 + hud_render/hud_summary；effort 字段 defer(依赖宿主投影；缝=session/config 投影层候选，REASONING_CONFIG_ID @dsh-acp:306) | `## 45 点逐行重评 › ### G. HUD 与通知（3）` |
 | bridge/cli.cjs / .claude-plugin/plugin.json / inventory 库存图 | 均判定不移植（dsh 插件面替代） | `## 45 点逐行重评 › ### H. CLI 与分发（4）` |
 
 ## 保鲜约定

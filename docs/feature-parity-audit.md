@@ -105,7 +105,7 @@
 
 | # | 功能点 | 状态 | omd 证据（v0.4.4 实测） | 上游对照（v5.7.0） |
 |---|---|---|---|---|
-| 36 | HUD 五要素摘要卡（c4） | ✅ 维持 | server 面 `hud.mjs`（hud_render/hud_summary）+ preset 三档（minimal/focused/full，`lib/client.js`）+ U8「队员」「工具调用」两区 + U6 自适应两级树（≥2 runId 渲染组头）+ 版本交叉免疫句（hud SKILL 双语） | **上游新增**：v5.7.0 HUD 显示 effort level（#4249）→ 评估 #10 ❌未做（dsh 数据缝待核） |
+| 36 | HUD 五要素摘要卡（c4） | ✅ 维持 | server 面 `hud.mjs`（hud_render/hud_summary）+ preset 三档（minimal/focused/full，`lib/client.js`）+ U8「队员」「工具调用」两区 + U6 自适应两级树（≥2 runId 渲染组头）+ 版本交叉免疫句（hud SKILL 双语） | **上游新增**：v5.7.0 HUD 显示 effort level（#4249）→ 评估 #10 ❌未做（dsh 数据缝已核：effort defer 维持·依赖宿主投影，缝=session/config 投影层候选——ralplan-hud-evo 2026-10-29） |
 | 37 | statusline / 双层 HUD 持续渲染 | ✅ 维持 | 右栏 omd-hud 面板 5s 轮询 + `/oh-my-dsh/hud.json` exact 路由 + client bundle 沙箱测试 | 仍在上游（README statusline 面）；语义映射差异如实维持（dsh 无终端 statusline，右栏持续面板为等价物） |
 | 38 | 多网关通知 | 🚫 维持（R-7） | `configure-notifications` 已删（47b5050） | 上游仍保留 `skills/configure-notifications`——分歧如实记录：上游服务 Claude Code hooks 通知面，dsh 无会话事件缝，判据不变 |
 
@@ -158,7 +158,7 @@ R-1～R-8 全文在下方 v0.4.0 存档节（一个含义一个家，此处不�
 | 7 | refit | `skills/refit/`（v5.6.0） | ⚠️部分｜**裁决已定:port·P2 · 已落地**（assets/skills/refit/ 双语+分工表，w-P2-3） | 重叠分析：输入仪表面已在（trace 4 工具 + events.jsonl 审计 + notepad），知识出口已在（remember）；分工 = remember 盘点知识去处、self-improve 自治改码（无审批门）、refit 盘点环境摩擦并落修复承载面（确定性检查/转向/工具/信息获取四分类，用户审批门禁）——该回顾工作流本身无对应资产 |
 | 8 | tdd | `skills/tdd/`（v5.6.0） | ⚠️部分｜**裁决已定:port·P1 · 已落地**（assets/skills/tdd/ 双语 + lib/keywords.js tdd 键 + 66 tests，team eco-completion w-eco-C） | 诚实评估：omd 承载 = 仅 `omd-agent-test-engineer` 角色卡 TDD 纪律段（RED/GREEN/REFACTOR + TDD_Enforcement，双语在案）；`lib/keywords.js` 零 tdd 键——omd 无关键词注入（与 OMC 全局指令块的 "tdd"→TDD 触发不同源）；上游「预同意接缝表 + 接缝边界类替换」的 test-first 纪律无独立资产承载——缺口形态 = 独立 skill，非关键词 |
 | 9 | session-flow | `skills/session-flow/`（v5.7.0，#4319） | ❌未做｜**裁决已定:port·P2 · 已落地**（assets/skills/session-flow/ 双语，CC Task 机制→notepad/wiki/handoff 适配，w-P2-2） | notepad 三区 / wiki 会话边界清单提供记忆承载；「会话重定向证据地图（目标/转向/产出/当前步/未决决策）」工作流无对应资产 |
-| 10 | HUD effort level | OMC CHANGELOG v5.7.0 feat(hud) #4249 | ❌未做｜**裁决已定:defer·P1 · 已核实·依赖宿主关闭**（docs/hud-effort-seam.md 五级证据链：插件同步 API 无 effort 缝；dsh 0.2.0 复评轮携带结论复核） | omd HUD 数据面（state_get_status + notepad_stats）无 effort 字段；dsh 宿主 effort 数据缝未核实（**待核**）——核实前不立项 |
+| 10 | HUD effort level | OMC CHANGELOG v5.7.0 feat(hud) #4249 | ❌未做｜**裁决已定:defer·P1 · 已核实·依赖宿主关闭**（docs/hud-effort-seam.md 五级证据链：插件同步 API 无 effort 缝；dsh 0.2.0 复评轮携带结论复核） | omd HUD 数据面（state_get_status + notepad_stats）无 effort 字段；dsh 宿主 effort 数据缝已核（**2026-10-29 ralplan-hud-evo**：插件可见缝无；宿主内 effort 态实存 REASONING_CONFIG_ID/session-set_config_option @dsh-acp:306——「宿主无缝」口径已修正，seam 文档已加复核备注）——defer 维持，重开=宿主向插件投影（缝候选=session/config 投影层） |
 | 11 | GLOSSARY 一致性（CONTEXT.md→GLOSSARY.md 改名跟进） | OMC CHANGELOG v5.7.0 #4273 | ❌未做｜**裁决已定:port·P2 · 已落地**（70 处/8 文件改名 + tests/docs/glossary-rename.test.js 零残留断言，w-P2-4） | 实测 omd 移植船坞资产 66 处 `CONTEXT.md` 引用（drydock / launch / ask-navigator / agent-doc-discipline 双语）未跟进改名；omd 资产自洽、仅为上游词汇对齐漂移——低优先，一次机械改名可收口，留共识流程批准 |
 
 小计：⚠️部分 4（#1/#3/#7/#8）+ ❌未做 7（#2/#4/#5/#6/#9/#10/#11）= 11；无 ✅ / 🚫。**11 项已于 2026-10-29 全部裁决收口并实施完毕**：8 port 全部已落地（#1/2/4/5/7/8/9/11）、3 defer 机制化收口（#3 台账挂起计数 0/2、#6 适配分析已产留复评、#10 已核实=依赖宿主关闭）；defer 台账=.omd/state/defer-ledger.md。

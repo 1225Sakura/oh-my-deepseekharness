@@ -68,8 +68,8 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-25 | D12 | recordFallback 与 c6 镜像写语义分叉（直写三键、version 不 +1、不经 CAS；fallback 写后队长下次 CAS 必多一次冲突重试）（lhe C2） | manual | root-caused | approved(ralplan-p2) | done @0c3b8a5(锁内 version+1+monotonicIsoNow) | assertion-live(tests/lib/routing.test.js C2 版本纪律+反向键存续) | P2 |
 | IC-26 | D11 | stateDir 语义分裂：hook/state 面禁绝对路径与 .. 段、routing/events 面显式支持——Config.stateDir 绝对路径组合下预写失效而事件照常落盘（lhe C3） | manual | root-caused | approved(ralplan-p2) | done @0c3b8a5(注册期 omdPaths 预检+per-hit 降噪) | assertion-live(tests/lib/hook.test.js C3 注册期预检) | P2 |
 | IC-27 | D16 | lib/events.js:36 注释引 delegate.js:38/:55 行号漂移（现码 modelId 决策在 :58/:67），文档性引注失真（lhe C4） | manual | root-caused | none-needed | done @1cb8d4b(注释符号化) | verified(p2-verify-r1 零行号抽验) | P2 |
-| IC-28 | D7 | 上游 mission board 面（mission-board.ts 636 行 + elements + missions/ 子系统）任务板/时间线呈面，omd 无对应承载（lhe N1） | diff | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
-| IC-29 | D7 | 上游用量/成本/上下文压力可观测面（usage-api + payload-estimate + custom-rate-provider + E3 族 6 元素），omd HUD 无此维度（lhe N2） | diff | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
+| IC-28 | D7 | 上游 mission board 面（mission-board.ts 636 行 + elements + missions/ 子系统）任务板/时间线呈面，omd 无对应承载（lhe N1） | diff | root-caused | approved(ralplan-hud-evo) | done | conditional-review(N1 no-go 已定档；重审触发=跨会话 mission 时间线读面出现真实需求) | P2 |
+| IC-29 | D7 | 上游用量/成本/上下文压力可观测面（usage-api + payload-estimate + custom-rate-provider + E3 族 6 元素），omd HUD 无此维度（lhe N2） | diff | root-caused | approved(ralplan-hud-evo) | done | conditional-review(N2 defer 已定档；重开触发=双缝任一落地——①宿主向插件投影 TokenUsage/contextWindow ②usage_update 事件向 client 暴露；探针=宿主 CHANGELOG) | P2 |
 | IC-30 | D15 | .omd/hb.log 孤儿（v0.4.1 vitest 输出重定向一次性测试产物，全仓无写入方无读者）——confirmed，F4 范式登记（lhe 疑点①） | empirical | root-caused | approved | done | conditional-review(删除仅限用户显式确认) | P2 |
 | IC-31 | D7 | HUD effort 无承载=设计内缺口（上游 effort.ts 数据源 statusline stdin，omd 读面钉死两拉取无通道；补齐=管道工程）（lhe 疑点④） | empirical | root-caused | approved | done | conditional-review(二期 effort 立项时复用评估记录) | P2 |
 
@@ -237,11 +237,11 @@ lhe S2 走读 C4（2026-10-29，root-caused，文档性）：lib/events.js:36 �
 
 #### IC-28
 
-lhe S3 delta N1（2026-10-29）：上游 mission board 面（src/hud/mission-board.ts 636 行 + elements/mission-board.ts re-export + 顶层 missions/ 子系统）为任务板/时间线/多 mission-worker 状态呈面，omd 无对应承载——omd PRD 面是 ralph story 台账语义，非任务板时间线形态。对照列查重空集：形态卡 §顶层子系统地图（仅列名 missions/，未评估）＋ parity §上游新增能力评估 11 项全集（无 mission）＋ upgrade-tracking §2026-02-06 漂移扫描（无此项）。证据锚=lhe-delta-r1.md §3 N1（证据=mission-board.ts:1-12 状态机 import 面）。评估立项归各自 ralplan。
+lhe S3 delta N1（2026-10-29）：上游 mission board 面（src/hud/mission-board.ts 636 行 + elements/mission-board.ts re-export + 顶层 missions/ 子系统）为任务板/时间线/多 mission-worker 状态呈面，omd 无对应承载——omd PRD 面是 ralph story 台账语义，非任务板时间线形态。对照列查重空集：形态卡 §顶层子系统地图（仅列名 missions/，未评估）＋ parity §上游新增能力评估 11 项全集（无 mission）＋ upgrade-tracking §2026-02-06 漂移扫描（无此项）。证据锚=lhe-delta-r1.md §3 N1（证据=mission-board.ts:1-12 状态机 import 面）。评估立项归各自 ralplan。hud-evo 裁决（2026-10-29，ralplan-hud-evo 三轮共识 Critic APPROVE）：no-go——goal+team 双面已等价承载 mission/worker 语义（dsh SDK goal 工具面 objective/phase/roundsStarted/blockedReason 为机制锚点；omd team registry/mailbox/heartbeat/PRD story board），第三板面=重复状态源+低频 YAGNI；重开语义=跨会话 mission 时间线读面出现真实需求时。
 
 #### IC-29
 
-lhe S3 delta N2（2026-10-29）：上游用量/成本/上下文压力可观测面（usage-api.ts + payload-estimate.ts + custom-rate-provider.ts + elements E3 族 6 元素 limits/call-counts/token-usage/enterprise-cost/context/context-warning），omd HUD 五要素（hud.js:25）与 hud.json 富面均无此维度；dsh 亦无 statusline stdin 缝。对照列查重空集：parity G #36/#37/#38（均非用量面）＋ 11 项评估全集（无用量/成本项）＋ 形态卡 §omd 映射表（HUD 行仅 effort/statusline）。证据锚=lhe-delta-r1.md §3 N2。评估立项归各自 ralplan。
+lhe S3 delta N2（2026-10-29）：上游用量/成本/上下文压力可观测面（usage-api.ts + payload-estimate.ts + custom-rate-provider.ts + elements E3 族 6 元素 limits/call-counts/token-usage/enterprise-cost/context/context-warning），omd HUD 五要素（hud.js:25）与 hud.json 富面均无此维度；dsh 亦无 statusline stdin 缝。对照列查重空集：parity G #36/#37/#38（均非用量面）＋ 11 项评估全集（无用量/成本项）＋ 形态卡 §omd 映射表（HUD 行仅 effort/statusline）。证据锚=lhe-delta-r1.md §3 N2。评估立项归各自 ralplan。hud-evo 裁决（2026-10-29，ralplan-hud-evo 三轮共识 Critic APPROVE）：defer——宿主内部 TokenUsage/contextWindow 实存（dsh-api-session-controller typert.host.js:2409 TokenUsage；dsh-acp/lib/index.js:628-633 contextWindow+totalTokens）但无插件 API 投影，自建估算管道失真违数据源先行；重开条件双缝化=①宿主向插件投影 TokenUsage/contextWindow ②usage_update 事件向 client 插件暴露（dsh-acp/lib/index.js:625-636 已向客户端投影 used/size）——绑定宿主 CHANGELOG 信号；呈面落点先例=hud.json detail 私有面。
 
 #### IC-30
 
@@ -249,7 +249,7 @@ lhe S1/S4 疑点①终局（2026-10-29，root-caused）：.omd/hb.log=confirmed 
 
 #### IC-31
 
-lhe S1/S3/S4 疑点④终局（2026-10-29，root-caused）：effort 登记属实——上游 elements/effort.ts:14-30 实存（renderEffort 五档；数据源=statusline stdin effort.level，U3 字面「receives JSON session data on stdin」），omd HUD 全链（hud.js/hud-route.js/client.js/hud.mjs）grep effort 零命中；定性=设计内缺口：omd HUD 读面被设计约束钉死 state_get_status+notepad_stats 两拉取（hud.js:10-11/:192-200），无 statusline stdin 推送通道，补齐=数据管道工程（宿主注入或档位表镜像）非加 element。评估记录已落三处（lhe-evidence-r1.md §2④ / lhe-delta-r1.md §4 / lhe-external-r1.md §2④）。登记位回写（parity G#36/#10「❌未做待核」→「❌未做·设计内缺口」）按计划 Follow-ups 归编排方，非本行执行范围。
+lhe S1/S3/S4 疑点④终局（2026-10-29，root-caused）：effort 登记属实——上游 elements/effort.ts:14-30 实存（renderEffort 五档；数据源=statusline stdin effort.level，U3 字面「receives JSON session data on stdin」），omd HUD 全链（hud.js/hud-route.js/client.js/hud.mjs）grep effort 零命中；定性=设计内缺口：omd HUD 读面被设计约束钉死 state_get_status+notepad_stats 两拉取（hud.js:10-11/:192-200），无 statusline stdin 推送通道，补齐=数据管道工程（宿主注入或档位表镜像）非加 element。评估记录已落三处（lhe-evidence-r1.md §2④ / lhe-delta-r1.md §4 / lhe-external-r1.md §2④）。登记位回写（parity G#36/#10「❌未做待核」→「❌未做·设计内缺口」）按计划 Follow-ups 归编排方，非本行执行范围。hud-evo 复核注记（2026-10-29，ralplan-hud-evo 三轮共识）：defer 维持；seam 口径修正——「宿主无缝」过强，宿主内 effort 态实存（REASONING_CONFIG_ID="reasoning_effort" @dsh-acp/lib/index.js:306，session/set_config_option 可实时改；lib/thinking-effort-loaded.json 落盘），缝候选位置=session/config 投影层；重开双缝=①宿主向插件投影（session/config 投影层）②usage_update 事件向 client 插件暴露——绑定宿主 CHANGELOG 探针；历史落点维持 hud.json detail 私有面（hud_render 二键 O4 契约不动）。
 
 ## 持续跟进机制
 

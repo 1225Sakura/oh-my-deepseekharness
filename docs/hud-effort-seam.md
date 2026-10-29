@@ -5,3 +5,5 @@
 
 ## 检索口径
 范围=@deepseek-ai/dsh 宿主包（lib/ptc-runtime/client 面，深度 3、排除 node_modules/.git）；判据=effort 符号且与 plugin/ctx/session/header/hud/agent 同现。上游对照：OMC v5.7.0 CHANGELOG #4249 feat(hud) show Claude Code effort level。
+
+> 复核备注（2026-10-29 hud-evo 复核）：「宿主无缝」修正为「插件可见缝无、宿主内 effort 态实存于 REASONING_CONFIG_ID/session-set_config_option + thinking-effort-loaded.json」；来源 ralplan-hud-evo 共识。
