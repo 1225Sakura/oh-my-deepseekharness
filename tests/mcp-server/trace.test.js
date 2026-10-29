@@ -1,9 +1,9 @@
 // tests/mcp-server/trace.test.js
 import { test, expect } from 'vitest'
-import { mkdtemp, readFile, appendFile, mkdir } from 'node:fs/promises'
+import { mkdtemp, readFile, appendFile, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { makeTraceTools } from '../../mcp-server/tools/trace.mjs'
+import { join, dirname } from 'node:path'
+import { makeTraceTools, TRACE_MAX_BYTES } from '../../mcp-server/tools/trace.mjs'
 
 async function tools() {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-'))
@@ -145,3 +145,29 @@ test('评审A-open：并发 trace_event 串行化——seq 唯一且无交错', 
   expect(new Set(s.timeline.map(e => e.seq)).size).toBe(21)
   expect(new Set(s.timeline.filter(e => e.type === 'note').map(e => e.text)).size).toBe(20) // 无丢事件
 })
+
+// ---------- EL1-2：读面上限（ralplan-u8-2 D2-A；真档 8MiB+1 全走 tmp） ----------
+
+test('EL1-2：超 8MiB 读面上限 → begin/event/summary 策略性拒绝（错误含 path/actualBytes/limitBytes + 另开新 trace 引导）；缺档语义不变', async () => {
+  const { t, cwd } = await tools()
+  expect(TRACE_MAX_BYTES).toBe(8 * 1024 * 1024) // Critic④ 定值（Architect 备选 16MiB 记档不采）
+  const file = join(cwd, '.omd', 'trace', 'big.jsonl')
+  await mkdir(dirname(file), { recursive: true })
+  await writeFile(file, Buffer.alloc(TRACE_MAX_BYTES + 1, 0x61))
+  for (const call of [
+    () => t.begin({ cwd, traceId: 'big', hypotheses: ['a'] }),
+    () => t.event({ cwd, traceId: 'big', kind: 'note', text: 'x' }),
+    () => t.summary({ cwd, traceId: 'big' }),
+  ]) {
+    const err = await call().then(() => null, e => e)
+    expect(err).toBeInstanceOf(Error) // Fail 语义钉死：超限被当空档静默返回即败
+    expect(err.message).toContain('trace 超过读面上限')
+    expect(err.message).toContain('big.jsonl') // path
+    expect(err.message).toContain('actualBytes=' + (TRACE_MAX_BYTES + 1))
+    expect(err.message).toContain('limitBytes=' + TRACE_MAX_BYTES)
+    expect(err.message).toContain('另开新 trace') // R2' 引导
+  }
+  // 对照：正常小档不受影响（summary 回归锚）；缺档仍 → []（begin 照常可新建）
+  await t.begin({ cwd, traceId: 'ok', hypotheses: ['a'] })
+  expect((await t.summary({ cwd, traceId: 'ok' })).eventCount).toBe(1)
+}, 20_000)

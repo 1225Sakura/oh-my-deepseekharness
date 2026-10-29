@@ -1,6 +1,6 @@
 # oh-my-dsh (omd)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 635 passed](https://img.shields.io/badge/tests-635%20passed-brightgreen)](./tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 642 passed](https://img.shields.io/badge/tests-642%20passed-brightgreen)](./tests)
 
 **DeepSeek Harness 的多智能体编排层** —— OMC / OMX 编排理念的 dsh 宿主适配实现。
 Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), adapted from:
@@ -156,13 +156,13 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 │   ├── sessions/<sessionId>/<mode>-state.json   # 每会话每模式状态（active/phase/iteration）
 │   ├── run-state.json                           # c6 七字段镜像（CAS，队长独占写）
 │   ├── boulder.json                             # ralph 进度石
-│   └── events.jsonl                             # U8 派发事件总线（route/fallback，append-only，读面尾部窗口 64 KiB）
+│   └── events.jsonl                             # U8 派发事件总线（route/fallback，append-only，读面尾部窗口 64 KiB；写面 ≥1MiB 轮转单档 events.jsonl.1——.1 归档不进读面/聚合）
 ├── plans/          # autopilot/team 计划
 ├── specs/          # 规格文档
 ├── prd/            # ralph PRD（JSON + reconciliation.jsonl 台账）
 ├── handoffs/       # team 阶段交接（五段固定格式）
 ├── team/<runId>/   # team 运行时：phase.json / registry.json / mailbox/{in,out}/*.jsonl
-├── trace/          # trace 时间线（<traceId>.jsonl，append-only）
+├── trace/          # trace 时间线（<traceId>.jsonl，append-only；读面 8MiB 上限——超限策略性拒绝，引导另开新 trace）
 ├── worktrees/      # c5 team 运行树（gitignored，两阶段拆除）
 ├── graph-runs/     # graph 运行（journal.jsonl + descriptor.json 快照 + outputs/ + fence 旁文件 owner.lock/owner.epoch/owner.json）
 ├── checkpoints/    # 恢复快照
@@ -192,7 +192,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（51 files / 635 tests）
+npm test            # vitest 全量（51 files / 642 tests）
 npm run test:watch
 ```
 

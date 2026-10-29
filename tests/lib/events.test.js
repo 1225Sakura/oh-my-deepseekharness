@@ -6,13 +6,13 @@
 // AC-4 并发 N=20 行数恰 N、逐行 JSON.parse 无撕裂（withFileLock 复用 runstate.js 导出）
 // AC-5 坏行跳过（_corrupt 同款口径）+ 尾部窗口（默认 64 KiB，可注入）
 // AC-8 aggregateEvents 归类（explicit 桶=explicit:true；tier 桶仅 explicit=false 且 tier 非 null）
-import { test, expect } from 'vitest'
+import { test, expect, vi } from 'vitest'
 import { join, dirname } from 'node:path'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { Config } from '../../lib/config.js'
 import {
-  EVENT_KINDS, DEFAULT_EVENTS_WINDOW_BYTES, eventsPath, recordRouteEvent, readEvents, aggregateEvents,
+  EVENT_KINDS, DEFAULT_EVENTS_WINDOW_BYTES, EVENTS_ROTATE_BYTES, eventsPath, recordRouteEvent, readEvents, aggregateEvents,
 } from '../../lib/events.js'
 import { DELEGATE_PROVIDER, registerDelegateTool } from '../../lib/delegate.js'
 
@@ -213,4 +213,48 @@ test('AC-8：aggregateEvents——total=route 行数；fallbackCount=fallback �
 
 test('EVENT_KINDS 契约：route/fallback 两种', () => {
   expect(EVENT_KINDS).toEqual(['route', 'fallback'])
+})
+
+// ---- EL1-1：写面轮转（ralplan-u8-2 D1-A；Critic① 二选一取「导出测试缝」——rotateBytes 注入，全走 tmp） ----
+
+test('EL1-1：主档超阈值 → 锁内 rename 单档 .1（主档换新 + .1 归档旧行）；readEvents/aggregate 只读主档', async () => {
+  const dir = await mkTmp()
+  try {
+    expect(EVENTS_ROTATE_BYTES).toBe(1048576) // Critic④ 定值 1MiB
+    const file = join(dir, '.omd', 'state', 'events.jsonl')
+    // 注入缝 rotateBytes=500、pad 行 ≈330B：d3 前、d5 前各触发一次轮转（旧 .1 被单档滚动覆盖）
+    for (let i = 1; i <= 5; i++) {
+      await recordRouteEvent({
+        cwd: dir, stateDir: '.omd', rotateBytes: 500, kind: 'route',
+        decision: decisionOf({ dispatchId: 'd' + i, pad: 'x'.repeat(100) }),
+      })
+    }
+    const archiveIds = (await readFile(file + '.1', 'utf8')).trim().split('\n').map(l => JSON.parse(l).dispatchId)
+    const mainIds = (await readFile(file, 'utf8')).trim().split('\n').map(l => JSON.parse(l).dispatchId)
+    expect(archiveIds.length).toBeGreaterThanOrEqual(1) // 发生过轮转
+    expect(archiveIds).toContain('d1') // .1 归档旧行（最早的行）
+    expect(mainIds).toContain('d5') // 主档换新（最新行）
+    expect([...archiveIds, ...mainIds]).toEqual(['d1', 'd2', 'd3', 'd4', 'd5']) // 分割连续、无重叠无丢行
+    // 读面/聚合零改动（Fail 语义钉死：聚合计入 .1 或读面抛错即败）——只读主档
+    const evs = await readEvents({ cwd: dir, stateDir: '.omd' })
+    expect(evs.map(e => e.dispatchId)).toEqual(mainIds)
+    expect(aggregateEvents(evs).total).toBe(mainIds.length)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('EL1-1：stat ENOENT 首写 → 跳过轮转直接 append、零告警（Critic③ 首写假告警消解）', async () => {
+  const dir = await mkTmp()
+  const warns = []
+  const spy = vi.spyOn(console, 'warn').mockImplementation(m => warns.push(String(m)))
+  try {
+    const ev = await recordRouteEvent({ cwd: dir, stateDir: '.omd', kind: 'route', decision: decisionOf({ dispatchId: 'first' }) })
+    expect(ev.dispatchId).toBe('first')
+    expect(warns).toEqual([]) // 首写（文件尚不存在）不产生任何轮转告警
+    expect((await readEvents({ cwd: dir, stateDir: '.omd' })).map(e => e.dispatchId)).toEqual(['first'])
+  } finally {
+    spy.mockRestore()
+    await rm(dir, { recursive: true, force: true })
+  }
 })

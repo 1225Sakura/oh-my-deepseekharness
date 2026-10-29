@@ -199,6 +199,7 @@ parity/closure/U8 各抽既有结论共 8 条逐一复核：7 条仍成立；1 �
 - **trace.mjs 读面无窗口素材**：trace.jsonl 全量载入（trace.mjs:27-37），U8 窗口约束未绑 trace 面——长期增长时读面内存线性增长。定性=风险复评素材非缺陷（evidence §1 A2 第六列、§4）。
 - **events.jsonl 一期不轮转**：U8 既定二期（F2），不当新缺陷报；12factor/logrotate 外部口径同向背书「治理外置」设计（external §2①）。
 - 同族有界面：mailbox 靠 ack 重写保持有界（team.js:9/:260-264）——自带有界性，无需动作。
+- **EL1 治理包落地（2026-10-29，ralplan-u8-2 共识 APPROVE + 复验 VERIFIED）**：events.jsonl 1MiB 锁内轮转单档 .1（读面/聚合零改动）；trace 读面 8MiB 策略性拒绝（结构性拒绝全量窗口化：seq/end/hypothesis 语义依赖）；dispose/cancel 缺文件自愈墓碑（异 runId 双点拒绝+幂等续行同守卫）——本节三项素材全部闭合，守门 7 用例、全量 51 文件/642 测试绿。
 
 ### 9.4 EL2 双端一致性（挂 D7/D10）
 

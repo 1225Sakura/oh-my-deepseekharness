@@ -227,3 +227,82 @@ test('IC-23：casWriteRunState 同毫秒双写 token 单调递增——旧 expec
     await rm(dir, { recursive: true, force: true })
   }
 }, 20_000) // IC-11 同款显式超时（fixture 含 git 子进程链）
+
+// ---- EL1-3：dispose/cancel 缺 run-state 自愈（ralplan-u8-2 D4-A；顺序获锁防嵌套自锁、异 runId 拒绝、墓碑幂等） ----
+
+test('EL1-3：缺 run-state.json → dispose 顺序获锁自愈写 disposed 墓碑（version:1 + self-healed-missing-file + warning，无 revokedFrom）+ 删树', async () => {
+  const { dir } = await makeFixtureRepo()
+  try {
+    const { path: tree } = await beginTeamRun({ cwd: dir, runId: 'run-heal' })
+    await rm(runStatePath(dir)) // 模拟并行运行清理单槽（活案例形态）
+    const lines = []
+    const r = await disposeRunWorktree({ cwd: dir, runId: 'run-heal', reason: 'orphan-cleanup', log: l => lines.push(l) })
+    expect(r.removed).toBe(true)
+    expect(existsSync(tree)).toBe(false) // 自愈写成功 → 继续删树（两阶段断言②「写成功才删树」保持）
+    const state = await readJson(runStatePath(dir))
+    expect(state).toMatchObject({ runId: 'run-heal', status: 'disposed', disposedReason: 'self-healed-missing-file', version: 1 })
+    expect(state.revokedFrom).toBeUndefined() // Critic④：revokedFrom 不加
+    expect(state.warning).toContain('自愈写此墓碑') // 留痕三元组之一
+    expect(state.warning).toContain("reason='orphan-cleanup'") // 调用方意图随 warning 保留
+    expect(lines.join('\n')).toContain('自愈写 disposed 墓碑') // warning 行进 log 提示面
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}, 20_000) // IC-11 同款显式超时（fixture 含 git 子进程链）
+
+test('EL1-3：异 runId 一律拒绝（active 与 disposed incumbent 双形态，无论终态）且未写未删树', async () => {
+  const { dir } = await makeFixtureRepo()
+  try {
+    const { path: treeA } = await beginTeamRun({ cwd: dir, runId: 'run-a' })
+    const before = await readJson(runStatePath(dir))
+    // active incumbent：拒绝、不写 run-state、不删树
+    await expect(disposeRunWorktree({ cwd: dir, runId: 'run-b' })).rejects.toThrow(/异 runId/)
+    expect(existsSync(treeA)).toBe(true)
+    expect(await readJson(runStatePath(dir))).toEqual(before)
+    // disposed incumbent（墓碑形态）仍拒绝（R3'：无论 incumbent 终态）
+    await disposeRunWorktree({ cwd: dir, runId: 'run-a' })
+    expect((await readJson(runStatePath(dir))).status).toBe('disposed')
+    await expect(disposeRunWorktree({ cwd: dir, runId: 'run-b' })).rejects.toThrow(/异 runId/)
+    expect((await readJson(runStatePath(dir))).runId).toBe('run-a') // 墓碑未被 run-b 夺写
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}, 20_000)
+
+test('EL1-3：同 runId 幂等续行——墓碑（同 runId）存在时重复 dispose 成功（version 递增、树已不在仍收尾）', async () => {
+  const { dir } = await makeFixtureRepo()
+  try {
+    await beginTeamRun({ cwd: dir, runId: 'run-idem' })
+    await rm(runStatePath(dir))
+    const first = await disposeRunWorktree({ cwd: dir, runId: 'run-idem' })
+    expect(first.removed).toBe(true)
+    expect((await readJson(runStatePath(dir))).disposedReason).toBe('self-healed-missing-file')
+    const second = await disposeRunWorktree({ cwd: dir, runId: 'run-idem' }) // 同 runId 幂等续行（R3'）
+    expect(second.removed).toBe(true)
+    const st = await readJson(runStatePath(dir))
+    expect(st.version).toBe(2)
+    expect(st.status).toBe('disposed')
+    expect(st.disposedReason).toBe('verified') // 正常 CAS 续行覆盖调用方 reason
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}, 20_000)
+
+test('EL1-3：cancel 路径同构——缺 run-state 时 cancelTeamRun 自愈收尾（cancelled 意图留痕 warning + 树删）', async () => {
+  const { dir } = await makeFixtureRepo()
+  try {
+    const { path: tree } = await beginTeamRun({ cwd: dir, runId: 'run-cancel' })
+    await rm(runStatePath(dir))
+    const lines = []
+    const r = await cancelTeamRun({ cwd: dir, runId: 'run-cancel', log: l => lines.push(l) })
+    expect(r.removed).toBe(true)
+    expect(existsSync(tree)).toBe(false)
+    const st = await readJson(runStatePath(dir))
+    expect(st.status).toBe('disposed')
+    expect(st.disposedReason).toBe('self-healed-missing-file')
+    expect(st.warning).toContain("reason='cancelled'")
+    expect(lines.join('\n')).toContain('自愈写 disposed 墓碑') // log 透传（cancel → dispose）
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}, 20_000)

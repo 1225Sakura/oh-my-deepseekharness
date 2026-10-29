@@ -3,7 +3,7 @@
 // 对标 OMC trace_timeline/trace_summary——trace skill 原本是纯编排指引，
 // 本模块把「竞争假设 + 正反证据 + 不确定性追踪」落成 append-only JSONL 承载面：
 //   .omd/trace/<traceId>.jsonl   每行一个事件，只追加不改写（崩溃可恢复、可审计）
-import { appendFile, mkdir, readdir, readFile } from 'node:fs/promises'
+import { appendFile, mkdir, readdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
@@ -24,9 +24,20 @@ async function appendEvent(file, event) {
   await appendFile(file, JSON.stringify(event) + '\n', 'utf8')
 }
 
-async function readEvents(file) {
+/** 读面上限（字节，EL1-2 定值 Critic④）：读面承担 seq/end/hypothesis 语义判定（须全量、无窗口）——
+ *  超限=策略性拒绝（绝不静默截断），错误含 path/actualBytes/limitBytes 并引导另开新 trace（R2'）。 */
+export const TRACE_MAX_BYTES = 8 * 1024 * 1024
+
+async function readEvents(file, maxBytes = TRACE_MAX_BYTES) {
   let text
-  try { text = await readFile(file, 'utf8') } catch { return [] }
+  let oversize = 0
+  try {
+    const st = await stat(file)
+    if (st.size > maxBytes) oversize = st.size
+    else text = await readFile(file, 'utf8')
+  } catch { return [] } // 缺档/读失败 → []（既有口径不动）
+  if (oversize)
+    throw new Error(`trace 超过读面上限: ${file}（actualBytes=${oversize}, limitBytes=${maxBytes}）——策略性拒绝（保 seq 物理行序号语义，绝不静默截断）；另开新 trace 续查`)
   const events = []
   for (const [i, line] of text.split(/\r?\n/).entries()) {
     if (!line.trim()) continue
