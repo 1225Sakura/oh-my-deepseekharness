@@ -48,8 +48,10 @@ import {
   projectGraph,
 } from '../../lib/graph/scheduler.js'
 import { EXIT_CODES, runGraph } from '../../lib/graph/runner.js'
+import { assertSafeCwd } from '../lib/paths.mjs'
 
-const graphRoot = (cwd, stateDir) => join(cwd, stateDir ?? '.omd', 'graph-runs')
+// R4 评审（重要）：graph 域纳入 cwd 白名单收口（8c1bfce 的漏网面——graph_run 可在仓外建 runs 且 command 节点以该 cwd 执行）
+const graphRoot = (cwd, stateDir) => { assertSafeCwd(cwd); return join(cwd, stateDir ?? '.omd', 'graph-runs') }
 
 /** 工具层失败映射：恒返回结果形状，绝不向 MCP 抛（Q8；未知兜底 70）。 */
 function toolFailure(error, runId = null) {
@@ -268,6 +270,17 @@ export function makeGraphTools(env) {
           return reject(EXIT_CODES.FAILED_TERMINAL, 'graph run not found: ' + run_id, run_id)
         }
         const records = journal.readAll()
+
+        // R4 评审（重要）：终态 run 拒绝补交（镜像 gateResolve fail-closed——run_finished 之后的
+        // nodeResult 是 journal 账面矛盾；terminal 不复活故无功能破坏，但审计语义污染）。
+        const projectionBefore = projectGraph(readDescriptorSnapshot(runsRoot, run_id), records)
+        if (projectionBefore.terminal_status !== null) {
+          return reject(
+            EXIT_CODES.FAILED_TERMINAL,
+            'run ' + run_id + ' is already terminal (' + projectionBefore.terminal_status + '); node result rejected',
+            run_id,
+          )
+        }
 
         // 匹配最新 agent_pending（该 node 的 max-seq pending；attempt 必须一致）。
         let pending = null

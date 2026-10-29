@@ -2,19 +2,21 @@
 import { readFile } from 'node:fs/promises'
 import { z } from 'zod'
 import { atomicWriteText } from '../lib/atomic.mjs'
+import { withCrossProcessFileLock } from '../../lib/worktree.js'
 import { omdPaths } from '../lib/paths.mjs'
 import { parseNotepad, serializeNotepad, formatEntry, entryDate, isEntryLine } from '../lib/markdown.mjs'
 
 const WORKING_TTL_MS = 7 * 86400_000  // 规格 §5.3：7 天
 
 export function makeNotepadTools(env) {
+  const notedPath = (cwd) => omdPaths({ cwd, stateDir: env.stateDir, sessionId: '_' }).notepad
   async function load(cwd) {
     let text = ''
-    try { text = await readFile(omdPaths({ cwd, stateDir: env.stateDir, sessionId: '_' }).notepad, 'utf8') } catch {}
+    try { text = await readFile(notedPath(cwd), 'utf8') } catch {}
     return parseNotepad(text)
   }
   async function save(cwd, zones) {
-    await atomicWriteText(omdPaths({ cwd, stateDir: env.stateDir, sessionId: '_' }).notepad, serializeNotepad(zones))
+    await atomicWriteText(notedPath(cwd), serializeNotepad(zones))
   }
   function pruneZones(zones) {
     const cutoff = Date.now() - WORKING_TTL_MS
@@ -25,10 +27,13 @@ export function makeNotepadTools(env) {
     // 评审修复：不可解析时间戳的条目会永不过期（pruneZones 对 NaN 一律保留）——入口即拒
     if (at !== undefined && Number.isNaN(Date.parse(at)))
       throw new Error(`notepad: at 不是可解析时间戳: ${String(at)}（省略则用当前时间）`)
-    const zones = pruneZones(await load(cwd))
-    zones[zone].push(formatEntry(text, at))
-    await save(cwd, zones)
-    return { ok: true }
+    // R2 评审（重要）：load→push→save RMW 收进跨进程锁——双 dsh 会话同仓并发写曾丢条目
+    return withCrossProcessFileLock(notedPath(cwd) + '.lock', async () => {
+      const zones = pruneZones(await load(cwd))
+      zones[zone].push(formatEntry(text, at))
+      await save(cwd, zones)
+      return { ok: true }
+    })
   }
   return {
     read: async ({ cwd }) => serializeNotepad(pruneZones(await load(cwd))),
@@ -36,12 +41,15 @@ export function makeNotepadTools(env) {
     writeWorking: ({ cwd, text, at }) => writeZone(cwd, 'working', { text, at }),
     writeManual: ({ cwd, text, at }) => writeZone(cwd, 'manual', { text, at }),
     prune: async ({ cwd }) => {
-      const zones = await load(cwd)
-      const before = zones.working.length
-      const pruned = pruneZones(zones)
-      await save(cwd, pruned)
-      // removed 基于文件真实状态（read 的惰性清理只影响视图不落盘——先 read 再 prune 计数不矛盾）
-      return { ok: true, removed: before - pruned.working.length, note: 'removed 按文件状态计（read 的惰性清理不落盘）' }
+      // R2 评审：prune 与 writeZone 同锁——并发写面同族收口
+      return withCrossProcessFileLock(notedPath(cwd) + '.lock', async () => {
+        const zones = await load(cwd)
+        const before = zones.working.length
+        const pruned = pruneZones(zones)
+        await save(cwd, pruned)
+        // removed 基于文件真实状态（read 的惰性清理只影响视图不落盘——先 read 再 prune 计数不矛盾）
+        return { ok: true, removed: before - pruned.working.length, note: 'removed 按文件状态计（read 的惰性清理不落盘）' }
+      })
     },
     stats: async ({ cwd }) => {
       const z = pruneZones(await load(cwd))

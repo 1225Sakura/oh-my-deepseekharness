@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { z } from 'zod'
 import { atomicWriteJson, readJson } from '../lib/atomic.mjs'
 import { monotonicIsoNow, withCrossProcessFileLock } from '../../lib/worktree.js'
-import { omdPaths } from '../lib/paths.mjs'
+import { assertSafeCwd, omdPaths } from '../lib/paths.mjs'
 
 const ECHO_MAX = 1200
 
@@ -13,6 +13,7 @@ export function makeStateTools(env) {
     return await readJson(omdPaths({ cwd, stateDir: env.stateDir, sessionId }).stateFile(mode))
   }
   async function write({ cwd, sessionId, mode, state, expectUpdatedAt }) {
+    assertSafeCwd(cwd) // R2 评审（重要）：lockPath 于校验前用 raw cwd 构建——杂散锁文件/跨仓命中防线
     // 刻板审查修复（R3-⑨）：所有权扫描+supersede+校验+写此前全程无锁，MCP 并发下
     // 「模式互斥」不成立（伪 CAS 同族）。整体收进 per-stateDir lockfile 临界区。
     // 锁文件独立键（state-write.lock），与 run-state 锁互不嵌套，无重入面。
@@ -20,6 +21,7 @@ export function makeStateTools(env) {
     return withCrossProcessFileLock(lockPath, () => writeLocked({ cwd, sessionId, mode, state, expectUpdatedAt }))
   }
   async function writeLocked({ cwd, sessionId, mode, state, expectUpdatedAt }) {
+    assertSafeCwd(cwd) // R2 评审：scanAll/getStatus 读面 join 直拼——同一收口
     const file = omdPaths({ cwd, stateDir: env.stateDir, sessionId }).stateFile(mode)
     // 会话所有权强制（规格 §5.1）：per-session 文件布局下，须扫描其他会话的同名 mode 状态文件。
     // 注：计划原代码只检查本文件 cur._meta.sessionId，在 per-session 布局下永远不会冲突，无法满足测试断言，此处修正。
@@ -79,6 +81,7 @@ export function makeStateTools(env) {
   }
   /** 全量扫描（active 与否都收），HUD「上次活动」等派生面的数据源；有界化口径同 listActive 历史注释。 */
   async function scanAll({ cwd }) {
+    assertSafeCwd(cwd) // R2 评审：scanAll 读面 join 直拼——同一收口
     const root = join(cwd, env.stateDir, 'state', 'sessions')
     let sids = []
     try { sids = await readdir(root) } catch { return [] }

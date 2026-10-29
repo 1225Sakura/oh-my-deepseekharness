@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { z } from 'zod'
 import { atomicWriteJson, readJson } from '../lib/atomic.mjs'
 import { omdPaths } from '../lib/paths.mjs'
+import { withCrossProcessFileLock } from '../../lib/worktree.js'
 
 const SAFE_TOPIC = /^[A-Za-z0-9_-]+$/
 
@@ -29,43 +30,51 @@ export function makePrdTools(env) {
   return {
     async check({ cwd, topic, storyId, evidence }) {
       if (!evidence || !evidence.trim()) throw new Error('evidence required: 必须附验证命令的原始输出摘要（规格 §3.3 证据契约）')
-      const prd = await load(cwd, topic)
-      const s = findStory(prd, storyId)
-      s.passes = true
-      s.passedAt = new Date().toISOString()
-      s.evidence = evidence
-      await atomicWriteJson(prdFile(cwd, topic), prd)
-      await audit(cwd, { action: 'check', topic, storyId })
-      return { ok: true }
+      // R2 评审（重要）：check/uncheck/amend RMW 收进跨进程锁——team-exec 并行 worker
+      // 同时 prd_check 曾整文件覆盖丢勾选（state.mjs R3-⑨ 同族）
+      return withCrossProcessFileLock(prdFile(cwd, topic) + '.lock', async () => {
+        const prd = await load(cwd, topic)
+        const s = findStory(prd, storyId)
+        s.passes = true
+        s.passedAt = new Date().toISOString()
+        s.evidence = evidence
+        await atomicWriteJson(prdFile(cwd, topic), prd)
+        await audit(cwd, { action: 'check', topic, storyId })
+        return { ok: true }
+      })
     },
     async uncheck({ cwd, topic, storyId, reason }) {
-      const prd = await load(cwd, topic)
-      const s = findStory(prd, storyId)
-      s.passes = false
-      delete s.passedAt
-      delete s.evidence // 刻板审查修复（R3-⑫）：回退后不再留「未通过但有证据」矛盾态
-      await atomicWriteJson(prdFile(cwd, topic), prd)
-      await audit(cwd, { action: 'uncheck', topic, storyId, reason })
-      return { ok: true }
+      return withCrossProcessFileLock(prdFile(cwd, topic) + '.lock', async () => {
+        const prd = await load(cwd, topic)
+        const s = findStory(prd, storyId)
+        s.passes = false
+        delete s.passedAt
+        delete s.evidence // 刻板审查修复（R3-⑫）：回退后不再留「未通过但有证据」矛盾态
+        await atomicWriteJson(prdFile(cwd, topic), prd)
+        await audit(cwd, { action: 'uncheck', topic, storyId, reason })
+        return { ok: true }
+      })
     },
     async amend({ cwd, topic, storyId, criterionId, kind, newText, reason, evidence, authority }) {
       if (!['replaced', 'superseded'].includes(kind)) throw new Error(`unknown amendment kind: ${kind}`)
-      const prd = await load(cwd, topic)
-      const s = findStory(prd, storyId)
-      const c = s.acceptanceCriteria.find(x => x.id === criterionId)
-      if (!c) throw new Error(`fail-closed: criterion ${criterionId} not found in story ${storyId}`)
-      s.criterionAmendments ??= [] // 刻板审查修复（R3-⑪）：手写 PRD 缺该字段不再 TypeError
-      s.criterionAmendments.push({
-        kind, criterionId, originalText: c.text, newText, reason, evidence,
-        authority: authority ?? 'user',   // 终审修复：ralph skill 契约要求台账含 authority
-        at: new Date().toISOString(),
+      return withCrossProcessFileLock(prdFile(cwd, topic) + '.lock', async () => {
+        const prd = await load(cwd, topic)
+        const s = findStory(prd, storyId)
+        const c = s.acceptanceCriteria.find(x => x.id === criterionId)
+        if (!c) throw new Error(`fail-closed: criterion ${criterionId} not found in story ${storyId}`)
+        s.criterionAmendments ??= [] // 刻板审查修复（R3-⑪）：手写 PRD 缺该字段不再 TypeError
+        s.criterionAmendments.push({
+          kind, criterionId, originalText: c.text, newText, reason, evidence,
+          authority: authority ?? 'user',   // 终审修复：ralph skill 契约要求台账含 authority
+          at: new Date().toISOString(),
+        })
+        c.text = newText
+        c.revision = (c.revision ?? 1) + 1
+        prd.revision = (prd.revision ?? 1) + 1
+        await atomicWriteJson(prdFile(cwd, topic), prd)
+        await audit(cwd, { action: 'amend', topic, storyId, criterionId, kind })
+        return { ok: true, newRevision: c.revision }
       })
-      c.text = newText
-      c.revision = (c.revision ?? 1) + 1
-      prd.revision = (prd.revision ?? 1) + 1
-      await atomicWriteJson(prdFile(cwd, topic), prd)
-      await audit(cwd, { action: 'amend', topic, storyId, criterionId, kind })
-      return { ok: true, newRevision: c.revision }
     },
     async status({ cwd, topic }) {
       const prd = await load(cwd, topic)

@@ -20,10 +20,14 @@ export function parseNotepad(text) {
   const zones = { preamble: [], priority: [], working: [], manual: [] }
   if (!text) return zones
   let cur = 'preamble'
+  // R2 评审（重要）：区头识别归一化（trim+toLowerCase）——用户手写「## MANUAL 」尾随空格
+  // 或大小写变体曾落进 working 区，被 7 天 TTL 误删（违反 MANUAL 永不清理契约）。
+  const zn = (line) => line.trim().toLowerCase()
   for (const line of text.split(/\r?\n/)) {
-    if (line === ZONES.priority) { cur = 'priority'; continue }
-    if (line === ZONES.working) { cur = 'working'; continue }
-    if (line === ZONES.manual) { cur = 'manual'; continue }
+    const h = zn(line)
+    if (h === ZONES.priority.toLowerCase()) { cur = 'priority'; continue }
+    if (h === ZONES.working.toLowerCase()) { cur = 'working'; continue }
+    if (h === ZONES.manual.toLowerCase()) { cur = 'manual'; continue }
     if (line === HEADER) continue   // 固定头部，序列化时统一生成
     zones[cur].push(line)
   }
