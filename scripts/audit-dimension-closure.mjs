@@ -57,6 +57,7 @@ const MAP = {
   'omd:assets/templates/': ['D4'],
   // lib/ 顶层（逐文件规则）+ lib/graph/ 目录级前缀
   'omd:lib/client.js': ['D7'],
+  'omd:lib/cwd-guard.js': ['D11'],
   'omd:lib/commands.js': ['D8'],
   'omd:lib/config.js': ['D10'],
   'omd:lib/delegate.js': ['D12'],

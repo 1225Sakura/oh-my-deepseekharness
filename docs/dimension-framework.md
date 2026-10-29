@@ -300,6 +300,7 @@
 | `omd:assets/skills/` | D2 |
 | `omd:assets/templates/` | D4 |
 | `omd:lib/client.js` | D7 |
+| `omd:lib/cwd-guard.js` | D11 |
 | `omd:lib/commands.js` | D8 |
 | `omd:lib/config.js` | D10 |
 | `omd:lib/delegate.js` | D12 |
