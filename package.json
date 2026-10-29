@@ -1,6 +1,6 @@
 {
   "name": "@sakura12/oh-my-deepseekharness",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Multi-agent orchestration layer for DeepSeek Harness — 49 skills, 58 MCP tools, graph DAG runtime, team pipeline & HUD (OMC/OMX adaptation)",
   "keywords": [
     "deepseek-harness",
