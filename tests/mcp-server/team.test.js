@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
-import { makeTeamTools } from '../../mcp-server/tools/team.mjs'
+import { makeTeamTools, registerTeamTools } from '../../mcp-server/tools/team.mjs'
 
 async function freshRepo() {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-team-mcp-'))
@@ -244,4 +244,41 @@ test('team_merge_plan：无冲突时 clean=全部树内改动', async () => {
     execFileSync('git', ['worktree', 'remove', '--force', join(cwd, '.omd', 'worktrees', 'rt')], { cwd, stdio: 'ignore' })
     await rm(cwd, { recursive: true, force: true })
   }
+})
+
+// ---------- W1-2（生态补全 P0 证明面）：team_read_mirror 只读对账面 ----------
+
+test('team_read_mirror：缺席 exists:false；begin 后读回镜像；writeMirror 后七字段 + version/updatedAt 对账', async () => {
+  const cwd = await freshRepo()
+  const t = tools(cwd)
+  try {
+    const absent = await t.readMirror({ cwd })
+    expect(absent).toEqual({ exists: false, runState: null })
+
+    await t.begin({ cwd, runId: 'mcp-rm' })
+    const afterBegin = await t.readMirror({ cwd })
+    expect(afterBegin.exists).toBe(true)
+    expect(afterBegin.version).toBeGreaterThanOrEqual(1)
+    expect(afterBegin.updatedAt).toBeDefined()
+
+    await t.writeMirror({ cwd, patch: { mode: 'team', round: 2, current_story: 'S9', active_agents: [{ id: 'a1', role: 'executor' }] } })
+    const r = await t.readMirror({ cwd })
+    expect(r.exists).toBe(true)
+    expect(r.runState.mode).toBe('team')
+    expect(r.runState.round).toBe(2)
+    expect(r.runState.current_story).toBe('S9')
+    expect(r.runState.active_agents).toEqual([{ id: 'a1', role: 'executor' }])
+    expect(r.runState.todo).toBeDefined()          // 七字段契约：todo 要素在场
+    expect(r.version).toBe(r.runState.version)     // 顶层速取键与镜像一致
+    expect(r.updatedAt).toBe(r.runState.updatedAt)
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('注册面：team_read_mirror 经 registerTeamTools 暴露（描述含只读/对账语义）', () => {
+  const calls = []
+  registerTeamTools({ registerTool: (name, def) => calls.push({ name, def }) }, { stateDir: '.omd' })
+  const reg = calls.find(c => c.name === 'team_read_mirror')
+  expect(reg).toBeTruthy()
+  expect(reg.def.description).toContain('只读')
+  expect(reg.def.description).toContain('team_write_mirror')
 })

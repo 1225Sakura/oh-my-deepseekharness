@@ -9,6 +9,7 @@ import { beginTeamRun, cancelTeamRun, disposeRunWorktree, scanOrphans, runStateP
 import { writeRunStateMirror, buildMirrorPatch, buildTodoSummary } from '../../lib/runstate.js'
 import { writeTreeRunState } from '../../lib/multirepo.js'
 import { readJson } from '../lib/atomic.mjs'
+import { assertSafeCwd } from '../lib/paths.mjs'
 import { makeNotepadTools } from './notepad.mjs'
 import {
   transitionPhasePersist, readPhaseState,
@@ -92,6 +93,14 @@ export function makeTeamTools(env) {
     return await writeRunStateMirror({ cwd, stateDir, patch: mirrorPatch, expectUpdatedAt, retries })
   }
 
+  /** W1-2（生态补全 P0 证明面）：run-state 七字段镜像只读——写面 team_write_mirror 的对账读侧。 */
+  async function readMirror({ cwd, stateDir = '.omd' }) {
+    assertSafeCwd(cwd)
+    const rs = await readJson(runStatePath(cwd, stateDir), null).catch(() => null)
+    if (!rs) return { exists: false, runState: null }
+    return { exists: true, runState: rs, version: rs.version, updatedAt: rs.updatedAt }
+  }
+
   /**
    * 树内任意状态写（c8 接线面）：仅在 c5 运行树内可用；非运行树抛错。
    * 写 `<tree>/.omd/<rel>`，懒创建树内 .omd。
@@ -101,7 +110,7 @@ export function makeTeamTools(env) {
   }
 
   return {
-    begin, dispose, cancel, scanOrphansTool, writeMirror, writeTreeState,
+    begin, dispose, cancel, scanOrphansTool, writeMirror, readMirror, writeTreeState,
     // ---- v0.4 领队运行时面（lib/team.js 接线）----
     phaseTransition: ({ cwd, runId, to, note, stateDir = '.omd' }) =>
       transitionPhasePersist({ cwd, runId, to, note, stateDir }),
@@ -160,6 +169,11 @@ export function registerTeamTools(server, env) {
       retries: z.number().optional(),
     },
   }, async a => jsonOut(await t.writeMirror(a)))
+
+  server.registerTool('team_read_mirror', {
+    description: 'c6 run-state 镜像只读：七字段镜像 + version + updatedAt（写面 team_write_mirror 的对账读侧；文件缺席时 exists:false）',
+    inputSchema: { cwd: z.string(), stateDir: z.string().optional() },
+  }, async a => jsonOut(await t.readMirror(a)))
 
   server.registerTool('team_write_tree_state', {
     description: 'c8 树内状态写：仅在 c5 运行树内可用，懒创建 <tree>/.omd；非运行树抛错',

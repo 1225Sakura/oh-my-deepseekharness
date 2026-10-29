@@ -10,6 +10,7 @@ import { registerPrdTools } from './tools/prd.mjs'
 import { registerHandoffTools } from './tools/handoff.mjs'
 import { registerTeamTools } from './tools/team.mjs'
 import { registerTraceTools } from './tools/trace.mjs'
+import { registerEventsTools } from './tools/events.mjs'
 import { registerHudTools } from './tools/hud.mjs'
 import { registerGraphTools } from './tools/graph.mjs'
 import { registerCodeIntelTools } from './tools/codeintel.mjs'
@@ -26,6 +27,7 @@ registerPrdTools(server, env)
 registerHandoffTools(server, env)
 registerTeamTools(server, env)
 registerTraceTools(server, env)
+registerEventsTools(server, env) // W1-1 生态补全：events.jsonl 只读审计面
 registerHudTools(server, env)
 registerGraphTools(server, env)
 registerCodeIntelTools(server, env)
