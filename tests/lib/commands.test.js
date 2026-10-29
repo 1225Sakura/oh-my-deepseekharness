@@ -1,6 +1,6 @@
 // tests/lib/commands.test.js
 import { test, expect, vi } from 'vitest'
-import { registerCommands } from '../../lib/commands.js'
+import { registerCommands, renderOmdHelpRoster, buildSkillRosterLines } from '../../lib/commands.js'
 
 function makeCtx() {
   const registered = []
@@ -24,7 +24,7 @@ test('S8 /omd 帮助：确定性直返（零 followup），含五模式 + 关键
   const { ctx, registered } = makeCtx()
   await registerCommands(ctx, fakeCreateUserMessage)
   const followup = vi.fn()
-  const r = registered.find(c => c.name === 'omd')
+  const r = await registered.find(c => c.name === 'omd')
     .handler({ rawInput: '', agent: { followup } })
   expect(r.kind).toBe('success')
   expect(followup).not.toHaveBeenCalled() // 非 prompt 空壳：不注入 LLM 往返
@@ -89,4 +89,55 @@ test('默认路径动态 import @deepseek-ai/dsh-llm（devDep 已装，可解析
   const { ctx, registered } = makeCtx()
   await registerCommands(ctx)   // 不传注入 → 走动态 import 真实包
   expect(registered).toHaveLength(3)
+})
+
+// ===== P1-W3-3：/omd 帮助面逐技能全名册（team eco-completion · w-P1-5b）=====
+
+test('P1-W3-3 /omd 名册版：真实资产枚举 ≥43 技能行、含 tdd、字母序', async () => {
+  const text = await renderOmdHelpRoster()
+  expect(text).toContain('技能（逐技能全名册')
+  const roster = text.split('\n').filter(l =>
+    l.endsWith('（说出技能名调用）') || /（关键词 [^）]+）$/.test(l))
+  expect(roster.length).toBeGreaterThanOrEqual(43)
+  expect(text).toMatch(/  tdd：.*（关键词 tdd）/)
+  const rosterSection = text.slice(text.indexOf('技能（逐技能全名册'))
+  expect(rosterSection.indexOf('  analyze：')).toBeGreaterThan(-1)
+  expect(rosterSection.indexOf('  analyze：')).toBeLessThan(rosterSection.indexOf('  wiki：'))
+  expect(text).toContain('omd_memory_list') // 可见性区保留
+})
+
+test('P1-W3-3 枚举失败回落分组文案不崩', async () => {
+  const text = await renderOmdHelpRoster({ readdir: async () => { throw new Error('boom') } })
+  expect(text).toContain('质量：review / verify')
+  expect(text).toContain('模式关键词（在会话输入中触发）：')
+})
+
+test('P1-W3-3 空名册回落分组文案', async () => {
+  const text = await renderOmdHelpRoster({ readdir: async () => [] })
+  expect(text).toContain('质量：review / verify')
+})
+
+test('P1-W3-3 名册行：首句截断 ≤40+…、读失败降级「—」、触发方式映射、字母序', async () => {
+  const long = 'A'.repeat(60) + '。 second'
+  const lines = await buildSkillRosterLines({
+    readdir: async () => [
+      { name: 'zz-fake', isDirectory: () => true },
+      { name: 'aa-broken', isDirectory: () => true },
+      { name: 'tdd', isDirectory: () => true },
+      { name: 'wiki', isDirectory: () => true },
+    ],
+    readFile: async (p) => {
+      if (String(p).includes('aa-broken')) throw new Error('nope')
+      if (String(p).includes('zz-fake')) return `---\nname: zz-fake\ndescription: "${long}"\n---\nbody`
+      return `---\nname: ok\ndescription: real desc here\n---\nbody`
+    },
+  })
+  expect(lines).toHaveLength(4)
+  expect(lines[0].startsWith('  aa-broken：')).toBe(true) // 字母序
+  expect(lines.find(l => l.startsWith('  aa-broken：'))).toBe('  aa-broken：—（说出技能名调用）')
+  const zz = lines.find(l => l.startsWith('  zz-fake：'))
+  expect(zz).toContain('…')
+  expect(zz.slice(0, zz.indexOf('（')).length).toBeLessThanOrEqual('  zz-fake：'.length + 41)
+  expect(lines.find(l => l.startsWith('  tdd：'))).toContain('（关键词 tdd）')
+  expect(lines.find(l => l.startsWith('  wiki：'))).toContain('（关键词 wiki）')
 })
