@@ -4,7 +4,8 @@
 // 数据源=state_get_status + notepad_stats 两个现成读面；P1-W4-1（team eco-completion）起
 // 增第三读面：run-state.json 镜像回退——轮次/故事/代理在 state 派生缺席时补值并标
 // roundSource/storySource/agentsSource='mirror'，治「关键字段全靠模型自觉 state_write」
-// 的结构性缺口（共识计划 W4-1）。mode 永不被 mirror 覆盖（state 是模式在场唯一权威）。
+// 的结构性缺口（共识计划 W4-1）。mode 空闲时随新鲜镜像补值并标 modeSource（state 是模式
+// 在场唯一权威；R5 评审：注释曾写「永不被覆盖」与已测行为矛盾，已按实现更正）。
 import { z } from 'zod'
 import { summarize, renderCard, buildHudView, createSummaryReader } from '../../lib/hud.js'
 import { makeStateTools } from './state.mjs'
@@ -30,6 +31,9 @@ export function applyMirrorFallback(summary, mirror, now = Date.now()) {
   if (out.round == null && mirror.round != null) { out.round = mirror.round; src.roundSource = 'mirror' }
   if (out.story == null && mirror.current_story != null) { out.story = mirror.current_story; src.storySource = 'mirror' }
   const ma = Array.isArray(mirror.active_agents) ? mirror.active_agents : []
+  // 注意（文档化权衡，R5 评审）：summarize 把「缺席/空数组」折叠为 0——模型显式上报
+  // active_agents:[] 会被当缺席由镜像补值（round/story 用 == null 尊重显式值）。根治需改
+  // summarize 输出形状（波及 diffSummary 消费面），本轮接受为权衡并在此留痕。
   if (!out.agents && ma.length) { out.agents = ma.length; src.agentsSource = 'mirror' }
   return Object.keys(src).length ? { ...out, ...src } : out
 }
