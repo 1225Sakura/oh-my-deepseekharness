@@ -101,6 +101,11 @@ const MAP = {
   'omd:tests/smoke.test.js': ['D15'],
   // docs/（逐文件规则；docs/ 下出现首级子目录即 orphan——预期摩擦）
   'omd:docs/dimension-framework.md': ['D16'],
+  'omd:docs/compat-retirement.md': ['D16'],
+  'omd:docs/hud-effort-seam.md': ['D16'],
+  'omd:docs/pr-dsh-adapt.md': ['D16'],
+  'omd:docs/soft-alias-assessment.md': ['D16'],
+  'omd:docs/plugin-review-logs-hud-2026-10-29.md': ['D16'],
   'omd:docs/dsh-017-adapt-audit.md': ['D16'],
   'omd:docs/feature-parity-audit.md': ['D16'],
   'omd:docs/upstream-form-omc.md': ['D16'],
