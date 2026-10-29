@@ -49,9 +49,9 @@ function parseRankRows(section) {
 const ENUMS = {
   found: /^(diff|probe|manual|injected|empirical)$/,
   diag: /^(pending|root-caused)$/,
-  consensus: /^(none-needed|pending|approved)$/,
-  exec: /^(pending|done|observed-only|wontfix.*)$/,
-  gate: /^(assertion-live\(.+\)|conditional-review\(.+\)|none-justified)$/,
+  consensus: /^(none-needed|pending|approved)(\([^)]*\))?$/, // approved(限定词)=批准+出处，2026-10-29 并行流用词入表
+  exec: /^(pending|done|observed-only|wontfix[^@]*)(\s@\S+\s*\([^)]*\))?$/, // @commit(出处) 后缀=并行流用词入表
+  gate: /^(assertion-live\(.+\)|conditional-review\(.+\)|none-justified|verified\(.+\))$/, // verified(出处)=终验留痕入表
   tier: /^(P0|P1|P2|OBS)$/,
   dim: /^D([1-9]|1[0-6])(\+D([1-9]|1[0-6]))*$/,
 }

@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { omdPaths } from '../lib/paths.mjs'
-import { withFileLock } from '../../lib/runstate.js'
+import { withCrossProcessFileLock } from '../../lib/worktree.js'
 
 const SAFE_ID = /^[A-Za-z0-9_-]+$/
 const EVENT_KINDS = ['hypothesis', 'evidence', 'counterevidence', 'note', 'status', 'end']
@@ -43,7 +43,7 @@ export function makeTraceTools(env) {
     async begin({ cwd, traceId, title, hypotheses = [] }) {
       const id = traceId ?? `t-${randomUUID().slice(0, 8)}`
       const file = traceFile(env, cwd, id)
-      return withFileLock(file, async () => {
+      return withCrossProcessFileLock(file + '.lock', async () => {
         const existing = await readEvents(file)
         if (existing.length) throw new Error(`trace 已存在: ${id}（续写请用 trace_event；另开请换 traceId）`)
         const hyps = hypotheses.map((text, i) => ({ id: `h${i + 1}`, text, status: 'open' }))
@@ -58,7 +58,7 @@ export function makeTraceTools(env) {
       if (!EVENT_KINDS.includes(kind)) throw new Error(`kind 非法: ${kind}（合法: ${EVENT_KINDS.join('/')}）`)
       if (typeof text !== 'string' || !text.trim()) throw new Error('text 必填（事件陈述/证据内容）')
       const file = traceFile(env, cwd, traceId)
-      return withFileLock(file, async () => {
+      return withCrossProcessFileLock(file + '.lock', async () => {
         const events = await readEvents(file)
         if (!events.length) throw new Error(`trace 不存在: ${traceId}（先 trace_begin）`)
         if (events.some(e => e.type === 'end'))
