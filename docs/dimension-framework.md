@@ -94,7 +94,7 @@
 | id | D6 |
 | name | Team 运行时 |
 | 类别 | upstream-gap |
-| 定义 | 领队运行时（阶段状态机 fix≤3 / mailbox / heartbeat 扫描 / merge 计划）+ 16 个 team_* MCP 工具 + UUID 生命周期 |
+| 定义 | 领队运行时（阶段状态机 fix≤3 / mailbox / heartbeat 扫描 / merge 计划）+ 18 个 team_* MCP 工具（+team_cancel/team_read_mirror）+ UUID 生命周期 |
 | 判定标准 | 45 点 F 组 #30-35 各行状态与 `lib/team.js` 行为面、`tests/lib/team.test.js` 状态迁移矩阵一致 |
 | 发现手段 | probe：team_begin / mail / heartbeat / dispose 行为面按既有测试矩阵对照实测 |
 | 对照面锚点 | `## 45 点逐行重评 › ### F. Team 运行时（6）` + `lib/team.js` + `lib/heartbeat.js` + `mcp-server/tools/team.mjs` |
@@ -324,6 +324,7 @@
 | `omd:lib/worktree.js` | D13 |
 | `omd:mcp-server/tools/codeintel.mjs` | D4 |
 | `omd:mcp-server/tools/codeintel-astgrep.mjs` | D4 |
+| `omd:mcp-server/tools/events.mjs` | D12 |
 | `omd:mcp-server/tools/graph.mjs` | D14 |
 | `omd:mcp-server/tools/handoff.mjs` | D4 |
 | `omd:mcp-server/tools/hud.mjs` | D7 |
@@ -348,6 +349,7 @@
 | `omd:docs/code-quality-logic-review.md` | D16 |
 | `omd:docs/graph-runtime-review.md` | D16 |
 | `omd:docs/plugin-audit-2026-10-26.md` | D16 |
+| `omd:docs/plugin-review-closure-hud-ux-2026-10-26.md` | D16 |
 | `omd:scripts/audit-dimension-closure.mjs` | D16 |
 | `omd:scripts/audit-upstream-forms.mjs` | D16 |
 | `omd:scripts/install-local.ps1` | D16 |

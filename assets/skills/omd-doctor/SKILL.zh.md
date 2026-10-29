@@ -25,11 +25,11 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 
 | 项 | 预期 | 怎么数 |
 |---|---|---|
-| skill | **42**（完整名册见 `tests/assets/skills.test.js` 的 EXPECTED） | 会话技能目录 |
+| skill | **49**（完整名册见 `tests/assets/skills.test.js` 的 EXPECTED） | 会话技能目录 |
 | 角色卡 | **33** 个 `omd-agent-*`（名册见 `tests/assets/agents.test.js` 的 TIERS） | 技能目录中 `omd-agent-` 前缀条目 |
 | 命令 | **3**（`/omd-doctor`、`/omd`、`/omd-cancel`） | 命令列表 |
 | 插件内工具 | **5**（`omd_memory_set/get/list/delete` + `omd_delegate`） | 工具列表 |
-| MCP 工具 | **56** 个 `mcp__omd-state__*`（state×5、notepad×6、prd×4、handoff×3、team×17、trace×4、hud×2、codeintel×9、graph×6、codeintel-astgrep×0）——codeintel-astgrep.mjs 是拆出的 ast-grep 实现模块，工具注册仍在 codeintel.mjs | 工具列表前缀计数 |
+| MCP 工具 | **58** 个 `mcp__omd-state__*`（state×5、notepad×6、prd×4、handoff×3、events×1、team×18、trace×4、hud×2、codeintel×9、graph×6、codeintel-astgrep×0）——codeintel-astgrep.mjs 是拆出的 ast-grep 实现模块，工具注册仍在 codeintel.mjs | 工具列表前缀计数 |
 
 任何缺口 → ❌ 并列出缺失名字（修复：检查 `assets/skills` / `assets/agents` 是否完整随包发布、加载器注册是否带 `source: 'oh-my-dsh'`；检查 cordis.patch.yml 挂载）。**记忆工具（omd_memory_*）缺失时**：检查 omd 的 `inject` 声明是否含 `storage`、当前 profile 是否 base-backed（dsh-base 挂载了 dsh-storage 三件套——非 base profile 缺 storage 属预期降级）——这是 omd 声明/profile 层问题，不是宿主缺陷。
 
@@ -87,7 +87,7 @@ omd doctor — <日期>
 | # | 检查项 | 状态 | 细节 |
 |---|-------|------|------|
 | 1 | 宿主版本 vs peerDep（以 package.json 为准） | ✅/⚠️/❌ | host=<v> |
-| 2 | 注册计数（42/33/3/5/56） | … | 缺失：… |
+| 2 | 注册计数（49/33/3/5/58） | … | 缺失：… |
 | 3 | Config 模型标识符 | … | … |
 | 4 | MCP 冒烟（state_get_status） | … | … |
 | 5 | .omd/ 可写 + .gitignore | … | … |

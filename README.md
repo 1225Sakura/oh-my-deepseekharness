@@ -1,6 +1,6 @@
 # oh-my-dsh (omd)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 581 passed](https://img.shields.io/badge/tests-581%20passed-brightgreen)](./tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 629 passed](https://img.shields.io/badge/tests-629%20passed-brightgreen)](./tests)
 
 **DeepSeek Harness 的多智能体编排层** —— OMC / OMX 编排理念的 dsh 宿主适配实现。
 Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), adapted from:
@@ -8,7 +8,7 @@ Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepse
 - [oh-my-claudecode (OMC)](https://github.com/Yeachan-Heo/oh-my-claudecode) — Claude Code 编排层
 - [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) — Codex 编排层
 
-omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 42 个 skill 目录 + 33 个 `omd-agent-*` 角色卡（66 个双语文件，会话技能目录共 75 条）与 3 个斜杠命令、挂载内置 MCP server 提供 56 个状态/记忆/协调/代码智能/graph 运行时工具。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team 由 `lib/team.js` 领队运行时驱动（阶段状态机 + 队员 UUID 生命周期 + mailbox + heartbeat + merge 计划，无 tmux——dsh 无承载面）。
+omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 49 个 skill 目录 + 33 个 `omd-agent-*` 角色卡（66 个双语文件，会话技能目录共 82 条）与 3 个斜杠命令、挂载内置 MCP server 提供 58 个状态/记忆/协调/代码智能/graph 运行时工具。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team 由 `lib/team.js` 领队运行时驱动（阶段状态机 + 队员 UUID 生命周期 + mailbox + heartbeat + merge 计划，无 tmux——dsh 无承载面）。
 
 ---
 
@@ -68,8 +68,8 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 |---|---|
 | 执行模式 | **3** 种：autopilot（goal 循环）/ ralph（PRD 迭代）/ team（五阶段流水线 + 领队运行时），模式互斥 + 触发守卫防误触发 |
 | 角色 | **33** 个委派角色卡（`omd-agent-*`：OMC 19 + OMX 移植 14——api-reviewer / style-reviewer / performance-reviewer / quality-reviewer / quality-strategist / build-fixer / dependency-expert / information-architect / vision / product-analyst / product-manager / ux-researcher / researcher / explore-harness），各带档位（low 5 / medium 17 / high 11）与职责资产 |
-| Skills | **42** 个（中英双语资产）：3 执行模式 + 规划 + 质量 + 研究 + 记忆 + 基础设施与元 + OMX 移植 4（analyze / best-practice-research / design / performance-goal） |
-| MCP 工具 | **56** 个（内置 `omd-state` MCP server）：`state_*`×5 / `notepad_*`×6 / `prd_*`×4 / `handoff_*`×3 / `team_*`×17（c5/c6/c8 + 领队运行时 + `team_cancel` 取消路径）/ `trace_*`×4 / `hud_*`×2 / `graph_*`×6（U4 graph DAG 运行时：validate/run/status/resume/node_result/gate_resolve）/ 代码智能×9（`ast_grep_*`×2 + `lsp_*`×7） |
+| Skills | **49** 个（中英双语资产）：3 执行模式 + 规划 + 质量 + 研究 + 记忆 + 基础设施与元 + OMX 移植 4（analyze / best-practice-research / design / performance-goal） |
+| MCP 工具 | **58** 个（内置 `omd-state` MCP server）：`state_*`×5 / `notepad_*`×6 / `prd_*`×4 / `handoff_*`×3 / `team_*`×18（c5/c6/c8 + 领队运行时 + `team_cancel` 取消路径） / `events_*`×1/ `trace_*`×4 / `hud_*`×2 / `graph_*`×6（U4 graph DAG 运行时：validate/run/status/resume/node_result/gate_resolve）/ 代码智能×9（`ast_grep_*`×2 + `lsp_*`×7） |
 | Team 运行时 | `lib/team.js`：阶段状态机（team-plan→prd→exec→verify→fix(≤3，状态机强制)→终态）/ 队员 registry（workerId=UUID，runId=owner-epoch，终态不可复活）/ mailbox（in=队员→队长 progress/blocker/done/question，out=队长→队员 nudge/assign/answer）/ heartbeat（`team_heartbeat_scan` 按需扫描 + 插件侧周期检测定时器——检测+呈面，催促归队长模型，绝不自动杀）/ merge 计划（树∩主仓冲突候选 + 建议序，执行归模型） |
 | HUD | 三层承载：web GUI 右侧边栏 `omd-hud` 面板（client half，`lib/client.js`，自适应轮询五要素卡：活跃 5s，空转退避至 ≤30s；full preset 另渲染「队员」「工具调用」两区）/ 数据路由 `GET /oh-my-dsh/hud.json`（loopback 私有面另聚合 team registry 为 `workers`、聚合 `.omd/state/events.jsonl` 派发事件总线为 `toolCalls`，MCP wire 零变化）/ MCP `hud_render` `hud_summary`（CLI 会话同款摘要） |
 | 代码智能 | `ast_grep_search` / `ast_grep_replace`（结构化语法检索/重写，$VAR/$$$VARS 元变量，dryRun 默认不落盘）；`lsp_start/stop/status/document_symbols/references/definition/diagnostics`（Config `codeIntel.lspServers` 注册表驱动，单实例/崩溃重启 ≤2/随 MCP server 退出回收） |
@@ -192,7 +192,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（46 files / 581 tests）
+npm test            # vitest 全量（51 files / 629 tests）
 npm run test:watch
 ```
 

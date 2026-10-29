@@ -25,11 +25,11 @@ Count what is actually visible in this session and compare with expectations:
 
 | Item | Expected | How to count |
 |---|---|---|
-| Skills | **42** (full roster in `tests/assets/skills.test.js` EXPECTED) | session skill catalog |
+| Skills | **49** (full roster in `tests/assets/skills.test.js` EXPECTED) | session skill catalog |
 | Role cards | **33** `omd-agent-*` (roster in `tests/assets/agents.test.js` TIERS) | skill catalog entries prefixed `omd-agent-` |
 | Commands | **3** (`/omd-doctor`, `/omd`, `/omd-cancel`) | command list |
 | Plugin tools | **5** (`omd_memory_set/get/list/delete` + `omd_delegate`) | tool list |
-| MCP tools | **56** `mcp__omd-state__*` (state×5, notepad×6, prd×4, handoff×3, team×17, trace×4, hud×2, codeintel×9, graph×6, codeintel-astgrep×0) — codeintel-astgrep.mjs is the split-out ast-grep implementation module; tool registration stays in codeintel.mjs | tool list prefix count |
+| MCP tools | **58** `mcp__omd-state__*` (state×5, notepad×6, prd×4, handoff×3, events×1, team×18, trace×4, hud×2, codeintel×9, graph×6, codeintel-astgrep×0) — codeintel-astgrep.mjs is the split-out ast-grep implementation module; tool registration stays in codeintel.mjs | tool list prefix count |
 
 Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / `assets/agents` shipped intact and the loader registered them with `source: 'oh-my-dsh'`; check cordis.patch.yml mount). **When the memory tools (omd_memory_*) are missing**: check that omd's `inject` declaration includes `storage` and that the current profile is base-backed (dsh-base mounts the dsh-storage trio — a non-base profile missing storage is expected degradation) — this is an omd-declaration/profile-layer matter, not a host defect.
 
@@ -87,7 +87,7 @@ omd doctor — <date>
 | # | Check | Status | Detail |
 |---|-------|--------|--------|
 | 1 | Host version vs peerDep (per package.json) | ✅/⚠️/❌ | host=<v> |
-| 2 | Registration counts (42/33/3/5/56) | … | missing: … |
+| 2 | Registration counts (49/33/3/5/58) | … | missing: … |
 | 3 | Config model identifiers | … | … |
 | 4 | MCP smoke (state_get_status) | … | … |
 | 5 | .omd/ writable + .gitignore | … | … |

@@ -13,8 +13,10 @@
 
 - 快照锚（`git log -1` 实证，本会话复核）：OMC HEAD `8262f9f` = tag v5.7.0；OMX HEAD `02ef37e` = tag v0.21.9。
 - 上游权威数字复核（本会话实测，与 S1 勘误表逐项一致）：OMC skills **48**（目录枚举 = `.claude-plugin/plugin.json` 注册 48 项，双口径一致）｜hooks **30 条注册**（14 matcher / 11 事件类型，逐事件分布与 u7-drift §1 一致）｜agents **19**｜commands **21**；OMX root skills **29**（0.21.5→0.21.9 零增删）。
-- omd 侧实测（2026-10-13）：`assets/skills/` **42 目录**｜`assets/agents/` **66 文件**（33 角色×双语）｜MCP `server.registerTool` 逐文件枚举 **55**（9 个工具文件）｜斜杠命令 2（`lib/commands.js`：omd-doctor / omd-cancel）｜tests **44 文件 / 523 tests 全绿**（`npm test` 2026-10-14 复核；较 10-13 的 43/519 +1 文件 +4 tests = upstream-forms 守门纳入）。
+- omd 侧实测（2026-10-13）：`assets/skills/` **42 目录**（2026-10-29 增补：tdd 落地后 **43**）｜`assets/agents/` **66 文件**（33 角色×双语）｜MCP `server.registerTool` 逐文件枚举 **55**（9 个工具文件；2026-10-29 增补：events_read+team_read_mirror 落地后 **58**/10 文件）｜斜杠命令 2（`lib/commands.js`：omd-doctor / omd-cancel）｜tests **44 文件 / 523 tests 全绿**（`npm test` 2026-10-14 复核；2026-10-29 增补：team 批次后 **49 文件 / 616 tests**）；较 10-13 的 43/519 +1 文件 +4 tests = upstream-forms 守门纳入）。
 - 口径声明：①team/ralph 全流程 E2E 仍受 autopilot 模式互斥硬约束（v0.4.1 口径延续），以测试矩阵 + 接线证据判定；②S1 判定「不纳入」的 14 项上游增量（u7-drift §3.2/§3.3）按契约不重评，结论直接复用；③`.omd/` 下证据指针为文件系统级事实（gitignored）；④本轮重基线基于 v0.4.4 代码事实；U10（tiers 默认值改为 inherit）已在 ec96619 落地、随 0.4.5 发版，#16/#17 证据行经落地核对机制面未变、无需随行改写，dsh 0.2.0 stable 二次复评仍待触发。
+- **2026-10-29 增补（team eco-completion，用户批准强制并行执行）**：tdd skill 双语落地（#8 首个已落地）；events_read/team_read_mirror/mcpServer 真冒烟落地（W1 证明面）；计数守门同步（43/33/58）。11 项上游新增裁决全部完成，详见表内「裁决已定/已落地」标注。
+
 
 ## 总览计数（45 点 + 11 项上游新增评估行）
 
@@ -28,7 +30,7 @@
 | 上游新增评估行（U7-S1 纳入，不并入 45 点基数） | — | **11** | ⚠️部分 4 + ❌未做 7（无 ✅/🚫）；移植裁决留共识流程 |
 | **评估全集** | 45 | **56** | — |
 
-体量对照（v0.4.4 实测）：omd = 1 根 hook 电线（agent/pre-step）+ 插件侧 heartbeat 定时器 / **42 skills**（双语）/ 33 角色（双语）/ 2 斜杠命令 / **55 MCP 工具** / 4 宿主工具（口径沿 v0.4.0 存档节：dsh 原生 goal/ralph/subagent/workflow 编排面）/ **44 files / 523 tests 全过**（2026-10-14 复核更新）。
+体量对照（v0.4.4 实测；2026-10-29 team eco-completion 增补）：omd = 1 根 hook 电线（agent/pre-step）+ 插件侧 heartbeat 定时器 / **49 skills**（双语，+tdd）/ 33 角色（双语）/ 2 斜杠命令 / **58 MCP 工具**（10 个工具文件，+events_read/team_read_mirror）/ 4 宿主工具（口径沿 v0.4.0 存档节：dsh 原生 goal/ralph/subagent/workflow 编排面）/ **49 files / 616 tests 全过**（2026-10-29 team eco-completion 更新）。
 
 ## 45 点逐行重评
 
@@ -52,7 +54,7 @@
 | # | 功能点 | 状态 | omd 证据（v0.4.4 实测） | 上游对照（v5.7.0 / 0.21.9） |
 |---|---|---|---|---|
 | 9 | OMC skill 资产移植 | ✅ 维持 | `assets/skills/` **42 目录**（本轮实测再证；`tests/assets/skills.test.js` 校验）——存档节记 44 系 v0.4.0 时点数，−2 = configure-notifications / omc-doctor（47b5050 删除）；上游权威数更正 **48**（存档节记 38 系工作态旧数，见「S1 勘误落实」） | **已变**：v5.4.0→v5.7.0 skills +9/−0，9 个新 skill 全部纳入评估（见「上游新增能力评估」） |
-| 10 | 双语资产（zh/en） | ✅ 维持 | 42 skills + 33 agents 全双语（`assets/**/(*.zh.md|SKILL.zh.md)`），Config `language` | 不适用（上游无双语面，omd 增值维度） |
+| 10 | 双语资产（zh/en） | ✅ 维持 | 49 skills + 33 agents 全双语（`assets/**/(*.zh.md|SKILL.zh.md)`），Config `language` | 不适用（上游无双语面，omd 增值维度） |
 | 11 | OMX 独有 skill | ✅ 维持 | `assets/skills/{analyze,best-practice-research,design,performance-goal}/` 双语 ×4 | OMX 0.21.5→0.21.9 skills **零增删**（tag diff 为空）；root 29 / 打包 24 结构差 5 项均为退役或已有等价物（u7-drift §3.3–3.4） |
 | 12 | visual-verdict / visual-ralph | ✅ 维持 | `assets/skills/visual-verdict/`（严格 JSON 裁决契约） | 仍在（`skills/visual-verdict`）；OMX visual-ralph 覆盖口径维持 |
 
@@ -147,25 +149,27 @@ R-1～R-8 全文在下方 v0.4.0 存档节（一个含义一个家，此处不�
 
 | # | 能力项 | 上游证据（落版） | 裁决 | 一句证据 / 决定记录 |
 |---|---|---|---|---|
-| 1 | architecture-survey | `skills/architecture-survey/`（v5.5.0） | ⚠️部分 | `analyze` 通道（只读深度仓库分析，带置信度/证据边界）+ `omd-agent-architect` 覆盖分析场景；「周期性盘点→排序加深候选、只勘不救（survey, not rescue）」的专门形态无对应资产 |
-| 2 | diagram | `skills/diagram/`（v5.5.0） | ❌未做 | omd 无「散文承载结构时选最小视觉（伪代码/调用树/Mermaid/diff）」写作纪律资产；vision 工具面是图像理解，不覆盖此维度 |
-| 3 | intent | `skills/intent/`（v5.5.0） | ⚠️部分 | `ask-navigator`→`launch` 使命简报交接链与 intent 的「问题报告→intent.md→launch」主路径同构；非工程师受众的编号批量提问 intake 语法与 harbor 四记录 tracker 评审无对应 |
-| 4 | minimal-prose-discipline | `skills/minimal-prose-discipline/`（v5.5.0） | ❌未做 | 近邻纪律齐（minimal-code-discipline 管代码、agent-doc-discipline 管文档），均不约束 agent 对人发言面（受保护核心 / filler 死刑 / 零旁白） |
-| 5 | map | `skills/map/`（v5.6.0） | ❌未做 | HUD modeCatalog 只路由执行模式；42 技能面无「哪个 skill 归哪个活」的路由地图资产（map 只路由不执行，与 HUD 面性质不同） |
-| 6 | pr | `skills/pr/`（v5.6.0） | ❌未做 | omd 无 PR 组装资产；上游强依赖 OMC paper-trail 面（verify 协议证据不重收 / ADR 测试 / GLOSSARY 语言），移植前须先做 dsh 适配分析（u7-drift §3.1 预判成立） |
-| 7 | refit | `skills/refit/`（v5.6.0） | ⚠️部分 | 重叠分析：输入仪表面已在（trace 4 工具 + events.jsonl 审计 + notepad），知识出口已在（remember）；分工 = remember 盘点知识去处、self-improve 自治改码（无审批门）、refit 盘点环境摩擦并落修复承载面（确定性检查/转向/工具/信息获取四分类，用户审批门禁）——该回顾工作流本身无对应资产 |
-| 8 | tdd | `skills/tdd/`（v5.6.0） | ⚠️部分 | 诚实评估：omd 承载 = 仅 `omd-agent-test-engineer` 角色卡 TDD 纪律段（RED/GREEN/REFACTOR + TDD_Enforcement，双语在案）；`lib/keywords.js` 零 tdd 键——omd 无关键词注入（与 OMC 全局指令块的 "tdd"→TDD 触发不同源）；上游「预同意接缝表 + 接缝边界类替换」的 test-first 纪律无独立资产承载——缺口形态 = 独立 skill，非关键词 |
-| 9 | session-flow | `skills/session-flow/`（v5.7.0，#4319） | ❌未做 | notepad 三区 / wiki 会话边界清单提供记忆承载；「会话重定向证据地图（目标/转向/产出/当前步/未决决策）」工作流无对应资产 |
-| 10 | HUD effort level | OMC CHANGELOG v5.7.0 feat(hud) #4249 | ❌未做 | omd HUD 数据面（state_get_status + notepad_stats）无 effort 字段；dsh 宿主 effort 数据缝未核实（**待核**）——核实前不立项 |
-| 11 | GLOSSARY 一致性（CONTEXT.md→GLOSSARY.md 改名跟进） | OMC CHANGELOG v5.7.0 #4273 | ❌未做 | 实测 omd 移植船坞资产 66 处 `CONTEXT.md` 引用（drydock / launch / ask-navigator / agent-doc-discipline 双语）未跟进改名；omd 资产自洽、仅为上游词汇对齐漂移——低优先，一次机械改名可收口，留共识流程批准 |
+| 1 | architecture-survey | `skills/architecture-survey/`（v5.5.0） | ⚠️部分｜**裁决已定:port·P2 · 已落地**（assets/skills/architecture-survey/ 双语，team eco-completion w-P2-1） | `analyze` 通道（只读深度仓库分析，带置信度/证据边界）+ `omd-agent-architect` 覆盖分析场景；「周期性盘点→排序加深候选、只勘不救（survey, not rescue）」的专门形态无对应资产 |
+| 2 | diagram | `skills/diagram/`（v5.5.0） | ❌未做｜**裁决已定:port·P2 · 已落地**（assets/skills/diagram/ 双语，w-P2-1） | omd 无「散文承载结构时选最小视觉（伪代码/调用树/Mermaid/diff）」写作纪律资产；vision 工具面是图像理解，不覆盖此维度 |
+| 3 | intent | `skills/intent/`（v5.5.0） | ⚠️部分｜**裁决已定:defer·P2（台账化）** | `ask-navigator`→`launch` 使命简报交接链与 intent 的「问题报告→intent.md→launch」主路径同构；非工程师受众的编号批量提问 intake 语法与 harbor 四记录 tracker 评审无对应 |
+| 4 | minimal-prose-discipline | `skills/minimal-prose-discipline/`（v5.5.0） | ❌未做｜**裁决已定:port·P2 · 已落地**（assets/skills/minimal-prose-discipline/ 双语，w-P2-2） | 近邻纪律齐（minimal-code-discipline 管代码、agent-doc-discipline 管文档），均不约束 agent 对人发言面（受保护核心 / filler 死刑 / 零旁白） |
+| 5 | map | `skills/map/`（v5.6.0） | ❌未做｜**裁决已定:port·P1 · 已落地**（assets/skills/map/ 双语 + /omd 全名册集成，w-P1-1/w-P1-5b） | HUD modeCatalog 只路由执行模式；42 技能面无「哪个 skill 归哪个活」的路由地图资产（map 只路由不执行，与 HUD 面性质不同） |
+| 6 | pr | `skills/pr/`（v5.6.0） | ❌未做｜**裁决已定:defer·P2（台账化+owner） · 适配分析已产**（docs/pr-dsh-adapt.md：可机械 port 子集结论；复评=dsh 0.2.0 轮） | omd 无 PR 组装资产；上游强依赖 OMC paper-trail 面（verify 协议证据不重收 / ADR 测试 / GLOSSARY 语言），移植前须先做 dsh 适配分析（u7-drift §3.1 预判成立） |
+| 7 | refit | `skills/refit/`（v5.6.0） | ⚠️部分｜**裁决已定:port·P2 · 已落地**（assets/skills/refit/ 双语+分工表，w-P2-3） | 重叠分析：输入仪表面已在（trace 4 工具 + events.jsonl 审计 + notepad），知识出口已在（remember）；分工 = remember 盘点知识去处、self-improve 自治改码（无审批门）、refit 盘点环境摩擦并落修复承载面（确定性检查/转向/工具/信息获取四分类，用户审批门禁）——该回顾工作流本身无对应资产 |
+| 8 | tdd | `skills/tdd/`（v5.6.0） | ⚠️部分｜**裁决已定:port·P1 · 已落地**（assets/skills/tdd/ 双语 + lib/keywords.js tdd 键 + 66 tests，team eco-completion w-eco-C） | 诚实评估：omd 承载 = 仅 `omd-agent-test-engineer` 角色卡 TDD 纪律段（RED/GREEN/REFACTOR + TDD_Enforcement，双语在案）；`lib/keywords.js` 零 tdd 键——omd 无关键词注入（与 OMC 全局指令块的 "tdd"→TDD 触发不同源）；上游「预同意接缝表 + 接缝边界类替换」的 test-first 纪律无独立资产承载——缺口形态 = 独立 skill，非关键词 |
+| 9 | session-flow | `skills/session-flow/`（v5.7.0，#4319） | ❌未做｜**裁决已定:port·P2 · 已落地**（assets/skills/session-flow/ 双语，CC Task 机制→notepad/wiki/handoff 适配，w-P2-2） | notepad 三区 / wiki 会话边界清单提供记忆承载；「会话重定向证据地图（目标/转向/产出/当前步/未决决策）」工作流无对应资产 |
+| 10 | HUD effort level | OMC CHANGELOG v5.7.0 feat(hud) #4249 | ❌未做｜**裁决已定:defer·P1 · 已核实·依赖宿主关闭**（docs/hud-effort-seam.md 五级证据链：插件同步 API 无 effort 缝；dsh 0.2.0 复评轮携带结论复核） | omd HUD 数据面（state_get_status + notepad_stats）无 effort 字段；dsh 宿主 effort 数据缝未核实（**待核**）——核实前不立项 |
+| 11 | GLOSSARY 一致性（CONTEXT.md→GLOSSARY.md 改名跟进） | OMC CHANGELOG v5.7.0 #4273 | ❌未做｜**裁决已定:port·P2 · 已落地**（70 处/8 文件改名 + tests/docs/glossary-rename.test.js 零残留断言，w-P2-4） | 实测 omd 移植船坞资产 66 处 `CONTEXT.md` 引用（drydock / launch / ask-navigator / agent-doc-discipline 双语）未跟进改名；omd 资产自洽、仅为上游词汇对齐漂移——低优先，一次机械改名可收口，留共识流程批准 |
 
-小计：⚠️部分 4（#1/#3/#7/#8）+ ❌未做 7（#2/#4/#5/#6/#9/#10/#11）= 11；无 ✅ / 🚫。移植裁决（做哪几个、按什么顺序）超出重基线权限，留 U7 后续轮或独立共识流程。
+小计：⚠️部分 4（#1/#3/#7/#8）+ ❌未做 7（#2/#4/#5/#6/#9/#10/#11）= 11；无 ✅ / 🚫。**11 项已于 2026-10-29 全部裁决收口并实施完毕**：8 port 全部已落地（#1/2/4/5/7/8/9/11）、3 defer 机制化收口（#3 台账挂起计数 0/2、#6 适配分析已产留复评、#10 已核实=依赖宿主关闭）；defer 台账=.omd/state/defer-ledger.md。
+
+> 11 项裁决出处：共识计划 [.omd/plans/ralplan-plugin-ecosystem-audit.md](.omd/plans/ralplan-plugin-ecosystem-audit.md)（ralplan 三方共识，Critic APPROVE 终版）；状态词表：「裁决已定」=共识裁定，「已落地」=资产+测试在仓。
 
 ## 重基线遗留输入
 
-- 11 项评估的移植裁决 → U7 后续轮或独立共识流程。
-- HUD effort level 前置核实（dsh 宿主 effort 数据缝是否存在）→ 待核项。
-- GLOSSARY 机械改名（66 处引用）→ 低优先待批准项。
+- 11 项评估的移植裁决 → **已完成**（2026-10-29 共识流程 ralplan-plugin-ecosystem-audit，8 port/3 defer）。
+- HUD effort level 前置核实 → **已完成**：依赖宿主关闭（docs/hud-effort-seam.md 五级证据链，2026-10-29）。
+- GLOSSARY 机械改名 → **已实施**：70 处/8 文件 + tests/docs/glossary-rename.test.js 零残留断言（w-P2-4）。
 - U10（tiers 默认值改为 inherit 的行为变更）已在 ec96619 落地、随 0.4.5 发版，#16/#17 证据行经落地核对无需随行改写（机制面未变）；dsh 0.2.0 stable 二次复评仍待触发（见 upgrade-tracking 轮 15 推进序）。
 
 ---

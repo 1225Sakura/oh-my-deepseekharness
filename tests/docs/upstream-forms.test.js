@@ -34,27 +34,27 @@ function parseBreakdown(text, marker) {
 }
 
 describe('Layer 1：仓内一致性门（恒跑，fresh clone 可分发）', () => {
-  test('L1a omd 侧三面计数 == 42/33/56，分量加总自洽且含 graph×6', async () => {
+  test('L1a omd 侧三面计数 == 49/33/58，分量加总自洽且含 graph×6', async () => {
     const j = await runAudit()
-    expect(j.omd.assets.skillsDirs).toBe(42)
+    expect(j.omd.assets.skillsDirs).toBe(49)
     expect(j.omd.assets.agentRoles).toBe(33)
-    expect(j.omd.mcpToolsTotal).toBe(56)
+    expect(j.omd.mcpToolsTotal).toBe(58)
     const byFile = j.omd.mcpToolsByFile
     expect(byFile.graph).toBe(6)
-    expect(Object.values(byFile).reduce((a, b) => a + b, 0)).toBe(56)
+    expect(Object.values(byFile).reduce((a, b) => a + b, 0)).toBe(58)
   })
 
   test('L1b package.json / README / omd-doctor 双语计数 == 实测', async () => {
     const j = await runAudit()
     const pkg = JSON.parse(await read('package.json'))
-    expect(pkg.description).toContain('42 skills')
-    expect(pkg.description).toContain('56 MCP tools')
+    expect(pkg.description).toContain('49 skills')
+    expect(pkg.description).toContain('58 MCP tools')
     const readme = await read('README.md')
-    expect(readme).toMatch(/注册 42 个 skill/)
-    expect(readme).toMatch(/提供 56 个/)
+    expect(readme).toMatch(/注册 49 个 skill/)
+    expect(readme).toMatch(/提供 58 个/)
     for (const [file, skillsMarker, mcpMarker, sumMarker] of [
-      ['assets/skills/omd-doctor/SKILL.md', '| Skills | **42**', '**56** `mcp__omd-state__*`', '(42/33/3/5/56)'],
-      ['assets/skills/omd-doctor/SKILL.zh.md', '| skill | **42**', '**56** 个 `mcp__omd-state__*`', '（42/33/3/5/56）'],
+      ['assets/skills/omd-doctor/SKILL.md', '| Skills | **49**', '**58** `mcp__omd-state__*`', '(49/33/3/5/58)'],
+      ['assets/skills/omd-doctor/SKILL.zh.md', '| skill | **49**', '**58** 个 `mcp__omd-state__*`', '（49/33/3/5/58）'],
     ]) {
       const t = await read(file)
       expect(t, file + ' skills 计数').toContain(skillsMarker)

@@ -64,6 +64,14 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-21 | D11 | inactive/残留模式状态无自动回收，阻塞新模式启动——已修复（inactive 不绑定所有权，supersede 留痕） | empirical | root-caused | approved | done | assertion-live(tests/mcp-server/state.test.js) | P1 |
 | IC-22 | D16 | README 测试计数（files/tests）无恒跑守门覆盖——已修复（L1f：徽章 alt↔URL↔正文三面互断 + files 锚实测 test 文件数） | diff | root-caused | none-needed | done | assertion-live(tests/docs/dimension-chain.test.js) | P2 |
 | IC-23 | D13 | casWriteRunState/runstate CAS 以 ISO 毫秒 updatedAt 为唯一 token——同毫秒并发双写碰撞即丢更新（version 同值互覆）——已修复（单调 token helper monotonicIsoNow 三处归一） | manual | root-caused | approved | done | assertion-live(tests/lib/worktree.test.js) | P2 |
+| IC-24 | D12 | fallback 双审计面在派发失败车次上不同步（events 立即落盘 vs run-state 校验后落盘，失败车次 events 两行/run-state 无痕迹）（lhe C1） | manual | root-caused | pending | pending | conditional-review(落盘次序重构立项时) | P2 |
+| IC-25 | D12 | recordFallback 与 c6 镜像写语义分叉（直写三键、version 不 +1、不经 CAS；fallback 写后队长下次 CAS 必多一次冲突重试）（lhe C2） | manual | root-caused | pending | pending | conditional-review(随下次涉 CAS 轮次顺带收口，IC-23 同族) | P2 |
+| IC-26 | D11 | stateDir 语义分裂：hook/state 面禁绝对路径与 .. 段、routing/events 面显式支持——Config.stateDir 绝对路径组合下预写失效而事件照常落盘（lhe C3） | manual | root-caused | pending | pending | conditional-review(绝对路径组合启用或路径校验统一重构时) | P2 |
+| IC-27 | D16 | lib/events.js:36 注释引 delegate.js:38/:55 行号漂移（现码 modelId 决策在 :58/:67），文档性引注失真（lhe C4） | manual | root-caused | none-needed | pending | conditional-review(下次触碰 lib/events.js 头注时刷新) | P2 |
+| IC-28 | D7 | 上游 mission board 面（mission-board.ts 636 行 + elements + missions/ 子系统）任务板/时间线呈面，omd 无对应承载（lhe N1） | diff | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
+| IC-29 | D7 | 上游用量/成本/上下文压力可观测面（usage-api + payload-estimate + custom-rate-provider + E3 族 6 元素），omd HUD 无此维度（lhe N2） | diff | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
+| IC-30 | D15 | .omd/hb.log 孤儿（v0.4.1 vitest 输出重定向一次性测试产物，全仓无写入方无读者）——confirmed，F4 范式登记（lhe 疑点①） | empirical | root-caused | approved | done | conditional-review(删除仅限用户显式确认) | P2 |
+| IC-31 | D7 | HUD effort 无承载=设计内缺口（上游 effort.ts 数据源 statusline stdin，omd 读面钉死两拉取无通道；补齐=管道工程）（lhe 疑点④） | empirical | root-caused | approved | done | conditional-review(二期 effort 立项时复用评估记录) | P2 |
 
 ### 排序表（provisional，S6 终稿；P0/P1/P2 语义对齐轮 17 发版前审查制：P0=阻塞发版/数据损坏/宿主崩溃级；P1=功能缺陷无绕行/契约破坏；P2=质量债/文档漂移/盲区）
 
@@ -92,6 +100,14 @@ Status: active（goal 驱动，跨会话续跑）
 | P2 | IC-19 | MAGIC KEYWORD 观察 | - |
 | P2 | IC-22 | README 测试计数无守门 | - |
 | P2 | IC-23 | 同毫秒 CAS token 碰撞 | - |
+| P2 | IC-24 | fallback 双审计面失败车次不同步（lhe C1） | - |
+| P2 | IC-25 | recordFallback 与 c6 镜像写语义分叉（lhe C2） | - |
+| P2 | IC-26 | stateDir 校验口径分裂（lhe C3，详五段表） | - |
+| P2 | IC-27 | lib/events.js 注释行号漂移（lhe C4，文档性引注） | - |
+| P2 | IC-28 | 上游 mission board 面观察（D7，OBS 候选详五段表） | - |
+| P2 | IC-29 | 上游用量/成本/上下文压力可观测面（usage-api + payload-estimate + custom-rate-provider + E3 族 6 元素）（lhe N2） | - |
+| P2 | IC-30 | .omd/hb.log 孤儿（v0.4.1 vitest 输出重定向一次性测试产物，F4 范式登记）（lhe 疑点①） | - |
+| P2 | IC-31 | HUD effort 无承载=设计内缺口（上游 effort.ts 数据源 statusline stdin，omd 读面钉死两拉取无通道；补齐=管道工程）（lhe 疑点④） | - |
 
 ### 逐维发现登记（S5，2026-10-15 三批执行；每维显式登记，禁止沉默维）
 
@@ -202,6 +218,38 @@ c2 keyword-hook 误触发实证（2026-10-14 本访谈会话）：主会话经 o
 #### IC-21（ephemeral 证据内联）
 
 残留模式状态实证（2026-10-14 本访谈会话）：主会话激活 ralplan 时 state_write 抛错「state is owned by session 'session-3249cea4-3f42-4c30-9f58-5c67340230cf'」——该文件实测载荷：{active:false, handed_off_to:"ralph", plan:".omd/plans/ralplan-memory-omc-omx-forms.md", at:"2026-10-14T12:04:56.658Z"}，即 memory 先例已交接 ralph 的终态会话。同类先例：.omd/state/sessions/session-b09747c5-50fb-470a-ac8f-a1f1f3209ef5/ralplan-state.archived-20260924.json（归档命名绕开）。根因：模式状态无 TTL/回收机制，inactive+已交接状态仍持所有权。绕行修复已实证=state_clear。本段即当时输出的持久化（原锚点 ephemeral）。
+
+#### IC-24
+
+lhe S2 走读 C1（2026-10-29，root-caused）：events 的 route/fallback 落盘在 resolveDispatch 后立即执行（lib/delegate.js:154-166），run-state 的 recordFallback 排在 model 校验（:167-190，可抛）与 provider 注册检查（:191-192，可抛）之后（:193-201）。校验抛错车次：events.jsonl 有 route+fallback 两行、run-state.json 无 fallback 痕迹——events.js:37 注释自认「事件=路由判定，含后续失败车次」，run-state 侧无对等语义声明，两审计面对同一判定可给出分歧观测。证据锚=lhe-engine-r1.md §3 C1。定级 P2（审计观测分歧，非功能缺陷无绕行）。处置建议：落盘次序重构须共识单独立项。
+
+#### IC-25
+
+lhe S2 走读 C2（2026-10-29，root-caused）：recordFallback 直写 fallback/lastFallback/updatedAt 三键、version 原样保留不 +1、不经 expectUpdatedAt（lib/routing.js:109-113）；同文件 writeRunStateMirror 契约=version 每写 +1（写入方强制）+ CAS（lib/runstate.js:11/:76/:80）。后果=fallback 写后队长下一次镜像 CAS 必多一次冲突重试（重试机制兜底，非数据损坏）；同一权威文件两套写语义并存。证据锚=lhe-engine-r1.md §3 C2。与 IC-23 同族（同文件写语义），建议随下次涉 CAS 轮次顺带收口。
+
+#### IC-26
+
+lhe S2 走读 C3（2026-10-29，root-caused）：hook 预写与 MCP state 面经 omdPaths，stateDir 禁绝对路径与 .. 段（paths.mjs:7-11/:22；调用点 lib/hook.js:124/:129 与 state.mjs:13/:23）；routing/events 面显式支持绝对 stateDir（lib/routing.js:106-107、lib/events.js:26-29）。Config.stateDir 配绝对路径组合下：关键词预写 catch 直通失效（lib/hook.js:231-234）、state 工具报错，路由事件/审计照常落盘——同仓两套路径校验口径。证据锚=lhe-engine-r1.md §3 C3。主锚归 D11（.omd 锚定语义一致性）；涉 D12 面（events/routing 直拼侧）。
+
+#### IC-27
+
+lhe S2 走读 C4（2026-10-29，root-caused，文档性）：lib/events.js:36 注释引「decision.modelId，lib/delegate.js:38/:55」——现码 modelId 决策字段实际在 lib/delegate.js:58/:67（:38 为 JSDoc 起始、:55 为 provider 校验 throw）；同文件 :6 引 runstate.js:64-69 经核仍准确（withFileLock 实码 lib/runstate.js:65-70）。F7 双态口径：注释行号仅线索，现状以实码为准。证据锚=lhe-engine-r1.md §3 C4。文档性一行修正；本审查不改源码（Non-goals），故执行 pending 至下次触碰时刷新。
+
+#### IC-28
+
+lhe S3 delta N1（2026-10-29）：上游 mission board 面（src/hud/mission-board.ts 636 行 + elements/mission-board.ts re-export + 顶层 missions/ 子系统）为任务板/时间线/多 mission-worker 状态呈面，omd 无对应承载——omd PRD 面是 ralph story 台账语义，非任务板时间线形态。对照列查重空集：形态卡 §顶层子系统地图（仅列名 missions/，未评估）＋ parity §上游新增能力评估 11 项全集（无 mission）＋ upgrade-tracking §2026-02-06 漂移扫描（无此项）。证据锚=lhe-delta-r1.md §3 N1（证据=mission-board.ts:1-12 状态机 import 面）。评估立项归各自 ralplan。
+
+#### IC-29
+
+lhe S3 delta N2（2026-10-29）：上游用量/成本/上下文压力可观测面（usage-api.ts + payload-estimate.ts + custom-rate-provider.ts + elements E3 族 6 元素 limits/call-counts/token-usage/enterprise-cost/context/context-warning），omd HUD 五要素（hud.js:25）与 hud.json 富面均无此维度；dsh 亦无 statusline stdin 缝。对照列查重空集：parity G #36/#37/#38（均非用量面）＋ 11 项评估全集（无用量/成本项）＋ 形态卡 §omd 映射表（HUD 行仅 effort/statusline）。证据锚=lhe-delta-r1.md §3 N2。评估立项归各自 ralplan。
+
+#### IC-30
+
+lhe S1/S4 疑点①终局（2026-10-29，root-caused）：.omd/hb.log=confirmed 孤儿——全仓 grep `hb\.log` 零命中（lib/、mcp-server/、tests/、docs/、README.md 均无写入方与读者；可复现命令=lhe-evidence-r1.md §2①）；内容实证=v0.4.1 时代 `npm notice`+vitest run tests/lib/heartbeat.test.js 的完整 vitest 输出（shell `>` 重定向一次性测试产物；vitest.config.js 无任何 hb.log 配置，现行测试产物卫生）；README 户口树记 events.jsonl/trace/ 无 hb.log 行。处置=F4 范式登记（孤儿=无守门无读者；**删除须用户显式确认，任何自动化流程不得动它**）；外部口径（12factor 日志治理外置 + logrotate removal 属系统工具职责）同向背书（lhe-external-r1.md §2①）。本行执行=登记处置完成；按终态定义构成 closed——「closed」指登记闭环，非 hb.log 文件删除完成。
+
+#### IC-31
+
+lhe S1/S3/S4 疑点④终局（2026-10-29，root-caused）：effort 登记属实——上游 elements/effort.ts:14-30 实存（renderEffort 五档；数据源=statusline stdin effort.level，U3 字面「receives JSON session data on stdin」），omd HUD 全链（hud.js/hud-route.js/client.js/hud.mjs）grep effort 零命中；定性=设计内缺口：omd HUD 读面被设计约束钉死 state_get_status+notepad_stats 两拉取（hud.js:10-11/:192-200），无 statusline stdin 推送通道，补齐=数据管道工程（宿主注入或档位表镜像）非加 element。评估记录已落三处（lhe-evidence-r1.md §2④ / lhe-delta-r1.md §4 / lhe-external-r1.md §2④）。登记位回写（parity G#36/#10「❌未做待核」→「❌未做·设计内缺口」）按计划 Follow-ups 归编排方，非本行执行范围。
 
 ## 持续跟进机制
 

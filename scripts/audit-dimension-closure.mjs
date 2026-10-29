@@ -82,6 +82,7 @@ const MAP = {
   // mcp-server/tools/*.mjs（逐文件规则）
   'omd:mcp-server/tools/codeintel.mjs': ['D4'],
   'omd:mcp-server/tools/codeintel-astgrep.mjs': ['D4'],
+  'omd:mcp-server/tools/events.mjs': ['D12'],
   'omd:mcp-server/tools/graph.mjs': ['D14'],
   'omd:mcp-server/tools/handoff.mjs': ['D4'],
   'omd:mcp-server/tools/hud.mjs': ['D7'],
@@ -108,6 +109,7 @@ const MAP = {
   'omd:docs/code-quality-logic-review.md': ['D16'],
   'omd:docs/graph-runtime-review.md': ['D16'],
   'omd:docs/plugin-audit-2026-10-26.md': ['D16'],
+  'omd:docs/plugin-review-closure-hud-ux-2026-10-26.md': ['D16'],
   // scripts/ + bin/（逐文件规则）
   'omd:scripts/audit-dimension-closure.mjs': ['D16'],
   'omd:scripts/audit-upstream-forms.mjs': ['D16'],
