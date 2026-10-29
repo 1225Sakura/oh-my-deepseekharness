@@ -13,6 +13,8 @@ import {
   TIER_ORDER, SIGNAL_FEATURES, TIER_BANDS,
   suggestTier, clampTier, buildRoutingTable, routeOnce, recordFallback,
 } from '../../lib/routing.js'
+import { buildMirrorPatch, writeRunStateMirror } from '../../lib/runstate.js'
+import { atomicWriteJson } from '../../mcp-server/lib/atomic.mjs'
 
 const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../assets')
 
@@ -174,6 +176,57 @@ test('M1 回归：并发 fallback 审计在权威路径互斥域内串行', asyn
     const state = JSON.parse(await readFile(file, 'utf8'))
     expect(state.fallback).toBe(true)
     expect(['m1-a', 'm1-b']).toContain(state.lastFallback.dispatchId) // 锁内串行，恰一最终值
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+// ---- C2 版本纪律（2026-10-29 p2-fixes）：recordFallback 进 version 链 + monotonic updatedAt ----
+test('C2 版本纪律：recordFallback 递增 version 且 updatedAt 严格递增（同毫秒连写仍单调），既有镜像键不被抹除', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'omd-c2ver-'))
+  try {
+    const file = join(dir, '.omd', 'state', 'run-state.json')
+    // seed run-state.json（模拟 beginTeamRun 产物：七字段齐备，version=1）
+    await atomicWriteJson(file, { mode: 'team', round: 1, current_story: null, active_agents: [], todo: { working: 0, priority: 0, manual: 0, firstTitle: null }, version: 1, updatedAt: '2026-10-29T00:00:00.000Z' })
+    const d = { fallback: true, dispatchId: 'c2-ver-1', role: 'r1', tier: 'low' }
+    await recordFallback({ cwd: dir, stateDir: '.omd', decision: d })
+    const after = JSON.parse(await readFile(file, 'utf8'))
+    expect(after.version).toBe(2) // version 每写 +1
+    expect(after.updatedAt > '2026-10-29T00:00:00.000Z').toBe(true) // updatedAt 严格递增（新值>旧值）
+    expect(after.mode).toBe('team') // 既有镜像键不被抹除
+    expect(after.round).toBe(1)
+    expect(after.fallback).toBe(true)
+    expect(after.lastFallback).toMatchObject({ dispatchId: 'c2-ver-1', role: 'r1' })
+    // 同毫秒连写形态：monotonicIsoNow 保证仍严格递增、version 链继续
+    await recordFallback({ cwd: dir, stateDir: '.omd', decision: { ...d, dispatchId: 'c2-ver-2' } })
+    const after2 = JSON.parse(await readFile(file, 'utf8'))
+    expect(after2.version).toBe(3)
+    expect(after2.updatedAt > after.updatedAt).toBe(true)
+    expect(after2.lastFallback.dispatchId).toBe('c2-ver-2')
+    expect(after2.mode).toBe('team') // 镜像键仍在
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('C2 反向键存续：mirror CAS 以 recordFallback 后的 updatedAt 续写成功，fallback 键不被抹除', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'omd-c2rev-'))
+  try {
+    // recordFallback 先行（空文件起步：纯审计面独立存在形态）→ mirror 覆盖写
+    await recordFallback({ cwd: dir, stateDir: '.omd', decision: { fallback: true, dispatchId: 'c2-rev-1', role: 'r2', tier: 'medium' } })
+    const fb = JSON.parse(await readFile(join(dir, '.omd', 'state', 'run-state.json'), 'utf8'))
+    expect(fb.version).toBe(1)
+    // mirror CAS 以审计写后的 updatedAt 续写（CAS 写者以 updatedAt 为门，版本 +1 不冲突）
+    const mirror = await writeRunStateMirror({
+      cwd: dir, stateDir: '.omd',
+      patch: buildMirrorPatch({ mode: 'team', round: 2 }),
+      expectUpdatedAt: fb.updatedAt,
+    })
+    expect(mirror.ok).toBe(true)
+    expect(mirror.wonFirst).toBe(true) // CAS 一次过
+    expect(mirror.state.fallback).toBe(true) // fallback 键存续（镜像 merge 不抹审计键）
+    expect(mirror.state.lastFallback.dispatchId).toBe('c2-rev-1')
+    expect(mirror.state.round).toBe(2)
+    expect(mirror.state.version).toBe(2) // version 链继续递增
   } finally {
     await rm(dir, { recursive: true, force: true })
   }

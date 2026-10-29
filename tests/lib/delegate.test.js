@@ -325,3 +325,31 @@ test('IC-12 回归钉：cwd 缺席时回落 process.cwd()（既有行为不变�
   await def.execute({ description: 'x', prompt: 'p' }, { agent: makeFakes().parent })
   expect(events[0].cwd).toBe(process.cwd())
 })
+
+// ---- C1 同点落盘（2026-10-29 p2-fixes）：recordFallback 前移至 events 落盘同点，失败车次双面同步 ----
+test('C1 同点落盘：model 校验抛错车次 → events 与 run-state 双面同车次留痕（fallback 审计前移）', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'omd-c1sync-'))
+  try {
+    // makeFakes 注入 resolveCallConfig 全量抛错（validRoutes: []）→ 车次在 model 校验闸门抛错
+    const { def } = await setupTool({
+      config: Config.parse({ stateDir: dir, tiers: { low: 'glm-5.3-flash', medium: 'glm-5.3-flash', high: 'glm-5.3-flash' } }),
+      injectEvents: false, // events 真实落盘（双面同步断言面）
+      validRoutes: [],
+    })
+    const role = 'omd-agent-nosuch'
+    await expect(def.execute({ description: 'x', prompt: 'x', role, tier: 'low' }, { agent: makeFakes().parent }))
+      .rejects.toThrow(/not resolvable/)
+    // events 面：恰 2 行（route+fallback 同 dispatchId，含失败车次承诺）
+    const evLines = (await readFile(join(dir, 'state', 'events.jsonl'), 'utf8')).trim().split('\n').map(l => JSON.parse(l))
+    expect(evLines.map(e => e.kind)).toEqual(['route', 'fallback'])
+    const dispatchId = evLines[0].dispatchId
+    expect(dispatchId).toBe(evLines[1].dispatchId)
+    // run-state 面：同一车次 fallback 痕迹同步（修复前：仅 events 有行、run-state 无痕）
+    const state = JSON.parse(await readFile(join(dir, 'state', 'run-state.json'), 'utf8'))
+    expect(state.fallback).toBe(true)
+    expect(state.lastFallback.dispatchId).toBe(dispatchId)
+    expect(state.lastFallback.role).toBe(role)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})

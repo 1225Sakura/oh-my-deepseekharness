@@ -402,3 +402,28 @@ test('回归 v4 扫描面：子代理回报（producer kind 消息）含触发�
     await expect(stat(join(cwd, '.omd'))).rejects.toThrow()  // 零状态写（不误预写 cancel）
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
+
+// ---- C3 注册期预检（2026-10-29 p2-fixes）：绝对 stateDir 显式告警 + 确定性直通（静默失效 → 可诊断降级）----
+test('C3 注册期预检：绝对 stateDir → 注册期恰一次显式告警，命中路径确定性直通（零 per-hit 刷屏、零预写）', async () => {
+  const cwd = await tmpWorkdir()
+  const { ctx, captured, warns } = fakeCtx()
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: join(cwd, 'abs-state') } })
+  try {
+    expect(warns).toHaveLength(1) // 注册期恰一次
+    expect(warns[0]).toContain('stateDir')
+    expect(warns[0]).toContain('确定性直通')
+    const downstream = { kind: 'enter', messages: [userMsg('cancelomd')] }
+    let nextCalls = 0
+    const out = await captured['agent/pre-step'](
+      { agent: { session: { header: { id: 'sess-ABS1', cwd } } }, messages: [userMsg('cancelomd')] },
+      async () => { nextCalls++; return { ...downstream } },
+    )
+    // 确定性直通：next 恰一次、零注入
+    expect(nextCalls).toBe(1)
+    expect(out.messages.length).toBe(downstream.messages.length)
+    // per-hit 降噪：命中后无新增告警刷屏
+    expect(warns).toHaveLength(1)
+    // 零预写（mode-state/keyword 面停用，不产孤儿态）
+    await expect(stat(join(cwd, 'abs-state'))).rejects.toThrow()
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
