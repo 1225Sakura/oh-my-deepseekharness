@@ -1,5 +1,9 @@
 # 插件全面审查：链路闭环 / HUD 价值 / 人性化使用
 
+> **2026-10-29 重基线**：本报告发现已由 42ff80c/14183fc 及 team eco-completion 消化，逐条见文末「修复对照终章」；后续审计以终章为真值基准。
+> 后续增量见 docs/plugin-review-logs-hud-2026-10-29.md（增量覆盖范围 = 平面 A 日志 + 平面 B HUD + 平面 C 决策链 + OMC v5.7.0 delta + 外部对标；不含旧篇全量复核）
+
+
 > 日期：2026-10-26。对象：`@sakura12/oh-my-deepseekharness` v0.5.2（D:\omd 工作副本）。
 > 方法：ralph 循环 + 4 路并行只读审查（全部论断以当前代码 file:line 实证，不采信 README/声明）；详版证据附件：`.omd/prd/checks/review-mcp-tools.md`（附A）、`review-host-chain.md`（附B）、`review-hud.md`（附C）、`review-usability.md`（附D）。
 > 动机：用户三点抱怨——①链路无法闭环、大部分东西被降级；②HUD 价值为 0；③人性化使用为 0。
@@ -217,3 +221,37 @@ PASS mcp-server/tools/state.mjs:77 -> async function listActive({ cwd }) {
 | P2 | Config 文件位置无答案 | omd-setup 双语 + README 配置示例写明：profile 目录 `cordis.patch.yml`（如 `C:\Users\<你>\.dsh\profiles\<profile>\cordis.patch.yml`）用 `- id: oh-my-dsh` + `config:` 覆盖形式；修正原示例「`# cordis.patch.yml` 头注指向包内只读文件」的误导 |
 
 未修（如实声明）：docs/feature-parity-audit.md:16 等**历史审计文档**中的旧数字保留不动——它们是带日期的时点快照，不是活文档；活文档（README/package.json/omd-doctor/omd-setup）已全部对齐。
+
+---
+
+## 修复对照终章（2026-10-29，team eco-completion）
+
+> 本节为当前真值基准：逐条对照本报告 [断链]/可用性阻断/HUD 结构项与 2026-10-29 源码实况。
+
+### [断链] 清单（2 条）
+
+| 原断链 | 当前状态 | 证据（file:line） |
+|---|---|---|
+| #1 cancelTeamRun 无 MCP 接线 | **已修复**：team_cancel 工具注册并接线（取消前列差异提示→两阶段拆除） | mcp-server/tools/team.mjs:155；lib/worktree.js:215 |
+| #2 isSessionActive 恒 false | **已修复**：盘上活性信号推导（phase 终态/heartbeat/迁移时间三信号，活性窗 2h）注入 beginTeamRun 与 scanOrphans——存活 run 拒覆写防线在 MCP 路径生效；孤儿扫描不再误报 | mcp-server/tools/team.mjs:42/64/80 |
+
+### 可用性阻断（3 条）
+
+| 原问题 | 当前状态 | 证据（file:line） |
+|---|---|---|
+| HUD stale 文案写死「已超过 2 小时」 | **已修复**：读 server 下发真实阈值（state.mjs 按模式双语义现算） | lib/client.js:187 |
+| 孤儿扫描报警不给出路 | **已修复**：提示附可复制处置命令（确认无用后调 team_dispose） | lib/worktree.js:147 |
+| 42 技能在 /omd 帮助面集体隐身 | **大部分修复**：/omd 含分组技能目录+记忆可发现提示；逐技能全名册（每技能一行）排期中 | lib/commands.js:33（排期：共识计划 W3-3） |
+
+### HUD 结构项（4 条）
+
+| 原问题 | 当前状态 | 证据/去向 |
+|---|---|---|
+| workers 区僵尸队员（无终态过滤） | **已修复**：终态 run 整组跳过 + run 内终态队员不上屏 | lib/hud-route.js:49/68 |
+| 关键字段全靠模型自觉 state_write | **排期中**：state ∪ run-state mirror 回退读（本核实日 hud.mjs 尚无 run-state 读面） | 共识计划 W4-1 |
+| 95% 普通会话恒 idle 广告页 | **排期中**：idle 页价值化（依赖 events_read 已落地） | 共识计划 W4-2 |
+| HUD effort 字段缺 | **排期核实**：dsh 宿主 effort 数据缝核实后定（有缝→增字段；无缝→标依赖宿主关闭） | 共识计划 W2-#10 |
+
+### 边界维持声明
+
+mailbox 无推送、heartbeat 催促归领队模型（lib/heartbeat.js:6-8）、graph agent 节点不自动派发（lib/graph/runner.js:400）——三项为**文档化架构边界**（依赖宿主演进），非遗漏，维持诚实登记。

@@ -30,13 +30,13 @@ Either way, the map is an **index, not a store**: a decision lives in exactly on
 
 ## Document language
 
-Map and ticket prose follow the repo's document language: read `documentLanguage` from `CONTEXT.md` frontmatter when present; if the yard is not laid, ask the language question once during charting (W2) and record the resolved tag in the map's Notes. Paths, labels, the `navigator:map` label, ticket-type names (`research`, `loft`, `grilling`, `task`), `HITL`/`AFK`, and `blockedBy` are stable tokens and stay byte-for-byte stable in every language.
+Map and ticket prose follow the repo's document language: read `documentLanguage` from `GLOSSARY.md` frontmatter when present; if the yard is not laid, ask the language question once during charting (W2) and record the resolved tag in the map's Notes. Paths, labels, the `navigator:map` label, ticket-type names (`research`, `loft`, `grilling`, `task`), `HITL`/`AFK`, and `blockedBy` are stable tokens and stay byte-for-byte stable in every language.
 
 ## Chart the map
 
 Invoked with a loose idea (or residual questions). Charting is one session's work; it hand-resolves nothing.
 
-1. **Yard check, defer the findings.** Optionally run the `drydock` skill's `--check` audit first; if the yard is not laid (no `CONTEXT.md`, no `docs/adr/`), note it once in the map's Notes under `Deferred sediment` and proceed; never block charting on it.
+1. **Yard check, defer the findings.** Optionally run the `drydock` skill's `--check` audit first; if the yard is not laid (no `GLOSSARY.md`, no `docs/adr/`), note it once in the map's Notes under `Deferred sediment` and proceed; never block charting on it.
 2. **W1 — name the destination.** Load the `deep-interview` skill and pin down what this map is finding its way to: the spec, decision, or change. The destination fixes the scope, so it is settled first. **W1 is a captain signature: present the destination statement and get explicit confirmation.** If the captain cannot state a destination even with the interview's help, that is not an error — present the best candidates ranked and let the captain pick one to chart toward or park the effort.
 3. **Map the frontier.** Grill again with `deep-interview`, **breadth-first**: fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear and the journey fits one session — no map is needed: stop and recommend direct delivery (autopilot/team).
 4. **W2 — sign the chart.** Present the proposed map: destination, initial tickets with types and blocking edges, and the fog sketch. **W2 is a captain signature**: granularity wrong here wastes every later session. Iterate until signed.
@@ -101,7 +101,7 @@ The answer is never part of the ticket body; it is recorded on resolution. Asset
 
 Resolutions land in the paper trail the moment they settle:
 
-- a term the resolutions settled or sharpened → `CONTEXT.md` glossary (one entry: definition, boundary, resolved ambiguity)
+- a term the resolutions settled or sharpened → `GLOSSARY.md` glossary (one entry: definition, boundary, resolved ambiguity)
 - a decision passing the ADR test (hard to reverse, surprising without context, a real tradeoff) → `docs/adr/NNNN-<slug>.md`
 - a business rule or background fact → `docs/business/` (one article per business question)
 

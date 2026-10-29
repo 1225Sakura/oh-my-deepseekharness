@@ -12,11 +12,11 @@ launch 是船坞的交付航程：从使命简报走到已交付、已验证的�
 
 launch 假定船坞存在——不存在就拒绝开跑。yard 闸是每次调用的第一个动作，先于文档语言解析、先于读任何提供的规格：
 
-- **跑完整的 drydock `--check` 审计**——缺失面、`CONTEXT.md` frontmatter 缺失或非法的 `documentLanguage`、死路径、代码里没用到的术语、从未被引用的标准。这是唯一判据：Launch 不另做自己的设施盘点。
+- **跑完整的 drydock `--check` 审计**——缺失面、`GLOSSARY.md` frontmatter 缺失或非法的 `documentLanguage`、死路径、代码里没用到的术语、从未被引用的标准。这是唯一判据：Launch 不另做自己的设施盘点。
 - **actionable / 高置信发现硬阻塞本次运行：** 逐字列出每条此类发现，指向 `drydock` 技能，声明本次运行从未开始、未产出任何工件，停下。没有显式覆盖时，任何发现都按阻塞处理。
 - **窄覆盖（仅限显式意图）：** 低置信发现、drydock 报告里被显式归类为误报的发现、或用户显式声明的 scratch/一次性仓库，只能被逐次调用的慎重用户意图覆盖——覆盖必须点名发现或一次性范围，绝不静默吞掉高置信 actionable 发现。没有通用绕过开关。
 - **当前审计局限：** 今天的 `--check` 是 skill 指令清单，没有机器可读的发现/严重度契约或可执行体——在结构化契约落地前，严重度分级依赖 drydock 报告的措辞。机器可读契约是计划中的后续项；门禁措辞如实说明它能与不能机械依赖什么。
-- **干净审计（或被显式覆盖的低置信/误报/scratch 范围）放行运行。** 此刻每个 paper-trail 槽位（`CONTEXT.md`、`docs/adr/`、`docs/business/`）与设施面都已存在；Launch 在决策敲定时填充 paper trail，但绝不创建槽位。
+- **干净审计（或被显式覆盖的低置信/误报/scratch 范围）放行运行。** 此刻每个 paper-trail 槽位（`GLOSSARY.md`、`docs/adr/`、`docs/business/`）与设施面都已存在；Launch 在决策敲定时填充 paper trail，但绝不创建槽位。
 - 规则入口是 `CLAUDE.md`——船坞地图不认替代品。
 
 ## 边界
@@ -36,7 +36,7 @@ launch 假定船坞存在——不存在就拒绝开跑。yard 闸是每次调�
 Launch 是**omd 既有生命周期之上的无状态组合**——它不拥有自己的运行时状态机：
 
 - omd `team` 技能拥有队员协调、交接与取消；Launch 绝不在 team 契约之外改动 team 状态。
-- canonical `plan` → `execute` → `review` → `verify` 各面拥有自己的既有生命周期行为。Launch  authored 的工件限于 `.omd/specs/<feature-slug>/`、`CONTEXT.md`、`docs/adr/`、`docs/business/`——外加 C5 批准之后、Phase 5 槽位表点名的沉淀槽。
+- canonical `plan` → `execute` → `review` → `verify` 各面拥有自己的既有生命周期行为。Launch  authored 的工件限于 `.omd/specs/<feature-slug>/`、`GLOSSARY.md`、`docs/adr/`、`docs/business/`——外加 C5 批准之后、Phase 5 槽位表点名的沉淀槽。
 - Launch 没有自动续跑。中断后重读工件与当前 team 状态，但只能经一次新的显式 Launch 调用、且上一轮 team 跑程已到达关闭边界之后才继续。绝不推断人类批准、绝不重放进行中的 worker。
 - 起雾的工程不归 launch 管：雾闸拦停时，本次运行从未开始——无工件、无半成品状态。雾气场景交给 `ask-navigator` 绘图，或用 `deep-interview`/`plan` 收敛目的地，带着磨锐的使命简报回来。
 - Launch 不增加自己的批准回执、修订计数器、重放日志、取消路径、回滚机制或清理生命周期。
@@ -45,7 +45,7 @@ Launch 是**omd 既有生命周期之上的无状态组合**——它不拥有�
 
 ## Phase 0——入门
 
-只有通过干净 yard 闸的运行才到得了本阶段。读提供的规格或进 Phase 1 之前，先解析文档语言。当次调用中人类的显式选择优先；否则读 `CONTEXT.md` frontmatter 确切稳定键 `documentLanguage` 里合法的 BCP 47 风格标签；否则要求 `CLAUDE.md` 与 `README.md` 一致的高置信推断。持久化的裸中文或只带地区的中文标签是文字歧义，必须在该权威层问一次，绝不用推断绕过。缺失、混杂、冲突、低置信、非法显式输入、文字歧义中文——都要一次打包的语言提问；不许猜。中文必须解析到显式 `zh-Hans` 或 `zh-Hant` 文字标签。`zh-Hans-*` 选简体 companion，`zh-Hant-*` 选繁体 companion，完整归一化标签原样持久化。在任何 Launch 产出工件之前把解析出的归一化标签写回 `CONTEXT.md`，让新的显式调用不靠隐藏会话状态就能读到。人类阅读并维护这些工件；agent 语言无关。
+只有通过干净 yard 闸的运行才到得了本阶段。读提供的规格或进 Phase 1 之前，先解析文档语言。当次调用中人类的显式选择优先；否则读 `GLOSSARY.md` frontmatter 确切稳定键 `documentLanguage` 里合法的 BCP 47 风格标签；否则要求 `CLAUDE.md` 与 `README.md` 一致的高置信推断。持久化的裸中文或只带地区的中文标签是文字歧义，必须在该权威层问一次，绝不用推断绕过。缺失、混杂、冲突、低置信、非法显式输入、文字歧义中文——都要一次打包的语言提问；不许猜。中文必须解析到显式 `zh-Hans` 或 `zh-Hant` 文字标签。`zh-Hans-*` 选简体 companion，`zh-Hant-*` 选繁体 companion，完整归一化标签原样持久化。在任何 Launch 产出工件之前把解析出的归一化标签写回 `GLOSSARY.md`，让新的显式调用不靠隐藏会话状态就能读到。人类阅读并维护这些工件；agent 语言无关。
 
 只本地化散文与面向人类的标签/可本地化标量值。路径、flag、代码围栏、占位符、frontmatter 键与机器语义值、YAML/JSON 键、生命周期 token（`plan`、`execute`、`review`、`verify`）、状态枚举（`pending`、`in_progress`、`completed`、`failed`、`ready-for-agent`）、ID、ticket `blockedBy`、全部解析器/控制 token 逐字节稳定。参考语言 companion 互斥：只输出选定的一份渲染，绝不双语重复标题或标签。
 
@@ -61,11 +61,11 @@ Launch 是**omd 既有生命周期之上的无状态组合**——它不拥有�
 用决策树协议跑访谈：画出决策及其依赖，然后按 **frontier 轮次**工作——把当前所有可问的问题打包成一轮（用 `ask_user_question`），编号，各附建议答案。人类作答；树变形；重算 frontier。事实永远由子代理从仓库证据自给（`subagent` 派 `omd-agent-explore`）——人类只被问再多探索也定不了的事。
 
 paper trail，每项敲定的当下写：
-- 领域词汇 → 仓库根的 `CONTEXT.md`（一术语一条目）
+- 领域词汇 → 仓库根的 `GLOSSARY.md`（一术语一条目）
 - 过 ADR 测试的决策（难逆转、缺背景会惊讶、真实取舍）→ `docs/adr/NNNN-<slug>.md`
 - 收敛中发现的业务规则与背景 → `docs/business/`（一文答一个业务问题，首段说明为什么重要）
 
-此处不收敛是正常工作，不是失败：frontier 清不空，就把残余问题分级呈现——这是 C2 的输入，不是错误。若残余问题本身就无法精确陈述（雾测试 Q2 不过），目的地本身未定，超出 C2 权限：停下，记下已敲定的（`CONTEXT.md` 词汇、已答问题），建议 `ask-navigator`（首选）/`deep-interview`/`plan`（替代），退出——管道绝不发明目的地。
+此处不收敛是正常工作，不是失败：frontier 清不空，就把残余问题分级呈现——这是 C2 的输入，不是错误。若残余问题本身就无法精确陈述（雾测试 Q2 不过），目的地本身未定，超出 C2 权限：停下，记下已敲定的（`GLOSSARY.md` 词汇、已答问题），建议 `ask-navigator`（首选）/`deep-interview`/`plan`（替代），退出——管道绝不发明目的地。
 
 **放样绕行。** 一个精确但散文定不了的残余问题——需要被看到、被点击，而不是被描述（UI 该长什么样、状态模型手感对不对）——用工件回答，不是用更多问题：用 `skill` 工具调 `loft`，让船长反应，把反应折回访谈。放样工件是 C2 的输入；船长签的是亲眼所见，不是转述。
 
@@ -125,13 +125,13 @@ frontier 是阻塞项全部完成的 ticket 集合。
 ## Phase 5——收尾（agent 报告 → C5 验收）
 
 - 所有 ticket 带证据终态 → 对全改动跑 `verify`
-- 对账 paper trail：CONTEXT.md 准确、ADR 齐全、实现教会规格的地方更新规格
+- 对账 paper trail：GLOSSARY.md 准确、ADR 齐全、实现教会规格的地方更新规格
 - yard 复查：重跑 drydock `--check` 审计；入门以来新冒出的发现报告为 **yard 漂移**，附 `drydock` 技能指针
 - **沉淀 pass——回答：这艘船教会了船坞什么？** 先扫来源清单（三连败根因、C4 答案、评审拒绝、verify 发现、本跑程带入的任何延后沉淀行），再作答。每条教训按 `教训 → 槽位 → 打算的改动` 对照下表提出，或显式带理由拒绝；没啥可教的船必须逐字说"no new lessons"。该要求拦的是不回答，不是空回答——为凑数发明教训与跳过问题同罪。教训清单随完成报告、与 Open Assumptions 并列，逐行可否决；批准的教训在验收后才写入槽位，报告记录每个落点的文件位置。把任何教训写进槽位之前，`agent-doc-discipline` 已加载则用 `skill` 工具调它并应用其规则；该技能的验证清单过了，沉淀 pass 才算完。
 
   | 教训种类 | 槽位 |
   |---|---|
-  | 跑程中敲定的术语与边界 | `CONTEXT.md` 术语表 |
+  | 跑程中敲定的术语与边界 | `GLOSSARY.md` 术语表 |
   | 可检查的行为规则（带 why） | `docs/standards/` 匹配卷（architecture / data / process） |
   | 最常违反的约定（薄入口级） | `CLAUDE.md` 正文——只提议 |
   | 难逆转决策 | `docs/adr/`（C4 答案已落此处） |
@@ -158,4 +158,4 @@ frontier 是阻塞项全部完成的 ticket 集合。
 
 ## 状态契约
 
-Launch **不持 omd 模式状态**——它是无状态组合：自己没有 `state_write`/`state_clear`。Phase 4 下若起了 `team` 跑程，该跑程遵循 `team` 技能自己的状态契约。Launch 的持久性是磁盘文件：`.omd/specs/<feature-slug>/`（规格、ticket、decisions-pending.md）、`CONTEXT.md`、`docs/adr/`、`docs/business/`。中断时保住工件并停下；只能在上一轮 team 跑程关闭后经新的显式调用续跑。
+Launch **不持 omd 模式状态**——它是无状态组合：自己没有 `state_write`/`state_clear`。Phase 4 下若起了 `team` 跑程，该跑程遵循 `team` 技能自己的状态契约。Launch 的持久性是磁盘文件：`.omd/specs/<feature-slug>/`（规格、ticket、decisions-pending.md）、`GLOSSARY.md`、`docs/adr/`、`docs/business/`。中断时保住工件并停下；只能在上一轮 team 跑程关闭后经新的显式调用续跑。

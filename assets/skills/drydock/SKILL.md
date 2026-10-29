@@ -12,7 +12,7 @@ The four pillars and where they physically live:
 
 | Pillar | Surfaces |
 |---|---|
-| Context (shared background) | `CONTEXT.md` (glossary) + `docs/business/` + `docs/adr/` + omd notepad memory |
+| Context (shared background) | `GLOSSARY.md` (glossary) + `docs/business/` + `docs/adr/` + omd notepad memory |
 | Rules (boundaries) | `CLAUDE.md` (thin entry: conventions, principles, index; dsh reads CLAUDE.md/AGENTS.md as project rules) + `docs/standards/` |
 | Tools (composable capability) | `.dsh/skills/` (project skills — dsh's native scan root; committing it to the repo shares it with everyone) + `scripts/` |
 | Standards (the classification society) | `design-system/` (tokens, components, patterns) + `docs/standards/` |
@@ -39,7 +39,7 @@ Metaphor map: the shipyard is the shared facility; the classification society (`
 Inventory what exists before writing anything (use `glob`/`read`, not shell guesses):
 
 - `CLAUDE.md` present? `AGENTS.md` present? (rule: if either exists, extend it in place; create the missing one as a one-line pointer to the other; **never create both fresh**)
-- `CONTEXT.md`, `docs/adr/`, `docs/standards/`, `docs/business/`, `design-system/`, `.dsh/skills/`, `scripts/`, `.gitattributes` — which exist, which are missing?
+- `GLOSSARY.md`, `docs/adr/`, `docs/standards/`, `docs/business/`, `design-system/`, `.dsh/skills/`, `scripts/`, `.gitattributes` — which exist, which are missing?
 - omd plugin installed? — only worth checking when running inside an omd-equipped session (look for the omd protocol section and `mcp__omd-state__*` tools); outside one, skip this check silently (the harness works with or without omd)
 
 Report the map first, then act.
@@ -52,14 +52,14 @@ The document language for the generated harness files is a file-backed decision,
 ```json
 {
   "schemaVersion": 1,
-  "authority": { "path": "CONTEXT.md", "frontmatterKey": "documentLanguage" },
+  "authority": { "path": "GLOSSARY.md", "frontmatterKey": "documentLanguage" },
   "canonicalSources": ["CLAUDE.md", "README.md"],
   "askOn": ["missing", "mixed", "conflict", "low-confidence", "invalid-explicit", "script-ambiguous"],
   "tagPattern": "^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?$",
   "scriptVariants": ["zh-Hans", "zh-Hant"],
   "seedCompanionPrefixes": { "en": "en", "zh-Hans": "zh-Hans", "zh-Hant": "zh-Hant" },
   "stableTokens": [
-    "CONTEXT.md", "documentLanguage", "launch", "--serial",
+    "GLOSSARY.md", "documentLanguage", "launch", "--serial",
     "plan", "execute", "review", "verify", "blockedBy",
     "pending", "in_progress", "completed", "failed", "ready-for-agent",
     "id", "name", "description", "triggers", "```",
@@ -72,11 +72,11 @@ The document language for the generated harness files is a file-backed decision,
 Resolution order:
 
 1. An explicit human choice in the current invocation wins when valid. Normalize it to a stable BCP-47-style tag: lowercase language, Title-Case script, uppercase region. Invalid explicit input must be asked once rather than guessed.
-2. Otherwise, read `documentLanguage` from the YAML frontmatter at the top of `CONTEXT.md`. A valid, script-unambiguous tag is authoritative for fresh Drydock and Launch invocations. If the persisted tag is bare or region-only Chinese, ask once at this authority tier; never bypass it with source inference.
+2. Otherwise, read `documentLanguage` from the YAML frontmatter at the top of `GLOSSARY.md`. A valid, script-unambiguous tag is authoritative for fresh Drydock and Launch invocations. If the persisted tag is bare or region-only Chinese, ask once at this authority tier; never bypass it with source inference.
 3. If the marker is absent or invalid, inspect canonical sources in this order: `CLAUDE.md`, then `README.md`. Infer only when every usable source has one unambiguous dominant language and all usable sources agree on the same normalized tag. One unambiguous source is sufficient when the other is missing or empty.
-4. Chinese must resolve to an explicit script-qualified tag: `zh-Hans` or `zh-Hant` (optionally followed by a region). Bare `zh` and region-only Chinese tags are script-ambiguous and must be asked once rather than selecting a companion. Companion selection uses the longest language/script prefix: `zh-Hans-*` selects the `zh-Hans` companion and `zh-Hant-*` selects `zh-Hant`; preserve the full normalized tag (for example `zh-Hans-CN`) in `CONTEXT.md`.
+4. Chinese must resolve to an explicit script-qualified tag: `zh-Hans` or `zh-Hant` (optionally followed by a region). Bare `zh` and region-only Chinese tags are script-ambiguous and must be asked once rather than selecting a companion. Companion selection uses the longest language/script prefix: `zh-Hans-*` selects the `zh-Hans` companion and `zh-Hant-*` selects `zh-Hant`; preserve the full normalized tag (for example `zh-Hans-CN`) in `GLOSSARY.md`.
 5. Missing usable sources, mixed-language content, conflicting tags, low-confidence inference, invalid explicit input, or script-ambiguous Chinese must trigger one batched language question (use `ask_user_question`). Do not guess. If no answer is available, stop before writing localized artifacts.
-6. Before scaffolding, write the resolved tag to the exact stable frontmatter key `documentLanguage` in `CONTEXT.md` (creating or extending its frontmatter without translating the key). This visible file is the init report's language authority; no daemon, hidden ledger, or runtime state is created.
+6. Before scaffolding, write the resolved tag to the exact stable frontmatter key `documentLanguage` in `GLOSSARY.md` (creating or extending its frontmatter without translating the key). This visible file is the init report's language authority; no daemon, hidden ledger, or runtime state is created.
 
 Only prose and human-facing labels/localizable values follow the selected language; structural keys stay language-stable. Keep paths, flags, code fences, placeholders, frontmatter keys and machine-semantic values, YAML/JSON keys, lifecycle tokens, status enums, IDs, `blockedBy`, and parser/control tokens byte-for-byte stable.
 
@@ -90,7 +90,7 @@ Ask the remaining questions only after language is resolved (via `ask_user_quest
 
 ```
 CLAUDE.md                      # thin entry — see seed A
-CONTEXT.md                     # glossary — see seed B
+GLOSSARY.md                     # glossary — see seed B
 .gitattributes                 # * text=auto eol=lf  (kills CRLF warning noise on Windows)
 docs/adr/0001-adopt-shipyard-harness.md
 docs/standards/architecture.md # seed C
@@ -128,11 +128,11 @@ Seed A — CLAUDE.md, en (thin entry; extend in place if the file exists):
 - ADR-0001: adopt shipyard harness
 
 ## Shared background
-- Glossary: CONTEXT.md ｜ Business knowledge: docs/business/ ｜ Decision context: docs/adr/
+- Glossary: GLOSSARY.md ｜ Business knowledge: docs/business/ ｜ Decision context: docs/adr/
 
 ## Agent guide
 - Delivery follows the canonical workflow plan → execute → review → verify; the `launch` skill is an optional governed delivery pipeline (opt-in, invoke explicitly)
-- On term conflicts CONTEXT.md wins; new terms are recorded the moment they settle
+- On term conflicts GLOSSARY.md wins; new terms are recorded the moment they settle
 - Reusable capability goes to .dsh/skills/; UI patterns go to design-system/
 ```
 <!-- shipyard-seed-a:en:end -->
@@ -158,11 +158,11 @@ Seed A — zh-Hans companion (结构一致，二选一按文档语言渲染):
 - ADR-0001: adopt shipyard harness
 
 ## 共享背景
-- 术语: CONTEXT.md ｜ 业务知识: docs/business/ ｜ 决策背景: docs/adr/
+- 术语: GLOSSARY.md ｜ 业务知识: docs/business/ ｜ 决策背景: docs/adr/
 
 ## Agent 指南
 - 交付遵循 canonical 工作流 plan → execute → review → verify；`launch` 技能是可选的受治理交付管道（opt-in，需要时显式调用）
-- 术语冲突以 CONTEXT.md 为准；新术语当场补录
+- 术语冲突以 GLOSSARY.md 为准；新术语当场补录
 - 可复用能力沉淀到 .dsh/skills/；UI 模式沉淀到 design-system/
 ```
 <!-- shipyard-seed-a:zh-Hans:end -->
@@ -188,16 +188,16 @@ Seed A — zh-Hant companion（結構一致，只渲染此版本）:
 - ADR-0001: adopt shipyard harness
 
 ## 共享背景
-- 詞彙: CONTEXT.md ｜ 業務知識: docs/business/ ｜ 決策背景: docs/adr/
+- 詞彙: GLOSSARY.md ｜ 業務知識: docs/business/ ｜ 決策背景: docs/adr/
 
 ## Agent 指南
 - 交付遵循 canonical 工作流 plan → execute → review → verify；`launch` 技能是可選的治理交付管道（opt-in，必須明確呼叫）
-- 術語衝突以 CONTEXT.md 為準；新術語確定時立即補錄
+- 術語衝突以 GLOSSARY.md 為準；新術語確定時立即補錄
 - 可重用能力沉澱到 .dsh/skills/；UI 模式沉澱到 design-system/
 ```
 <!-- shipyard-seed-a:zh-Hant:end -->
 
-Seed B — CONTEXT.md (the stable frontmatter key is the language authority):
+Seed B — GLOSSARY.md (the stable frontmatter key is the language authority):
 
 en:
 
@@ -318,7 +318,7 @@ write "this project's specific decision discipline", not generic tutorials.
 
 Tell the user, and rely on these flows to fill the skeleton:
 
-- **launch** writes CONTEXT.md vocabulary, ADRs, and docs/business/ as decisions settle (paper trail)
+- **launch** writes GLOSSARY.md vocabulary, ADRs, and docs/business/ as decisions settle (paper trail)
 - **launch C5 sediment / review** sediment recurring corrections into docs/standards/ and CLAUDE.md principles
 - **anyone** can add a project skill to .dsh/skills/ — the barrier is the quality gate, not permission
 - **omd notepad** (`mcp__omd-state__notepad_write_priority` / `notepad_write_working`) compounds session knowledge; promote anything referenced twice into docs/business/
@@ -328,14 +328,14 @@ The rule that keeps 先动手 aligned: **starting needs no permission; landing g
 ### 5. Report
 
 - created / extended / deliberately skipped (each with why)
-- resolved document language as `CONTEXT.md` frontmatter `documentLanguage: <tag>`, including whether it came from explicit choice, the persisted marker, or unanimous inference
-- the 3 surfaces that most need human content next (usually CLAUDE.md conventions, architecture.md, CONTEXT.md first terms)
+- resolved document language as `GLOSSARY.md` frontmatter `documentLanguage: <tag>`, including whether it came from explicit choice, the persisted marker, or unanimous inference
+- the 3 surfaces that most need human content next (usually CLAUDE.md conventions, architecture.md, GLOSSARY.md first terms)
 - reminder: re-run with `--check` any time to see drift between filesystem and harness
 
 ## `--check` mode
 
-Diff actual repo state against the shipyard map; report: missing surfaces, a missing or invalid `CONTEXT.md` frontmatter `documentLanguage` tag, CLAUDE.md sections that point at dead paths, CONTEXT.md terms unused in code, and standards never referenced. For each finding, state the confidence (`high` when mechanically checkable, `low` when heuristic) and whether it is actionable after excluding throwaway/scratch repositories explicitly declared by the user. Launch's yard gate treats high-confidence actionable findings as blocking; low-confidence or explicitly-classified false-positive findings, and findings in a user-declared scratch/throwaway scope, may be overridden only with deliberate per-invocation intent (see the `launch` skill). Today `--check` has no executable or machine-readable exit contract — the report's wording is the classification source until a structured finding/severity contract ships (planned follow-up). Read-only.
+Diff actual repo state against the shipyard map; report: missing surfaces, a missing or invalid `GLOSSARY.md` frontmatter `documentLanguage` tag, CLAUDE.md sections that point at dead paths, GLOSSARY.md terms unused in code, and standards never referenced. For each finding, state the confidence (`high` when mechanically checkable, `low` when heuristic) and whether it is actionable after excluding throwaway/scratch repositories explicitly declared by the user. Launch's yard gate treats high-confidence actionable findings as blocking; low-confidence or explicitly-classified false-positive findings, and findings in a user-declared scratch/throwaway scope, may be overridden only with deliberate per-invocation intent (see the `launch` skill). Today `--check` has no executable or machine-readable exit contract — the report's wording is the classification source until a structured finding/severity contract ships (planned follow-up). Read-only.
 
 ## State Contract (状态契约)
 
-drydock **holds no mode state**: no `state_write`/`state_clear`. Its deliverables are user-owned repo files (CLAUDE.md, CONTEXT.md, docs/, design-system/, .dsh/skills/ seeds) — it never touches `.omd/`; no runtime state is created. `--check` mode is strictly read-only. On interruption, re-run: detection is idempotent and never clobbers existing files.
+drydock **holds no mode state**: no `state_write`/`state_clear`. Its deliverables are user-owned repo files (CLAUDE.md, GLOSSARY.md, docs/, design-system/, .dsh/skills/ seeds) — it never touches `.omd/`; no runtime state is created. `--check` mode is strictly read-only. On interruption, re-run: detection is idempotent and never clobbers existing files.

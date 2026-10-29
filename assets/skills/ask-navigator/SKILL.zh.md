@@ -30,13 +30,13 @@ ask-navigator 是**领航员**：它接过一项裹在雾里的工作——从�
 
 ## 文档语言
 
-地图与票的正文跟随仓库文档语言：有 `CONTEXT.md` 时读其 frontmatter 的 `documentLanguage`；场地未铺设时在绘图（W2）阶段问一次语言问题，并把敲定的标签记入地图的 Notes。路径、标签、`navigator:map` 标签、票型名（`research`、`loft`、`grilling`、`task`）、`HITL`/`AFK`、`blockedBy` 是稳定 token，在任何语言中逐字节不变。
+地图与票的正文跟随仓库文档语言：有 `GLOSSARY.md` 时读其 frontmatter 的 `documentLanguage`；场地未铺设时在绘图（W2）阶段问一次语言问题，并把敲定的标签记入地图的 Notes。路径、标签、`navigator:map` 标签、票型名（`research`、`loft`、`grilling`、`task`）、`HITL`/`AFK`、`blockedBy` 是稳定 token，在任何语言中逐字节不变。
 
 ## 绘图（chart the map）
 
 带松散想法（或残余问题）调用。绘图是一个会话的工作；它手工解决不了任何票。
 
-1. **场地检查，发现延后。** 可先选跑 `drydock` skill 的 `--check` 审计；场地未铺设（无 `CONTEXT.md`、无 `docs/adr/`）时在地图 Notes 的 `Deferred sediment` 下记一笔即继续；绝不因场地阻塞绘图。
+1. **场地检查，发现延后。** 可先选跑 `drydock` skill 的 `--check` 审计；场地未铺设（无 `GLOSSARY.md`、无 `docs/adr/`）时在地图 Notes 的 `Deferred sediment` 下记一笔即继续；绝不因场地阻塞绘图。
 2. **W1——命名目的地。** 加载 `deep-interview` skill，敲定这张地图要找的路通向什么：规格、决策或变更。目的地定死范围，所以最先敲定。**W1 是船长签署：呈现目的地陈述并拿到显式确认。** 如果船长连访谈帮助也给不出目的地，那不是错误——呈现排序后的最佳候选，让船长挑一个作为绘图方向，或把这项工作停泊。
 3. **绘制前沿。** 再用 `deep-interview` 拷问，**广度优先**：在整个空间上扇开，而不是在单条线上深挖，浮出悬而未决的决策与现在就能迈出的第一步。**若此举没有发现雾**——通往目的地的路已清晰且一趟会话走得完——不需要地图：停下并建议直接交付（autopilot/team）。
 4. **W2——签署海图。** 呈现拟议地图：目的地、带类型与阻塞边的初始票、雾的草图。**W2 是船长签署**：这里的粒度错了会浪费之后每个会话。迭代到签署为止。
@@ -101,7 +101,7 @@ ask-navigator 是**领航员**：它接过一项裹在雾里的工作——从�
 
 决议落定的那一刻就沉进纸面轨迹：
 
-- 决议敲定或磨利的术语 → `CONTEXT.md` 术语表（一条：定义、边界、已解决的歧义）
+- 决议敲定或磨利的术语 → `GLOSSARY.md` 术语表（一条：定义、边界、已解决的歧义）
 - 通过 ADR 检验的决策（难以逆转、缺了上下文会意外、真正的权衡）→ `docs/adr/NNNN-<slug>.md`
 - 业务规则或背景事实 → `docs/business/`（每个业务问题一篇）
 

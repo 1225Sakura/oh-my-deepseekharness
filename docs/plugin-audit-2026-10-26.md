@@ -1,5 +1,9 @@
 # oh-my-dsh 插件全面审查报告（2026-10-26）
 
+> **2026-10-29 重基线**：本报告发现已由 42ff80c/14183fc 及 team eco-completion 消化，逐条见文末「修复对照终章」；后续审计以终章为真值基准。
+> 后续增量见 docs/plugin-review-logs-hud-2026-10-29.md（增量覆盖范围 = 平面 A 日志 + 平面 B HUD + 平面 C 决策链 + OMC v5.7.0 delta + 外部对标；不含旧篇全量复核）
+
+
 审查对象：D:\omd（@sakura12/oh-my-deepseekharness，仓库版本 0.5.1）+ 实装环境（web profile 实装 0.4.9，GUI http://127.0.0.1:3080）。
 方法：两个并行只读侦察子代理（降级面 / HUD 数据链路）+ 主会话对运行中 GUI 的实测 + dsh 宿主源码核验。
 本报告由 ralph 循环 PRD .omd/prd/plugin-audit-2026-10-26.json 驱动；修复进度见「修复对照」章节（S10 完成时补齐）。
@@ -95,3 +99,37 @@
 另含独立 reviewer 对第一轮 diff 的评审处置：P0×1（graph fixture 封印态）、P1×2（effect deps 缺 cwd；安装脚本临时目录残渣）、P2×7 全部处置（台账见 .omd/prd/progress.txt）。
 
 版本：0.5.1 → **0.5.2**。
+
+---
+
+## 修复对照终章（2026-10-29，team eco-completion）
+
+> 本节为当前真值基准：逐条对照「症状一/降级面」与 2026-10-29 源码实况（file:line 实证，team eco-completion W1 批次落地后复核）。
+
+### 症状一：链路闭环（5 条）
+
+| 原症状 | 当前状态 | 证据（file:line） |
+|---|---|---|
+| 1. team 检测→催促断链 | **维持文档化边界**（催促动作归领队模型，dsh 无插件→subagent 消息缝；检测+呈面健康） | lib/heartbeat.js:6-8 |
+| 2. graph pending→回填断链 | **维持文档化边界**（agent 节点不自动派发，journal/fence 运行时本身为全真实现） | lib/graph/runner.js:400 |
+| 3. 记忆写入→发现断链 | **已修复**：omd_memory_list 可枚举全部 key | lib/memory.js:150 |
+| 4. HUD 数据→面板断链 | 见 [closure 文档终章](plugin-review-closure-hud-ux-2026-10-26.md)（终态过滤已修复；mirror 回退读/idle 页价值化排期中） | lib/hud-route.js:49/68 |
+| 5. 关键词→激活断链（部分） | **部分修复**：autopilot 已 hook 武装（messageStart 首行锚定+疑问守卫，2026-10-26 第二轮 S3）；deep-interview / ai-slop-cleaner 仍无 hook 字段（残留，激活依赖模型自律） | lib/keywords.js（autopilot 键 hook:{arm:true,match:'messageStart'}；deep-interview/ai-slop-cleaner 键无 hook） |
+
+### 降级面问题清单（8 项）
+
+| 原问题 | 当前状态 | 证据（file:line） |
+|---|---|---|
+| hooksBridge 恒 unavailable 残件 | **已修复（移除）**：探测行删除，改为自述注释 | lib/probe.js:35-37 |
+| mcpServer 假绿灯 | **修复进行中**：initialize 握手冒烟为 team eco-completion w-eco-B 在途任务；挂载降级语义（lib/index.js failOnStartupError:false）不变 | lib/index.js:121 |
+| skills 资产静默零加载 | **已修复**：目录不可读归集进 errors，能力矩阵+降级公告可见 | lib/skills.js:49/65 |
+| run-state 五要素镜像写多读无 | **已修复**：team_read_mirror 只读工具（team eco-completion W1 批次落地） | mcp-server/tools/team.mjs:171 |
+| events.jsonl 单消费者 | **已修复**：events_read 只读审计面（tail + kind 过滤 + route:fallback 聚合对账；team eco-completion W1 批次落地） | mcp-server/tools/events.mjs:37、mcp-server/index.mjs:13/30 |
+| 动态 context active 分支死代码 | **已修复**：活跃模式同步读面复活 | lib/runtime.js:6-22 |
+| bin/graph-runner.mjs 不随包发布 | **已修复**：package.json bin 字段 | package.json:46 |
+| mailbox 无推送 | **维持文档化边界**（队员轮询 team_mail_read；插件无推送缝） | lib/team.js 头注 |
+
+### 附：原「[断链] 清单」两项（同日修复，避免与 closure 文档重复展开）
+
+- cancelTeamRun 无 MCP 接线 → **已修复**：team_cancel 注册 | mcp-server/tools/team.mjs:155（实现 lib/worktree.js:215 起）
+- isSessionActive 恒 false → **已修复**：盘上活性信号推导（活性窗 2h）注入 begin/scanOrphans | mcp-server/tools/team.mjs:42/64/80
