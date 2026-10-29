@@ -5,7 +5,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const SKILLS = join(dirname(fileURLToPath(import.meta.url)), '../../assets/skills')
-// 42 skill 全量名册：M1 11 + M2 S1 8 + S2 7 + S3 6 + S4 6 + v0.4 OMX 移植 4（v0.4.1 清理：omc-doctor / configure-notifications 经批准移除）
+// 49 skill 全量名册（44 基线 + team eco-completion 五项 port）：M1 11 + M2 S1 8 + S2 7 + S3 6 + S4 6 + v0.4 OMX 移植 4 + 上游 tdd 移植 1（P1-W2-#8；v0.4.1 清理：omc-doctor / configure-notifications 经批准移除）
 const EXPECTED = [
   // M1：3 模式 + 7 辅助 + omd-doctor（原创）
   'autopilot', 'ralph', 'team', 'deep-interview', 'ralplan', 'plan', 'execute', 'verify', 'review', 'cancel', 'omd-doctor',
@@ -19,9 +19,14 @@ const EXPECTED = [
   'omd-setup', 'project-session-manager', 'release', 'ultragoal', 'visual-verdict', 'wiki',
   // v0.4 OMX 独有 skill 移植（ultraqa/worker 已记 🚫 决定：OMC 退役 / 并入 team）
   'analyze', 'best-practice-research', 'design', 'performance-goal',
+  // 上游 OMC v5.6.0 tdd 移植（P1-W2-#8：预同意接缝表 + test-first 纪律）
+  'tdd',
+  'map',
+  // P2 批次（W2-#1/#2/#4/#7/#9：单代理模式 port，含影子实例重复劳动对账）
+  'architecture-survey', 'diagram', 'minimal-prose-discipline', 'session-flow', 'refit',
 ]
 
-test('42 个 skill 目录 × 双语文件齐全', async () => {
+test('49 个 skill 目录 × 双语文件齐全', async () => {
   const dirs = await readdir(SKILLS)
   for (const s of EXPECTED) {
     expect(dirs).toContain(s)
@@ -61,6 +66,13 @@ test('关键协议内容断言（规格 §3）', async () => {
   expect(cancel).toContain('state_clear')
   const review = await readFile(join(SKILLS, 'review', 'SKILL.md'), 'utf8')
   expect(review).toContain('name: review')
+  const tddZh = await read('tdd')
+  expect(tddZh).toMatch(/接缝/)
+  expect(tddZh).toMatch(/红绿|red\/green/)
+  expect(tddZh).toContain('一个测试')
+  const tddEn = await readFile(join(SKILLS, 'tdd', 'SKILL.md'), 'utf8')
+  expect(tddEn).toContain('name: tdd')
+  expect(tddEn).toContain('seam')
 })
 
 test('omd-doctor 原创 skill 含诊断清单要点（规格 §6.3）', async () => {

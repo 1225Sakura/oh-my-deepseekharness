@@ -7,11 +7,47 @@ import { Config } from '../../lib/config.js'
 test('注册表覆盖模式与 M2 关键词且 cancel 优先级最高、只匹配专有词', () => {
   expect(KEYWORD_REGISTRY[0].target).toBe('cancel')
   expect(KEYWORD_REGISTRY[0].triggers).toEqual(['cancelomd', 'stopomd'])
-  for (const e of KEYWORD_REGISTRY) expect(e.target).toMatch(/^(cancel|ralph|autopilot|ralplan|deep-interview|review|ai-slop-cleaner|wiki)$/)
+  for (const e of KEYWORD_REGISTRY) expect(e.target).toMatch(/^(cancel|ralph|autopilot|ralplan|deep-interview|review|tdd|ai-slop-cleaner|wiki)$/)
+})
+
+test('tdd 键与 review 同形态（P1-W2-#8：natural + injectGuide，不武装状态）', () => {
+  const tdd = KEYWORD_REGISTRY.find(e => e.target === 'tdd')
+  expect(tdd).toBeDefined()
+  expect(tdd.triggers).toEqual(['tdd', 'TDD 模式'])
+  expect(tdd.intent).toBe('natural')
+  expect(tdd.hook).toEqual({ arm: false, injectGuide: true, match: 'token' })
+})
+
+test('w-P1-2：deep-interview/ai-slop-cleaner 武装为 messageStart（对齐 autopilot 形态）', () => {
+  for (const key of ['deep-interview', 'ai-slop-cleaner']) {
+    const e = KEYWORD_REGISTRY.find(x => x.target === key)
+    expect(e).toBeDefined()
+    expect(e.intent).toBe('natural')
+    expect(e.hook).toEqual({ arm: true, match: 'messageStart' })
+  }
 })
 
 test('退役词表包含 ultrawork 系列', () => {
   for (const w of ['ultrawork', 'ulw', 'uw', 'ccg']) expect(RETIRED_KEYWORDS).toContain(w)
+})
+
+test('RETIRED_NOTE 引用 compat 矩阵且该资产含 defer 台账 schema（fresh clone 恒绿）', async () => {
+  const { RETIRED_NOTE } = await import('../../lib/keywords.js')
+  expect(RETIRED_NOTE).toContain('docs/compat-retirement.md')
+  // w-P2-5（P2-W3-4 软别名评估）：机制 b 采纳——逐词继任示例段（单行分段，消费方 lib/protocol.js:42 内嵌协议行）
+  expect(RETIRED_NOTE).toContain('ultrawork → autopilot')
+  expect(RETIRED_NOTE).toContain('ulw → autopilot')
+  expect(RETIRED_NOTE).toContain('uw → autopilot')
+  expect(RETIRED_NOTE).toContain('ccg → autopilot')
+  expect(RETIRED_NOTE).toContain('`autopilot <你的任务>`')
+  const { readFile } = await import('node:fs/promises')
+  const { join, dirname } = await import('node:path')
+  const { fileURLToPath } = await import('node:url')
+  const root = join(dirname(fileURLToPath(import.meta.url)), '../..')
+  const doc = await readFile(join(root, 'docs/compat-retirement.md'), 'utf8')
+  expect(doc).toContain('defer 台账 schema')
+  expect(doc).toContain('计量处')
+  expect(doc).toContain('merge-readiness')
 })
 
 test('team 不在注册表中（显式调用 only，规格 §3.0-4）', () => {

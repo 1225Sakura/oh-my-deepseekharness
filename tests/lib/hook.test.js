@@ -22,9 +22,15 @@ test('detectKeyword：explicit 锚定形态命中（B1：返回带 hook 策略�
   expect(detectKeyword('ralph: 拉起循环')).toMatchObject({ target: 'ralph', hook: { arm: true } })
 })
 
-test('detectKeyword：natural 条目中 deep-interview/ai-slop-cleaner 仍 hook 层直通（B1：语义守卫归模型层）', () => {
-  expect(detectKeyword('帮我深度访谈一下这个需求')).toBeNull() // 深度访谈非行首 → 不武装
-  expect(detectKeyword('深度访谈 这个需求')).toBeNull()         // deep-interview 无 hook 字段 → 直通
+test('w-P1-2：deep-interview/ai-slop-cleaner 武装后句首命中、非句首解释性提及仍直通', () => {
+  // 武装面：句首调用（含中文触发词）→ messageStart 命中
+  expect(detectKeyword('深度访谈 这个需求')).toMatchObject({ target: 'deep-interview', hook: { arm: true, match: 'messageStart' } })
+  expect(detectKeyword('deep interview 这个需求')).toMatchObject({ target: 'deep-interview', hook: { arm: true, match: 'messageStart' } })
+  expect(detectKeyword('deslop 这个文件')).toMatchObject({ target: 'ai-slop-cleaner', hook: { arm: true, match: 'messageStart' } })
+  // 守卫面：非句首/解释性提及不武装（S3 同款疑问守卫兜底）
+  expect(detectKeyword('帮我深度访谈一下这个需求')).toBeNull()
+  expect(detectKeyword('如何使用 deslop？')).toBeNull()
+  expect(detectKeyword('什么是 ai-slop')).toBeNull()
 })
 
 test('S3 messageStart：autopilot 句首调用武装（含中文触发词）', () => {
@@ -64,6 +70,13 @@ test('detectKeyword：裸词/解释性提及/回显块不激活（B1 核心）',
   // B1 复审具名钉：CJK 引用形态（排除集含「」等全角引号）
   expect(detectKeyword('「用 ralph 做」这种引用形态不武装')).toBeNull()
   expect(detectKeyword('帮我做个 code review 好吗')).toMatchObject({ target: 'review', hook: { injectGuide: true, arm: false } })
+})
+
+test('detectKeyword：tdd 键 review 同形态（injectGuide 注入，不武装状态；P1-W2-#8）', () => {
+  expect(detectKeyword('这段逻辑用 tdd 写')).toMatchObject({ target: 'tdd', hook: { injectGuide: true, arm: false } })
+  expect(detectKeyword('按 TDD 模式来一遍')).toMatchObject({ target: 'tdd', trigger: 'TDD 模式', intent: 'natural' })
+  // 退役词口径回归：tdd 不是退役词（与 ultrawork 区分）
+  expect(detectKeyword('ultrawork')).toBeNull()
 })
 
 // ---- 刻板审查回归（报告二：守卫跨行误杀，verifier 实测复现后修复）----
