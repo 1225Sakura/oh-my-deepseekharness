@@ -93,7 +93,9 @@ O-A1 编排决策链（keywords→hook→state→routing→delegate→events）�
 | C1 | 中 | fallback 双审计面在派发失败车次上不同步：events 落盘在 resolveDispatch 后立即，run-state recordFallback 排在可抛的校验之后——失败车次 events 有两行、run-state 无痕迹 | delegate.js:154-166 vs :167-201；events.js:37 注释自认语义 | IC-24（§10） |
 | C2 | 低 | recordFallback 与 c6 镜像写语义分叉：直写三键、version 不 +1、不经 CAS——同权威文件两套写语义并存，fallback 写后下一次 CAS 必多一次冲突重试 | routing.js:109-113 vs runstate.js:11/:76/:80 | IC-25 |
 | C3 | 低 | stateDir 语义分裂：hook/state 面禁绝对路径与 .. 段，routing/events 面显式支持——Config 配绝对路径时关键词预写失效而路由事件照常落盘 | paths.mjs:7-11 vs routing.js:106-107/events.js:26-29 | IC-26 |
-| C4 | 最低（文档性） | events.js:36 注释引 delegate.js:38/:55 行号漂移（现码 modelId 决策在 :58/:67）；F7 双态口径：注释仅线索，现状以实码为准 | events.js:36 vs delegate.js:38-43/:55/:58/:67 | IC-27 |
+| C4 | 最低（文档性） | events.js:36 注释引 delegate.js:38/:55 行号漂移（现码 modelId 决策在 :58/:67）；F7 双态口径：注释仅线索，现状以实码为准 | events.js:36 vs delegate.js:38-43/:55/:58/:6
+
+> **修复状态（2026-10-29 收口）**：C1/C4 已随 `1cb8d4b`、C2/C3 已随 `0c3b8a5` 入库——ralplan-p2 两轮共识 APPROVE，守门 5 用例（delegate/routing/hook），全量 51 文件/635 测试绿，复验 p2-verify-r1=VERIFIED。C4 域外残留 6 处先例注记行号不属本轮改动面，已列单（p2-verify-r1）。7 | IC-27 |
 
 ### 5.4 附注：模板资产盘点（O-A2，一行，不进验收门）
 

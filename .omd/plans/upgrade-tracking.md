@@ -64,10 +64,10 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-21 | D11 | inactive/残留模式状态无自动回收，阻塞新模式启动——已修复（inactive 不绑定所有权，supersede 留痕） | empirical | root-caused | approved | done | assertion-live(tests/mcp-server/state.test.js) | P1 |
 | IC-22 | D16 | README 测试计数（files/tests）无恒跑守门覆盖——已修复（L1f：徽章 alt↔URL↔正文三面互断 + files 锚实测 test 文件数） | diff | root-caused | none-needed | done | assertion-live(tests/docs/dimension-chain.test.js) | P2 |
 | IC-23 | D13 | casWriteRunState/runstate CAS 以 ISO 毫秒 updatedAt 为唯一 token——同毫秒并发双写碰撞即丢更新（version 同值互覆）——已修复（单调 token helper monotonicIsoNow 三处归一） | manual | root-caused | approved | done | assertion-live(tests/lib/worktree.test.js) | P2 |
-| IC-24 | D12 | fallback 双审计面在派发失败车次上不同步（events 立即落盘 vs run-state 校验后落盘，失败车次 events 两行/run-state 无痕迹）（lhe C1） | manual | root-caused | pending | pending | conditional-review(落盘次序重构立项时) | P2 |
-| IC-25 | D12 | recordFallback 与 c6 镜像写语义分叉（直写三键、version 不 +1、不经 CAS；fallback 写后队长下次 CAS 必多一次冲突重试）（lhe C2） | manual | root-caused | pending | pending | conditional-review(随下次涉 CAS 轮次顺带收口，IC-23 同族) | P2 |
-| IC-26 | D11 | stateDir 语义分裂：hook/state 面禁绝对路径与 .. 段、routing/events 面显式支持——Config.stateDir 绝对路径组合下预写失效而事件照常落盘（lhe C3） | manual | root-caused | pending | pending | conditional-review(绝对路径组合启用或路径校验统一重构时) | P2 |
-| IC-27 | D16 | lib/events.js:36 注释引 delegate.js:38/:55 行号漂移（现码 modelId 决策在 :58/:67），文档性引注失真（lhe C4） | manual | root-caused | none-needed | pending | conditional-review(下次触碰 lib/events.js 头注时刷新) | P2 |
+| IC-24 | D12 | fallback 双审计面在派发失败车次上不同步（events 立即落盘 vs run-state 校验后落盘，失败车次 events 两行/run-state 无痕迹）（lhe C1） | manual | root-caused | approved(ralplan-p2) | done @1cb8d4b(同点落盘) | assertion-live(tests/lib/delegate.test.js C1 抛错车次双面同步) | P2 |
+| IC-25 | D12 | recordFallback 与 c6 镜像写语义分叉（直写三键、version 不 +1、不经 CAS；fallback 写后队长下次 CAS 必多一次冲突重试）（lhe C2） | manual | root-caused | approved(ralplan-p2) | done @0c3b8a5(锁内 version+1+monotonicIsoNow) | assertion-live(tests/lib/routing.test.js C2 版本纪律+反向键存续) | P2 |
+| IC-26 | D11 | stateDir 语义分裂：hook/state 面禁绝对路径与 .. 段、routing/events 面显式支持——Config.stateDir 绝对路径组合下预写失效而事件照常落盘（lhe C3） | manual | root-caused | approved(ralplan-p2) | done @0c3b8a5(注册期 omdPaths 预检+per-hit 降噪) | assertion-live(tests/lib/hook.test.js C3 注册期预检) |时) | P2 |
+| IC-27 | D16 | lib/events.js:36 注释引 delegate.js:38/:55 行号漂移（现码 modelId 决策在 :58/:67），文档性引注失真（lhe C4） | manual | root-caused | none-needed | done @1cb8d4b(注释符号化) | verified(p2-verify-r1 零行号抽验) | P2 |
 | IC-28 | D7 | 上游 mission board 面（mission-board.ts 636 行 + elements + missions/ 子系统）任务板/时间线呈面，omd 无对应承载（lhe N1） | diff | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
 | IC-29 | D7 | 上游用量/成本/上下文压力可观测面（usage-api + payload-estimate + custom-rate-provider + E3 族 6 元素），omd HUD 无此维度（lhe N2） | diff | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
 | IC-30 | D15 | .omd/hb.log 孤儿（v0.4.1 vitest 输出重定向一次性测试产物，全仓无写入方无读者）——confirmed，F4 范式登记（lhe 疑点①） | empirical | root-caused | approved | done | conditional-review(删除仅限用户显式确认) | P2 |
@@ -100,10 +100,10 @@ Status: active（goal 驱动，跨会话续跑）
 | P2 | IC-19 | MAGIC KEYWORD 观察 | - |
 | P2 | IC-22 | README 测试计数无守门 | - |
 | P2 | IC-23 | 同毫秒 CAS token 碰撞 | - |
-| P2 | IC-24 | fallback 双审计面失败车次不同步（lhe C1） | - |
-| P2 | IC-25 | recordFallback 与 c6 镜像写语义分叉（lhe C2） | - |
-| P2 | IC-26 | stateDir 校验口径分裂（lhe C3，详五段表） | - |
-| P2 | IC-27 | lib/events.js 注释行号漂移（lhe C4，文档性引注） | - |
+| P2 | IC-24 | fallback 双审计面失败车次不同步（lhe C1） | fixed @1cb8d4b |
+| P2 | IC-25 | recordFallback 与 c6 镜像写语义分叉（lhe C2） | fixed @0c3b8a5 |
+| P2 | IC-26 | stateDir 校验口径分裂（lhe C3，详五段表） | fixed @0c3b8a5 |
+| P2 | IC-27 | lib/events.js 注释行号漂移（lhe C4，文档性引注） | fixed @1cb8d4b |
 | P2 | IC-28 | 上游 mission board 面观察（D7，OBS 候选详五段表） | - |
 | P2 | IC-29 | 上游用量/成本/上下文压力可观测面（usage-api + payload-estimate + custom-rate-provider + E3 族 6 元素）（lhe N2） | - |
 | P2 | IC-30 | .omd/hb.log 孤儿（v0.4.1 vitest 输出重定向一次性测试产物，F4 范式登记）（lhe 疑点①） | - |
