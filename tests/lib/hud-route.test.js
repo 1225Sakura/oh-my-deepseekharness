@@ -329,3 +329,68 @@ test('S4 graph 目录缺席/新鲜 run → 无 graph 告警', async () => {
     expect(snap.alerts.filter(a => a.includes('[graph]'))).toEqual([])
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
+
+test('W4-1 mirror fallback read: when state is missing, hudSnapshot derives from run-state mirror', async () => {
+  const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudroute-'))
+  try {
+    await mkdir(join(cwd, '.omd', 'state'), { recursive: true })
+    await writeFile(join(cwd, '.omd', 'state', 'run-state.json'), JSON.stringify({
+      mode: 'ralph', round: 2, current_story: 'US-1', active_agents: [], todo: { working: 1, priority: 0, manual: 0 }, version: 1, updatedAt: new Date().toISOString(),
+    }))
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', config: {} })
+    expect(snap.summary.mode).toBe('ralph')
+    expect(snap.summary.round).toBe(2)
+    expect(snap.summary.story).toBe('US-1')
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+
+// ---- P1-W4-1/W4-2（team eco-completion w-P1-3）：snapshot 面的 mirror 回退 + idle 最近动态 ----
+test('hudSnapshot：无 state 有新鲜 mirror → 五要素补值（含 mode）并标 mirror 来源', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    await mkdir(join(cwd, '.omd', 'state'), { recursive: true })
+    await writeFile(join(cwd, '.omd', 'state', 'run-state.json'), JSON.stringify({
+      mode: 'team', round: 4, current_story: 'US-7',
+      active_agents: ['w-1', 'w-2'], todo: { working: 2, priority: 0, manual: 0 },
+      version: 3, updatedAt: new Date().toISOString(),
+    }), 'utf8')
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.summary.mode).toBe('team')         // 无 state 时 mode 随新鲜镜像（运行时边界写入，可信）
+    expect(snap.summary.round).toBe(4)
+    expect(snap.summary.story).toBe('US-7')
+    expect(snap.summary.agents).toBe(2)
+    expect(snap.summary.roundSource).toBe('mirror')
+    expect(snap.summary.storySource).toBe('mirror')
+    expect(snap.summary.agentsSource).toBe('mirror')
+    expect(Object.keys(snap).sort()).toEqual(['alerts', 'at', 'card', 'cwd', 'detail', 'lastActivity', 'modeCatalog', 'ok', 'preset', 'summary', 'toolCalls', 'workers']) // 顶层白名单不破（AC5）
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('hudSnapshot idle 页：有 events → detail.recent 尾部 ≤5（at+kind）；无 events → 不注入', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+  try {
+    await recordRouteEvent({ cwd, decision: { dispatchId: 'd-1' }, kind: 'route', at: '2026-10-29T05:01:00.000Z' })
+    await recordRouteEvent({ cwd, decision: { dispatchId: 'd-2' }, kind: 'fallback', at: '2026-10-29T05:02:00.000Z' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    expect(snap.summary.mode).toBe('idle')
+    expect(Array.isArray(snap.detail.recent)).toBe(true)
+    expect(snap.detail.recent).toHaveLength(2)
+    expect(snap.detail.recent[1]).toEqual({ at: '2026-10-29T05:02:00.000Z', kind: 'fallback' })
+
+    const empty = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
+    try {
+      const snap2 = await hudSnapshot({ cwd: empty, stateDir: '.omd' })
+      expect(snap2.detail.recent).toBeUndefined()   // 无 events → 维持纯 idle 文案
+    } finally { await rm(empty, { recursive: true, force: true }) }
+  } finally { await rm(cwd, { recursive: true, force: true }) }
+})
+
+test('hudSnapshot：非法 cwd 回落宿主进程 cwd（面板不 500，2026-10-29 cwd 白名单收口）', async () => {
+  const snap = await hudSnapshot({ cwd: 'relative/../bad' })
+  expect(snap.ok).toBe(true)
+  expect(snap.cwd).toBe(process.cwd())
+})
