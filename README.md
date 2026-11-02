@@ -24,7 +24,7 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness
 
 > `<profile>` 是 dsh 的隔离配置/插件组合单元（本机如 `web`）；`dsh plugin` 实为转发 pnpm 到该 profile 目录，add/remove 均用 npm 包名。**装完必须重启或重载 profile**（重开 `dsh web`）再开新会话，插件树才会重载生效——然后在会话里输入「setup omd」走安装向导，或直接 `/omd-doctor` 验装。
 
-要求：Node.js ≥ 22.19；dsh 宿主兼容范围以 package.json 的 peerDependencies 为权威（0.1.2 / 0.1.5 / 0.1.7 三条 0.1.x 线与 0.2.0-rc 线；0.2.0-rc.2 实测全绿）。兼容性质证的逐条证据台账是仓内审计产物（`.omd/plans/`，gitignored），不随 npm 包发布。所有 `@deepseek-ai/*` 依赖均为宿主义务（peerDependencies，缺失自动降级，见下文「依赖边界」）。可选能力依赖（optionalDependencies，缺席显式降级不阻断）：`@ast-grep/napi`（ast_grep_* 工具）、`vscode-jsonrpc` / `vscode-languageserver-protocol` / `vscode-uri`（lsp_* 工具）。
+要求：Node.js ≥ 22.19；dsh 宿主兼容范围以 package.json 的 peerDependencies 为权威（0.1.2 / 0.1.5 / 0.1.7 三条 0.1.x 线与 ≥0.2.0-rc 线；0.2.0-rc.2 与 0.2.1-rc.5 实测全绿——0.2.1 删除了 subagents 服务级 `start`（改 `startActivation`），0.7.1 起 `omd_delegate` 经双形态 feature-detect 自适应新旧两线）。兼容性质证的逐条证据台账是仓内审计产物（`.omd/plans/`，gitignored），不随 npm 包发布。所有 `@deepseek-ai/*` 依赖均为宿主义务（peerDependencies，缺失自动降级，见下文「依赖边界」）。可选能力依赖（optionalDependencies，缺席显式降级不阻断）：`@ast-grep/napi`（ast_grep_* 工具）、`vscode-jsonrpc` / `vscode-languageserver-protocol` / `vscode-uri`（lsp_* 工具）。
 
 验装：安装后在会话中输入 `/omd-doctor`（不确定可用入口时先 `/omd` 看速查）。
 
