@@ -190,10 +190,12 @@ test('provider 缺席 → 显式报错并列出已注册 provider（不猜测）
   expect(events.map(e => e.kind)).toEqual(['route'])
 })
 
-test('ctx.subagents 缺席 → 注册即抛错（index.js 降级记 probeReport）', async () => {
+// C2′（ralplan-dsh-021-compat D4）：ctx.subagents 缺席/形状不兼容 → 注册即抛新形状判别串
+//（替代旧「服务缺席」误导串；(a) 支 unavailable 串在 index.js:190 注册期降级路径钉死，两串可判别）
+test('ctx.subagents 缺席 → 注册即抛形状不兼容错误（index.js 降级记 probeReport）', async () => {
   const ctx = { tools: { register() {} }, logger: { info() {}, warn() {} } }
   await expect(registerDelegateTool(ctx, def => def, { config: Config.parse({}), roles: [] }))
-    .rejects.toThrow(/subagents 服务缺席/)
+    .rejects.toThrow(/无兼容派发 API（startActivation\/start 均缺席/)
 })
 
 test('c3 fallback 审计：表外角色派发 → run-state.json 记 fallback:true（临时目录，零触碰日常 .omd）', async () => {

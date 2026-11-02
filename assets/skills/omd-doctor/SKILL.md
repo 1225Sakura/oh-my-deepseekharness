@@ -61,6 +61,15 @@ Render the capability probe results (protocol-layer probe.js + apply-time additi
 | skills (assets loading: unreadable dir / zero assets → failure, no longer silent) | … | … |
 | mcpServer (apply-time dynamic mount result: mounted/failure) | … | … |
 | memoryTools / commands (registration outcome) | … | see "memoryTools render gate" below — **registration alone is NOT sufficient** |
+| delegate (omd_delegate registration outcome) | … | see "delegate reading guide" below — **failure and unavailable are different diseases** |
+
+#### delegate reading guide (since 0.7.1; failure taxonomy (a)/(b′)/(c)/(d))
+
+- detail contains "宿主未挂载 subagent 缝（ctx.subagents 缺席）" → **(a) service invisible**: the profile never mounts dsh-subagent (expected degradation on non-base profiles; on base-backed profiles check cordis.patch.yml layering).
+- detail contains "无兼容派发 API（startActivation/start 均缺席）" → **(c) host dsh-subagent API shape incompatible**: the host upgrade crossed the dispatch API surface omd supports (precedent: dsh 0.2.0→0.2.1 removed service-level `start` without deprecation) — upgrade omd to a version carrying the matching adapter.
+- live omd_delegate call fails with "子代理启动失败（startActivation）" → start-time rejection: NO_PROVIDER=provider unregistered; UNSUPPORTED_CAPABILITY=provider capability gap; UNAUTHORIZED=parent identity check failed (reproducing on every dispatch = branch (b′), escalate upstream); SubagentDepthError=depth cap (host default maxDepth=1 — a depth-1 teammate delegating further is host-rejected; by design, aligned with leaf-guard).
+- failure text contains "子代理执行失败" → the child started but failed at runtime (branch (d)); act on the embedded original error.
+- live verification (after registration ok): minimal probe omd_delegate (role=omd-agent-explore tier=low, one-line task) → expect logLine + child text, and exactly one new route row in .omd/state/events.jsonl.
 
 #### memoryTools render gate (registration ≠ callable)
 

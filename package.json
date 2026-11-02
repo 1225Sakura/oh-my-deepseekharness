@@ -52,6 +52,7 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-renderer",
         "@deepseek-ai/dsh-client-ui-sidebar-right"
       ],
       "platform": "web"
@@ -112,6 +113,7 @@
     "@deepseek-ai/dsh-scope": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-storage": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-storage-domain": "^0.1.5-rc.1",
+    "@deepseek-ai/dsh-subagent": "^0.1.5-rc.3",
     "@deepseek-ai/dsh-subprocess": "^0.1.5-rc.1",
     "@deepseek-ai/dsh-tools": "^0.1.5-rc.1",
     "@deepseek-ai/schemastery": "^3.18.2",

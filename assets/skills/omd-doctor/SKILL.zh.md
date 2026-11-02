@@ -61,6 +61,15 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 | skills（assets 资产加载：目录不可读/零加载 → failure，不再静默） | … | … |
 | mcpServer（apply 动态挂载结果：mounted/failure） | … | … |
 | memoryTools / commands（注册结果） | … | 见下方"memoryTools render 闸"——**注册成功不等于可调用** |
+| delegate（omd_delegate 注册结果） | … | 见下方"delegate 判读指引"——**failure 与 unavailable 是两种不同的病** |
+
+#### delegate 判读指引（0.7.1 起，失败枚举四支 (a)/(b′)/(c)/(d)）
+
+- detail 含「宿主未挂载 subagent 缝（ctx.subagents 缺席）」→ **(a) 服务不可见**：当前 profile 未挂载 dsh-subagent（非 base profile 属预期降级；base-backed profile 出现则查 cordis.patch.yml 分层）。
+- detail 含「无兼容派发 API（startActivation/start 均缺席）」→ **(c) 宿主 dsh-subagent 服务形状不兼容**：宿主升级越过了 omd 支持的派发 API 面（先例：dsh 0.2.0→0.2.1 无 deprecation 删除服务级 start）——升级 omd 到含对应适配的版本。
+- 实调 omd_delegate 报错原文含「子代理启动失败（startActivation）」→ 启动期拒绝：NO_PROVIDER=provider 未注册；UNSUPPORTED_CAPABILITY=provider 能力面不足；UNAUTHORIZED=parent 恒等校验失败（全车次复现=(b′) 支，转上游 issue）；SubagentDepthError=深度上限（宿主默认 maxDepth=1，depth-1 队员再派发被宿主拒——与 leaf-guard 对齐的设计内行为）。
+- 报错原文含「子代理执行失败」→ 子代理启动后运行期失败（(d) 支），按原文对症。
+- 实调验证（注册 ok 后）：最小探针 omd_delegate（role=omd-agent-explore tier=low 一句话任务）→ 返回 logLine + 子代理文本，且 .omd/state/events.jsonl 恰新增一条 route 行。
 
 #### memoryTools render 闸（注册 ≠ 可调用）
 
