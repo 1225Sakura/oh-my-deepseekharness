@@ -29,6 +29,7 @@ Status: active（goal 驱动，跨会话续跑）
 
 | U10 | 2g-A：委派路由 tiers 默认值 glm-5.3-flash → 'inherit'（行为变更）+ dsh 0.2.0 stable 二次复评 | 轮 11 U9 共识 | ◐ 第一半 ✅ 已落地（轮 17，ec96619，随 0.4.5 发版；用户拍板提前，照 Follow-up ① 备忘实施）；stable 二次复评仍待 dsh 0.2.0 stable 触发 |
 
+| U11 | 静态 inject 卫生项（E1 修正后语义：cordis INACTIVE 非永久自愈 :816/:1336-1338；残留=非 base profile 永久 unavailable；deferred 注册模式设计指针在 ralplan-dsh-021-compat D3） | dsh021 R3 D3 移交 | 📋 backlog（独立变更，不在 0.7.1 发布面） |
 **建议推进顺序（轮 14 更新）**：~~U9~~ ✅ → ~~U8~~ ✅（轮 12 已实现）→ ~~U6~~ ✅（轮 14 已实现）→ U4（简报就绪，fresh session ralplan）→ U7（重基线大工程，可同时吸收 OMC 5.7 新增评估与 U10 的 stable 二次复评）。
 
 ## 全维度问题链台账（IC）
@@ -58,7 +59,7 @@ Status: active（goal 驱动，跨会话续跑）
 | IC-15 | D2 | refit 回顾工作流立项评估（须先析与 remember/self-improve 分工） | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
 | IC-16 | D2 | architecture-survey 移植形态评估 | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
 | IC-17 | D2 | intent 移植形态评估 | injected | pending | pending | pending | conditional-review(各自 ralplan) | P2 |
-| IC-18 | D12 | dsh 0.2.0 stable 二次复评（U10 残留，含 tiers 默认值 0.5.0 候选） | injected | pending | pending | pending | conditional-review(dsh 0.2.0 stable 发布触发) | P2 |
+| IC-18 | D12 | dsh 0.2.x 复评（U10 残留）——**0.2.1-rc.5 已收口**：真根因=subagents 服务 API 断裂（start→startActivation 无 deprecation），0.7.1 双形态迁移修复（ralplan-dsh-021-compat 三轮共识 APPROVE；实机门绿：omd_delegate 实调成功+58 MCP+hud.json 五键）；残留反向风险=检测假阳性+legacy 死代码+静态 inject 卫生项（D3 ticket），dsh stable 发布时再复评 | empirical | root-caused | approved(ralplan-dsh-021-compat) | done @5e6fa6a(0.7.1 双形态迁移) | conditional-review(dsh 0.2.x stable 发布触发) | P2 |
 | IC-19 | D5 | MAGIC KEYWORD 注入实发未观察（已观察：IC-20 误触发实例证明注入链路真实发效） | injected | root-caused | none-needed | done | none-justified | P2 |
 | IC-20 | D12 | c2 keyword-hook 对 delegate prompt 正文「ralplan」字样误触发并预写状态——已修复（provisional 不绑定所有权） | empirical | root-caused | approved | done | assertion-live(tests/mcp-server/state.test.js) | P1 |
 | IC-21 | D11 | inactive/残留模式状态无自动回收，阻塞新模式启动——已修复（inactive 不绑定所有权，supersede 留痕） | empirical | root-caused | approved | done | assertion-live(tests/mcp-server/state.test.js) | P1 |
@@ -250,6 +251,10 @@ lhe S1/S4 疑点①终局（2026-10-29，root-caused）：.omd/hb.log=confirmed 
 #### IC-31
 
 lhe S1/S3/S4 疑点④终局（2026-10-29，root-caused）：effort 登记属实——上游 elements/effort.ts:14-30 实存（renderEffort 五档；数据源=statusline stdin effort.level，U3 字面「receives JSON session data on stdin」），omd HUD 全链（hud.js/hud-route.js/client.js/hud.mjs）grep effort 零命中；定性=设计内缺口：omd HUD 读面被设计约束钉死 state_get_status+notepad_stats 两拉取（hud.js:10-11/:192-200），无 statusline stdin 推送通道，补齐=数据管道工程（宿主注入或档位表镜像）非加 element。评估记录已落三处（lhe-evidence-r1.md §2④ / lhe-delta-r1.md §4 / lhe-external-r1.md §2④）。登记位回写（parity G#36/#10「❌未做待核」→「❌未做·设计内缺口」）按计划 Follow-ups 归编排方，非本行执行范围。hud-evo 复核注记（2026-10-29，ralplan-hud-evo 三轮共识）：defer 维持；seam 口径修正——「宿主无缝」过强，宿主内 effort 态实存（REASONING_CONFIG_ID="reasoning_effort" @dsh-acp/lib/index.js:306，session/set_config_option 可实时改；lib/thinking-effort-loaded.json 落盘），缝候选位置=session/config 投影层；重开双缝=①宿主向插件投影（session/config 投影层）②usage_update 事件向 client 插件暴露——绑定宿主 CHANGELOG 探针；历史落点维持 hud.json detail 私有面（hud_render 二键 O4 契约不动）。
+
+#### IC-18（dsh 0.2.1-rc.5 复评收口，2026-11-02）
+
+真根因=subagents 服务 API 形状断裂（0.2.0→0.2.1 无 deprecation 删除服务级 start，改 startActivation）。判别证据=能力矩阵 delegate=failure 且 detail 逐字=delegate.js:115 抛错串（服务可见、断在形状检查；若不可见应走 index.js:190 unavailable 另一串）；直证=rc.5 SubagentRuntime 服务面无 start（types/index.d.ts:105-317）、npm 元数据四旧线均有 start(name,request)。修复=0.7.1 双形态 feature-detect 迁移（5e6fa6a，ralplan-dsh-021-compat 三轮评审 R3 APPROVE；R2 的 inject 时序模型被 Architect 活证据证伪并否决——流程资产=tarball 实机门前置拦住了错误方案）。实机门绿：omd_delegate 实调成功（startActivation 路径+logLine+events.jsonl 恰一 route 行）、58 MCP/hud.json/skills 在线、双线 vitest 各 53 文件/652 测试绿（切线须显式补 dsh-sandbox 传递 peer）。残留反向风险（stable 复评项）：①双形态检测假阳性（未来宿主再改 startActivation 签名则静默掉 failure，三态呈面不沉默）②legacy start 路径随旧线淘汰成死代码 ③静态 inject 卫生项移交 U11。证据台账=.omd/plans/dsh-021-compat-evidence.md；评审档案=.omd/state/ralplan-reviews/dsh021-{planner,architect,critic}-r{1,2,3}.md；上游 issue 草稿=.omd/plans/upstream-issue-dsh-021-subagents-api.md（待用户发出）。
 
 ## 持续跟进机制
 
