@@ -69,7 +69,7 @@ test('M3: 两次 apply（cordis 重放）各自重新探测，不吃陈旧缓存
 
 // ---------- B2：defineTool/记忆工具注册失效 → 降级而非崩溃 ----------
 
-test('B2: defineTool 失效时 apply 不崩，memoryTools 归 failure，协议含降级行', async () => {
+test('B2: defineTool 失效时 apply 不崩，memoryTools 归 failure，动态上下文公告', async () => {
   const { ctx, reg } = mockFullCtx()
   const { probeReport } = await setup(ctx, Config.parse({}), {
     assetsRoot: await makeAssets(),
@@ -78,7 +78,8 @@ test('B2: defineTool 失效时 apply 不崩，memoryTools 归 failure，协议�
   expect(probeReport.memoryTools.status).toBe('failure')
   expect(probeReport.memoryTools.detail).toContain('no dsh-tools')
   expect(reg.tools).toHaveLength(0)
-  expect(reg.sections[0].text()).toContain('| memoryTools | failure |')
+  expect(reg.sections[0].text()).not.toContain('memoryTools')
+  expect(reg.contexts[0].text()).toContain('memoryTools')
 })
 
 test('storage 不可用时 memoryTools 归 skipped 且不注册工具', async () => {

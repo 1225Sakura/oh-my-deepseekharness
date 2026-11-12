@@ -54,22 +54,30 @@ test('team 不在注册表中（显式调用 only，规格 §3.0-4）', () => {
   expect(KEYWORD_REGISTRY.some(e => e.target === 'team')).toBe(false)
 })
 
-test('renderProtocol 输出包含路由表、文本守卫、能力矩阵、委派规则、状态契约', () => {
-  // U10 后生产默认 tiers='inherit'；此处 fixture 显式喂 glm 档位值（MINOR-5 豁免语义：
-  // :26 断言不改，glm 串只是渲染输入样例，不锚定生产默认值）
-  const config = Config.parse({ tiers: { low: 'glm-5.3-flash', medium: 'glm-5.3-flash', high: 'glm-5.3-flash' } })
-  const probe = { core: { status: 'ok' }, storage: { status: 'unavailable' } }
+test('renderProtocol 保留关键词、硬约束与委派，移除角色表、probe 矩阵和 team 实现细节', () => {
+  const config = Config.parse({})
+  const probe = { core: { status: 'ok' } }
   const roles = [{ name: 'omd-agent-explore', tier: 'low' }, { name: 'omd-agent-planner', tier: 'high' }]
   const text = renderProtocol({ config, probeReport: probe, roles })
-  for (const s of ['cancelomd', '什么是', '能力矩阵', 'unavailable', 'leaf-guard', 'state_write', '互斥'])
+  for (const s of ['cancelomd', '什么是', '引号内', '回显块', '多关键词命中', 'team 无关键词触发',
+    'leaf-guard', 'state_write', '互斥', '只能在主会话直接启动', '禁止再 spawn', '前台阻塞主会话', 'omd_delegate'])
     expect(text).toContain(s)
-  // 刻板审查加固（报告二：短词子串可被无关叙述蒙混）——路由表/模型表行按行锚定做相等断言
   expect(text).toMatch(/^\| \d+ \| ralph \| ralph \| explicit \|$/m)
-  expect(text).toMatch(/^\| omd-agent-explore \| low \| glm-5\.3-flash \|$/m)
-  expect(text).toMatch(/^\| omd-agent-planner \| high \| glm-5\.3-flash \|$/m)
-  // 负例（守门必要面）：模型列渲染缺失时上行不得通过
-  const noRoles = renderProtocol({ config, probeReport: probe, roles: [] })
-  expect(noRoles).not.toMatch(/^\| omd-agent-explore \| low \|/m)
+  for (const s of ['## 模型路由表', '## 能力矩阵', '| core |', 'omd-agent-explore | low',
+    'c5 team worktree 隔离', 'c6 run-state 镜像契约', 'c8 多仓锚定', 'team_write_tree_state'])
+    expect(text).not.toContain(s)
+  // native catalog 与全 ok probe 不再改变常驻协议正文。
+  expect(renderProtocol({ config, probeReport: {}, roles: [] })).toBe(text)
+})
+
+test('MCP smoke 从 ok 变 failure 时静态协议前缀逐字节稳定', () => {
+  const config = Config.parse({})
+  const before = renderProtocol({ config, probeReport: { mcpServer: { status: 'ok' } }, roles: [] })
+  const after = renderProtocol({ config, probeReport: { mcpServer: { status: 'failure', detail: 'x'.repeat(1000) } }, roles: [] })
+  expect(after).toBe(before)
+  expect(after).not.toContain('mcpServer')
+  expect(after).not.toContain('降级公告')
+  expect(Buffer.byteLength(after, 'utf8')).toBeLessThanOrEqual(7 * 1024)
 })
 
 test('S8-C1/C2：协议路由表注记 omd_delegate 硬路由语义（档位钳制+不可用 id 显式报错）', () => {
@@ -78,10 +86,13 @@ test('S8-C1/C2：协议路由表注记 omd_delegate 硬路由语义（档位钳�
   expect(text).toContain('不静默继承')
 })
 
-test('renderProtocol 是同步函数且输出有界（<8000 字符）', () => {
-  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
+test('renderProtocol 是同步函数且完整渲染遵守 4–7KiB 总字节预算', () => {
+  const roles = Array.from({ length: 33 }, (_, i) => ({ name: `omd-agent-${i}`, tier: 'high' }))
+  const probeReport = { core: { status: 'failure', detail: 'x'.repeat(1000) } }
+  const text = renderProtocol({ config: Config.parse({}), probeReport, roles })
   expect(typeof text).toBe('string')
-  expect(text.length).toBeLessThan(8000)
+  expect(Buffer.byteLength(text, 'utf8')).toBeGreaterThanOrEqual(4 * 1024)
+  expect(Buffer.byteLength(text, 'utf8')).toBeLessThanOrEqual(7 * 1024)
 })
 
 test('终审修复 #1：状态契约的 MCP 伪调用是真实 schema 形状（cwd/sessionId 顶层必填、状态嵌套 state 键）', () => {
@@ -116,22 +127,6 @@ test('终审修复 #4：状态契约含 get_goal 前置指引', () => {
   expect(text).toMatch(/update_goal.*get_goal|get_goal.*update_goal/s)
 })
 
-test('终审修复 #5：能力矩阵附固定说明（宿主工具可用性以实际调用为准）', () => {
-  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
-  expect(text).toMatch(/goal\/ralph\/subagent\/workflow/)
-  expect(text).toContain('以实际调用结果为准')
-})
-
-test('终审修复 #6：mcpServer 状态 ok 渲染为 mounted（挂载成功≠server 真起来）', () => {
-  const text = renderProtocol({
-    config: Config.parse({}),
-    probeReport: { mcpServer: { status: 'ok' } },
-    roles: [],
-  })
-  expect(text).toContain('| mcpServer | mounted |')
-  expect(text).not.toContain('| mcpServer | ok |')
-})
-
 test('c3 自适应路由段：4 特征+表钳制+1:1 日志+fallback 语义入协议（会话默认档跟随 Config）', () => {
   const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
   expect(text).toContain('c3 自适应路由')
@@ -145,31 +140,6 @@ test('c3 自适应路由段：4 特征+表钳制+1:1 日志+fallback 语义入�
   expect(custom).toContain('会话默认档 low')
 })
 
-test('c6 run-state 镜像契约段：七字段+队长独占写+双时机+CAS 冲突语义入协议（路径跟随 stateDir）', () => {
-  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
-  expect(text).toContain('c6 run-state 镜像契约')
-  expect(text).toContain('mode/round/current_story/active_agents/todo')
-  expect(text).toContain('队长独占写')
-  expect(text).toContain('expectUpdatedAt')
-  expect(text).toContain('重试 ≤3 次')
-  expect(text).toContain('覆盖写')
-  expect(text).toContain('warning 日志行')
-  expect(text).toContain('.omd/state/run-state.json')
-  const custom = renderProtocol({ config: Config.parse({ stateDir: '.custom' }), probeReport: {}, roles: [] })
-  expect(custom).toContain('.custom/state/run-state.json')
-})
-
-test('c5 worktree 隔离段：每运行一树+两阶段拆除+取消列差异+孤儿绝不自动删入协议（路径跟随 stateDir）', () => {
-  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
-  expect(text).toContain('c5 team worktree 隔离')
-  expect(text).toContain('.omd/worktrees/{run-id}')
-  expect(text).toContain('绝不自动删')
-  expect(text).toContain('CAS 写 disposed 终态')
-  expect(text).toContain('只提示不阻塞')
-  const custom = renderProtocol({ config: Config.parse({ stateDir: '.custom' }), probeReport: {}, roles: [] })
-  expect(custom).toContain('.custom/worktrees/{run-id}')
-})
-
 test('c2 关键词 hook 段：原生拦截点+预写状态+MAGIC KEYWORD 激活块+未命中直通入协议', () => {
   const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
   expect(text).toContain('关键词 hook')
@@ -179,15 +149,27 @@ test('c2 关键词 hook 段：原生拦截点+预写状态+MAGIC KEYWORD 激活�
   expect(text).toContain('expectUpdatedAt=<注入块 updatedAt>')
 })
 
-test('c8 多仓锚定段：树内懒建+豁免向上 marker+残渣随树丢弃入协议（路径跟随 stateDir）', () => {
-  const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
-  expect(text).toContain('c8 多仓锚定')
-  expect(text).toContain('首次写才懒创建')
-  expect(text).toContain('基线 hash 前后一致')
-  expect(text).toContain('豁免向上 marker')
-  expect(text).toContain('不截胡树内状态')
-  expect(text).toContain('残渣随树丢弃')
-  expect(text).toContain('留执行期')
-  const custom = renderProtocol({ config: Config.parse({ stateDir: '.custom' }), probeReport: {}, roles: [] })
-  expect(custom).toContain('`.custom/`') // 树内状态目录路径跟随 stateDir
+test('team 技能承载 c5/c6/c8 与孤儿接管规则，双语正文均可独立执行', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { join, dirname } = await import('node:path')
+  const { fileURLToPath } = await import('node:url')
+  const root = join(dirname(fileURLToPath(import.meta.url)), '../..')
+  const zh = await readFile(join(root, 'assets/skills/team/SKILL.zh.md'), 'utf8')
+  const en = await readFile(join(root, 'assets/skills/team/SKILL.md'), 'utf8')
+  for (const doc of [zh, en]) {
+    for (const tool of ['team_begin', 'team_scan_orphans', 'team_dispose', 'team_cancel',
+      'team_write_mirror', 'team_write_tree_state', 'team_phase_status', 'team_registry'])
+      expect(doc).toContain(tool)
+    expect(doc).toContain('expectUpdatedAt')
+    expect(doc).toMatch(/orphan|孤儿/i)
+    expect(doc).toMatch(/never auto-delete|绝不自动删树/)
+    expect(doc).toMatch(/two-phase|两阶段/)
+    expect(doc).toMatch(/CAS/)
+    expect(doc).toMatch(/retry ≤3|重试 ≤3/)
+    expect(doc).toMatch(/parent.*marker|父级.*marker/)
+  }
+  expect(zh).toContain('孤儿接管')
+  expect(zh).toContain('确认无活跃队长')
+  expect(en).toContain('Orphan takeover')
+  expect(en).toContain('confirm no active lead')
 })

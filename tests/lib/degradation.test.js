@@ -13,7 +13,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { apply, setup, Config } from '../../lib/index.js'
 import { probeCapabilities, _resetCache } from '../../lib/probe.js'
-import { renderProtocol } from '../../lib/protocol.js'
 
 // mock 形状与 tests/lib/index.test.js 一致：宿主真实 API（§7-7 核验）
 function mockCtx({ storage } = {}) {
@@ -61,21 +60,11 @@ test('core 缺 systemPrompt：apply 抛错（§6.1 例外条款，断言语义�
     .rejects.toThrow(/systemPrompt/)
 })
 
-test('core failure 时 renderProtocol 输出对应降级行', () => {
-  const report = {
-    core: { status: 'failure', detail: '核心 inject 服务缺失，插件无法工作' },
-    storage: { status: 'ok' },
-  }
-  const text = renderProtocol({ config: Config.parse({}), probeReport: report, roles: [{ name: 'omd-agent-r', tier: 'low' }] })
-  expect(text).toContain('| core | failure |')
-})
-
 // ---------- storage ----------
 
-test('storage unavailable：apply 不崩，协议含降级行 + 运行时降级公告', async () => {
+test('storage unavailable：apply 不崩，运行时降级公告可见', async () => {
   const { ctx, reg } = mockCtx({ storage: undefined })
   await apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
-  expect(protocolText(reg)).toContain('| storage | unavailable |')
   // §4 动态 context 的降级公告同步反映
   expect(reg.contexts[0].text()).toContain('storage')
   // storage 缺席时不注册记忆工具
@@ -84,14 +73,14 @@ test('storage unavailable：apply 不崩，协议含降级行 + 运行时降级�
 
 // storage failure 降级（bug 已修复：门控改为 probeReport.storage.status === 'ok'，
 // storage 处于 failure 态时跳过记忆工具注册，apply 降级不崩）。
-test('storage failure（domain 访问抛错）：apply 不崩，协议含 failure 行', async () => {
+test('storage failure（domain 访问抛错）：apply 不崩，运行时公告且记忆工具不注册', async () => {
   const { ctx, reg } = mockCtx({ storage: { get domain() { throw new Error('backend down') } } })
   await apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
-  expect(protocolText(reg)).toContain('| storage | failure |')
+  expect(reg.contexts[0].text()).toContain('storage')
   expect(reg.tools).toHaveLength(0)   // failure 态不注册记忆工具
 })
 
-test('storage timeout：探测超时归 timeout 态，apply 不崩，协议含 timeout 行', async () => {
+test('storage timeout：探测超时归 timeout 态，apply 不崩且运行时公告', async () => {
   // domain 是永不 resolve 的 thenable，但带可用 open()——探测 await 挂起 → timeout；
   // open 附着其上是为了 apply 后续的记忆工具注册（lib/memory.js 同步调 domain.open）不崩。
   const hanging = new Promise(() => {})
@@ -103,7 +92,7 @@ test('storage timeout：探测超时归 timeout 态，apply 不崩，协议含 t
 
   const { ctx, reg } = mockCtx({ storage })
   await apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })  // 命中缓存，不再等 3s
-  expect(protocolText(reg)).toContain('| storage | timeout |')
+  expect(reg.contexts[0].text()).toContain('storage')
 })
 
 // ---------- hooksBridge 残件移除（2026-10-26 审查 S4） ----------
@@ -119,12 +108,11 @@ test('hooksBridge 探测残件已移除：report 无该行，协议矩阵与降�
 
 // ---------- skills 资产加载可观测（2026-10-26 审查 S4：原 catch{} 静默零 skill 已修） ----------
 
-test('skills 资产目录不可读：probeReport.skills=failure 且进协议矩阵与降级公告', async () => {
+test('skills 资产目录不可读：probeReport.skills=failure 且进运行时降级公告', async () => {
   const { ctx, reg } = mockCtx({ storage: undefined })
   const { probeReport } = await setup(ctx, Config.parse({}), { assetsRoot: '/nonexistent', ...OPTS() })
   expect(probeReport.skills.status).toBe('failure')
   expect(probeReport.skills.detail).toContain('目录不可读')
-  expect(protocolText(reg)).toContain('| skills | failure |')
   expect(reg.contexts[0].text()).toContain('skills') // 降级公告可见（真降级，不静默）
 })
 
@@ -146,9 +134,9 @@ test('mcpServer mounted（ok）不进降级公告', async () => {
 // ---------- 附带防线：mock ctx 无 ctx.plugin，MCP 挂载失败须降级为 mcpServer failure 而非崩溃 ----------
 //（与 index.test.js 的隐含行为一致，这里显式断言——import 失败走同一条 catch）
 
-test('MCP server 挂载失败不阻断 apply：能力矩阵追加 mcpServer failure 行', async () => {
+test('MCP server 挂载失败不阻断 apply：probeReport 与运行时公告记录 failure', async () => {
   const { ctx, reg } = mockCtx({ storage: undefined })
   const { probeReport } = await setup(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
   expect(probeReport.mcpServer.status).toBe('failure')
-  expect(protocolText(reg)).toContain('| mcpServer | failure |')
+  expect(reg.contexts[0].text()).toContain('mcpServer')
 })

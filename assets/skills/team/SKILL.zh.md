@@ -141,10 +141,11 @@ v0.4 起有两层心跳（对齐 OMC 墙钟阈值的 dsh 改写，如实注明�
 - 不重复委派已在跑的任务；不把已委派的工作再委派一遍。
 - **同质任务扇出 ~5+ → 改用 `workflow` 工具**：写 JS 编排脚本，其 `agent()` 调用接受显式 `provider`/`model`——这是唯一模型路由**硬生效**的委派路径。参数照当前生效路由表填（角色 → 档位 → 模型，来自插件 Config）。注意：普通 `subagent` spawn 继承主会话模型，角色卡上的档位在这条路径只是建议（软路由，如实说明）。
 
-## 恢复 / 取消
+## 接管 / 恢复 / 取消
 
-- **Resume**：读 team 状态 + 全部 handoff；从最后一个非终态阶段重启；已分配的任务不重复 spawn 队员。
-- **取消**（`/omd-cancel` 或用户说停）：尽力走完关闭协议，然后 `state_clear`。handoffs 与 plans 保留。终态：`complete`、`failed`、`cancelled`。
+- **孤儿接管**：`team_begin` 启动前经 `team_scan_orphans({ cwd })` 扫描，发现 run-state 非终态且无活跃会话时，只列出孤儿并提示人工处置，绝不自动删树或自动续跑。接管既有 run 前先读 team 状态、`team_phase_status`、`team_registry` 与全部 handoff，确认无活跃队长；已分配任务不重复 spawn。
+- **Resume**：从最后一个非终态阶段恢复；卡死队员按 Watchdog 规则先 `interrupt_agent`、标 failed，再重分配任务并用新 workerId 登记替补。
+- **取消**（`/omd-cancel` 或用户说停）：尽力走完关闭协议，再调 `mcp__omd-state__team_cancel({ cwd, runId, expectUpdatedAt })`；它先列树内相对 HEAD 的差异文件供用户处置（只提示不阻塞），再以 `reason=cancelled` 完成同样的两阶段拆除，最后 `state_clear`。handoffs 与 plans 保留。终态：`complete`、`failed`、`cancelled`。
 
 ## 降级
 
@@ -154,8 +155,9 @@ v0.4 起有两层心跳（对齐 OMC 墙钟阈值的 dsh 改写，如实注明�
 
 **调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；模式字段嵌套在 `state` 键下。
 
-- **开始**：先调 `mcp__omd-state__team_begin({ cwd, runId, stateDir })` 建工作树（c5）——返回孤儿列表（人工处置）与新 runId + head。再 `state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <压缩 ≤1200 字符>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`。状态文件：`.omd/state/sessions/{sessionId}/team-state.json`。若 cwd 在新工作树内，非状态写优先用 `mcp__omd-state__team_write_tree_state`（c8：父仓 .omd 不外溢）。
-- **阶段转换**：每次阶段变化都做三件事：①`team_phase_transition({ cwd, runId, to, note })`——阶段状态机是权威（fix 循环上限由它强制）；②`state_write` 更新 `state.current_phase`（`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`）与阶段历史；③`team_write_mirror({ cwd, stateDir, patch: { mode: 'team', round, current_story, active_agents, todo }, expectUpdatedAt })`——c6 把七字段镜像快照写进 `.omd/state/run-state.json`（CAS 冲突重读 ≤3 次，每次写 version +1；active_agents 与 registry 对账）。
-- **完成/取消**：先关闭流程（通知全部队员、等待确认），再 `mcp__omd-state__team_dispose({ cwd, runId, reason: 'verified' | 'cancelled', expectUpdatedAt })`（c5 两阶段拆除：CAS 写 disposed 终态 → 删树），最后 `state_clear({ cwd, sessionId, mode: "team" })`。`.omd/handoffs/` 与 `.omd/plans/` 永不删除。
+- **开始**：先调 `mcp__omd-state__team_begin({ cwd, runId, stateDir })`；它先扫描孤儿，再从当前 HEAD 以 detached 方式建 `<stateDir>/worktrees/{run-id}`（每运行一树，目录 gitignored），返回孤儿列表与新 runId + head。再 `state_write({ cwd, sessionId, mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <压缩 ≤1200 字符>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`。状态文件：`.omd/state/sessions/{sessionId}/team-state.json`。
+- **阶段转换**：每次阶段变化都做三件事：①`team_phase_transition({ cwd, runId, to, note })`——阶段状态机是权威（fix 循环上限由它强制）；②`state_write` 更新 `state.current_phase`（`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`）与阶段历史；③`team_write_mirror({ cwd, stateDir, patch: { mode: 'team', round, current_story, active_agents, todo }, expectUpdatedAt })`。c6 权威文件是主仓 `<cwd>/<stateDir>/state/run-state.json`，镜像为五要素 + `version` + `updatedAt` 七字段；只有队长可写，队员只读，`active_agents` 与 registry 对账。`team_begin`/`team_dispose` 和每次阶段转换都写镜像；CAS 冲突重读最新值后重试 ≤3 次，预算耗尽才覆盖写并记 warning，每次写 `version + 1`。
+- **完成**：先关闭流程（通知全部队员、等待确认），再 `mcp__omd-state__team_dispose({ cwd, runId, reason: 'verified', expectUpdatedAt })`。c5 拆除必须先 CAS 写 `disposed` 终态、再删树；终态时间戳早于删树时间，CAS 不成功就不删。最后 `state_clear({ cwd, sessionId, mode: "team" })`。`.omd/handoffs/` 与 `.omd/plans/` 永不删除。
+- **树内状态（c8）**：运行树内的 OMD 状态写用 `mcp__omd-state__team_write_tree_state({ cwd, rel, data, stateDir })`；仅运行树内可用，树外调用会报错。首次写在树内懒建 `<stateDir>/`，不向父仓状态树写入；命名空间不向父级 `.omd`/`.omd-workspace` marker 上升解析。run-state 权威仍在主仓，树内只读参考；拆树后树内状态残渣随树丢弃。纯多仓且非运行树的场景不要套用本工具。
 - **异常退出**：状态与 handoffs 留在盘上供 resume；>2h 未更新的状态视为 stale——只报告不自动续。
 - **MCP server 挂了**：用普通文件工具对 `.omd/` 做同样的读写，并显式说明。
