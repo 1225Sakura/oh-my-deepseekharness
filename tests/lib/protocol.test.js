@@ -60,7 +60,7 @@ test('renderProtocol 保留关键词、硬约束与委派，移除角色表、pr
   const roles = [{ name: 'omd-agent-explore', tier: 'low' }, { name: 'omd-agent-planner', tier: 'high' }]
   const text = renderProtocol({ config, probeReport: probe, roles })
   for (const s of ['cancelomd', '什么是', '引号内', '回显块', '多关键词命中', 'team 无关键词触发',
-    'leaf-guard', 'state_write', '互斥', '只能在主会话直接启动', '禁止再 spawn', '前台阻塞主会话', 'omd_delegate'])
+    'leaf-guard', 'state_write', '互斥', '只能在主会话直接启动', '机械隐藏编排工具', '前台阻塞主会话', 'omd_delegate'])
     expect(text).toContain(s)
   expect(text).toMatch(/^\| \d+ \| ralph \| ralph \| explicit \|$/m)
   for (const s of ['## 模型路由表', '## 能力矩阵', '| core |', 'omd-agent-explore | low',
