@@ -24,16 +24,31 @@ test('门禁：每条技能描述 ≤200 字符，双语（触发条件式，常
   }
 })
 
-test('门禁：目录描述总量 ≤7000 字符（49 条预算带，防 creep）', async () => {
-  const assets = await loadAssets({ assetsRoot, language: 'en' })
-  const total = assets.skills.reduce((sum, s) => sum + [...s.description].length, 0)
-  expect(total).toBeLessThanOrEqual(7000)
+test('门禁：目录描述总量 ≤7000 字符，双语（49 条预算带，防 creep）', async () => {
+  for (const language of ['en', 'zh']) {
+    const assets = await loadAssets({ assetsRoot, language })
+    const total = assets.skills.reduce((sum, s) => sum + [...s.description].length, 0)
+    expect(total, language).toBeLessThanOrEqual(7000)
+  }
 })
 
-test('门禁：每个 SKILL.md ≤20KB（compaction 截断线，superpowers #2481 同款）', () => {
+test('门禁：每个 SKILL.md 与 SKILL.zh.md ≤20KB（compaction 截断线，双语遍历防 zh 盲区）', () => {
   for (const dir of skillDirs) {
-    const p = join(assetsRoot, 'skills', dir, 'SKILL.md')
-    expect(statSync(p).size, dir).toBeLessThanOrEqual(20 * 1024)
+    for (const file of ['SKILL.md', 'SKILL.zh.md']) {
+      const p = join(assetsRoot, 'skills', dir, file)
+      if (!statSyncSafe(p)) continue
+      expect(statSync(p).size, dir + '/' + file).toBeLessThanOrEqual(20 * 1024)
+    }
+  }
+})
+
+function statSyncSafe(p) {
+  try { statSync(p); return true } catch { return false }
+}
+
+test('门禁：zh 覆盖不变量——每个技能必须有 SKILL.zh.md（zh 常驻面不被 en 回退静默接管）', () => {
+  for (const dir of skillDirs) {
+    expect(statSyncSafe(join(assetsRoot, 'skills', dir, 'SKILL.zh.md')), dir + ' 缺 zh 变体').toBe(true)
   }
 })
 

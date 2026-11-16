@@ -102,34 +102,7 @@ omd 模式生命周期：`self-improve` 的模式状态存在 omd 状态库（pe
 
 ## Setup 阶段
 
-1. 检查目标 repo 路径是否存在。未配置则向用户询问要改进的仓库路径。
-2. 运行 `node {skill_dir}/scripts/resolve-paths.mjs --project-root {repo_path} [--topic "..."] [--slug "..."] [--session-id <sid>] --ensure-dirs` 解析 `<self-improve-root>`。
-3. 把本技能目录 `templates/` 拷进解析出的 `config/` 根，创建 `<self-improve-root>/` 目录结构。
-4. 读 `<self-improve-root>/state/agent-settings.json`，检查 `si_setting_goal`、`si_setting_benchmark`、`si_setting_harness`。
-5. **信任确认**（强制，不可跳过）：
-   a. 若 agent-settings.json 中 `trust_confirmed` 已为 `true`，跳到步骤 6（resume 路径）。
-   b. 展示目标 repo 路径并请用户确认：
-      `"Self-improve will run benchmark commands inside {repo_path}. This executes arbitrary code in that repository. Confirm? [yes/no]"`
-   c. 用户拒绝：中止 setup 并退出，**不要**继续。
-   d. 记录同意：在 agent-settings.json 置 `trust_confirmed: true`。
-6. 解析根为 topic 作用域时，把 `topic_slug` 持久化进 `config/settings.json`，让后续 resume 留在同一轨道。
-7. goal 未设置 → 读本技能目录的 `si-goal-clarifier.md`，在当前上下文直接跑 4 维苏格拉底访谈（Objective、Metric、Target、Scope），结果写入 `<self-improve-root>/config/goal.md`。
-8. benchmark 未设置 → 读本技能目录的 `si-benchmark-builder.md`，用其内容作为 prompt spawn 一个 high 档 `subagent`。该 agent 勘察 repo、创建或包装 benchmark、验证 3 次并记录 baseline。
-   benchmark 设置后，与用户确认 benchmark 命令：
-      `"Benchmark command: {benchmark_command}. This will be run repeatedly during the loop. Confirm? [yes/no]"`
-   用户拒绝：中止 setup 并退出。
-9. harness 未设置 → 与用户确认默认护栏规则（H001/H002/H003）或自定义。
-10. **Gate**：`si_setting_goal`、`si_setting_benchmark`、`si_setting_harness`、`trust_confirmed` 必须全为 true。
-11. **创建改进分支**（不存在时）：
-    ```
-    git -C {repo_path} checkout -b improve/{goal_slug} {target_branch}
-    git -C {repo_path} checkout {target_branch}
-    ```
-    `{goal_slug}` 由目标描述派生（小写下划线）。分支已存在则跳过创建。把 `goal_slug` 持久化进 agent-settings.json。
-12. **模式互斥**：调用 `mcp__omd-state__state_list_active({ cwd })`。若有任何 omd 模式活跃（autopilot、ralph、team、ralplan、deep-interview），拒绝启动——omd 模式互斥。
-13. 按状态契约写初始状态：`state_write`，`mode: "self-improve"`，`active: true`，`iteration: 0`，`started_at`。
-
----
+完整 Setup 流程（候选发现、基线采集、预算设定）：按需加载 `references/setup-phase.zh.md`——仅在初始化新战役时。
 
 ## Git 策略
 
@@ -267,23 +240,7 @@ git -C {repo_path} worktree add worktrees/round_{n}_executor_{id} -b experiment/
 
 ### Step 8 —— 锦标赛选择
 
-SKILL.md 直接执行本步（不委派）：
-
-1. **收集**全部 executor 结果
-2. **过滤**只留 `status: "success"`。零候选则跳到 Step 9（记录与可视化）。
-3. 按 `benchmark_score` **排序**（尊重 `benchmark_direction`）
-4. **候选循环**——按名次从优到劣逐个处理：
-   a. **无回归检查**：候选分数相对 `best_score` 必须改进或持平，尊重 `benchmark_direction`（`higher_is_better`：score >= best_score；`lower_is_better`：score <= best_score）
-   b. 经 `omd-agent-git-master` **合并**：`git merge experiment/round_{n}_executor_{id} --no-ff -m "Iteration {n}: {hypothesis} (score: {before} → {after})"`
-   c. 在合并后的状态上**重跑 benchmark** 确认改进
-   d. 重跑**确认**改进：**接受获胜者**，跳出循环
-   e. 重跑显示**回归**：`git -C {repo_path} reset --hard HEAD~1` **回滚合并**，继续下一个候选
-   f. 合并**冲突**：`git -C {repo_path} merge --abort`，继续下一个候选
-5. 获胜者被接受且 settings 里 `auto_push` 为 `true`：**push** 改进分支 `git -C {repo_path} push origin improve/{goal_slug}`（非阻塞）。
-   `auto_push` 为 `false`（默认）：跳过 push。记日志：`"Push skipped (auto_push: false). Run manually: git -C {repo_path} push origin improve/{goal_slug}"`
-6. 经 git-master **归档**全部非获胜分支：打 tag + 删除
-7. 无候选存活：本轮不合并，改进分支保持原状。
-8. **写 Merge Report** JSON 到 `<self-improve-root>/state/merge_reports/round_{n}.json`（schema：data_contracts.md 第 9 节）。
+完整选择流程（配对、评审、胜者晋升）：按需加载 `references/tournament-selection.zh.md`——仅在实际运行选择轮时。
 
 ### Step 9 —— 记录与可视化
 

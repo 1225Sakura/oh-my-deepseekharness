@@ -48,7 +48,7 @@ async function setupTool(fakeOpts = {}) {
   const ctx = { tools: { register(def) { captured = def } }, logger: { info() {}, warn() {} } }
   await registerDelegateTool(ctx, def => def, {
     config: Config.parse({}),
-    roles: [{ name: 'omd-agent-explore', tier: 'low' }],
+    roles: fakeOpts.roles ?? [{ name: 'omd-agent-explore', tier: 'low' }],
     subagents: fakes.subagents,
     llm: fakes.llm,
     recordRouteEvent: async e => { events.push(e) },
@@ -57,6 +57,18 @@ async function setupTool(fakeOpts = {}) {
 }
 
 const EXEC_ARGS = { description: '探针', prompt: '只输出 OK-DELEGATE', model: 'glm-5.3-flash' }
+
+test('A2/A5 activation 路径：角色卡全文内联 + 叶子豁免（与 legacy 同源 finalPrompt）', async () => {
+  const { def, calls, parent } = await setupTool({ roles: [{ name: 'omd-agent-explore', tier: 'low', content: 'ROLE BODY ACTIVATION' }] })
+  await def.execute({ ...EXEC_ARGS, role: 'omd-agent-explore', tier: 'low' }, { agent: parent })
+  expect(calls.activation).toHaveLength(1)
+  const wire = JSON.stringify(calls.activation[0].request.prompt)
+  expect(wire).toContain('<role_card>')
+  expect(wire).toContain('ROLE BODY ACTIVATION')
+  expect(wire).toContain('叶子执行者')
+  expect(wire).toContain('OK-DELEGATE')
+  expect(wire).not.toContain('先经 skill 工具')
+})
 
 test('A1：spec 全字段精确形状（provider/label 顶层/content-blocks/parent 同一引用/agentOptions/maxDepth/delivery/signal；request 内无 label/signal）', async () => {
   const { def, calls, parent } = await setupTool()
