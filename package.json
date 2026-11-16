@@ -31,7 +31,8 @@
     "url": "git+https://github.com/1225Sakura/oh-my-deepseekharness.git"
   },
   "engines": {
-    "node": ">=22.19.0"
+    "node": ">=22.19.0",
+    "dsh": ">=0.1.2-rc.1 <0.1.3 || >=0.1.5-rc.1 <0.1.6 || >=0.1.7-rc.1 <0.2.0 || >=0.2.0-rc.1 <0.3.0"
   },
   "files": [
     "lib",

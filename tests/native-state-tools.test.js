@@ -18,10 +18,11 @@ test('collectSpecs 捕获 58 个工具规格（与 omd-doctor 计数契约一致
   expect(names.every(n => !n.startsWith('omd_'))).toBe(true) // 绑定层保持裸名，前缀在适配器加
 })
 
-test('shapeToParameters：sessionId 剔除、cwd 降级可选、required 收缩', () => {
+test('shapeToParameters：sessionId 剔除、cwd 降级可选、required 收缩、jsonKeys 收集', () => {
   const specs = collectSpecs(buildEnv({}))
   const writeSpec = specs.find(s => s.name === 'state_write')
-  const params = shapeToParameters(writeSpec.inputSchema)
+  const { parameters: params, jsonKeys } = shapeToParameters(writeSpec.inputSchema)
+  expect(jsonKeys).toContain('state')
   expect(params.sessionId).toBeUndefined()
   expect(params.cwd).toBeDefined()
   expect(params.cwd.required).toBeUndefined()
@@ -29,6 +30,24 @@ test('shapeToParameters：sessionId 剔除、cwd 降级可选、required 收缩'
   expect(params.state.type).toBe('json')
   expect(params.expectUpdatedAt.type).toBe('string')
   expect(params.expectUpdatedAt.required).toBeUndefined()
+})
+
+test('json 形态参数以字符串到达（OMC 字符串传输怪癖 DSH 重现）→ 宽容 parse', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'omd-native-'))
+  try {
+    const registered = []
+    const ctx = { tools: { register: d => registered.push(d) } }
+    await registerStateTools(ctx, identityDefineTool, { config: {} })
+    const write = registered.find(t => t.name === 'omd_state_write')
+    const exec = { agent: { session: { header: { cwd: dir, id: 'sess-D4' } } } }
+    const res = await write.execute({ mode: 'autopilot', state: JSON.stringify({ active: true }) }, exec)
+    expect(res).toEqual({ ok: true })
+    const raw = JSON.parse(await readFile(join(dir, '.omd', 'state', 'sessions', 'sess-D4', 'autopilot-state.json'), 'utf8'))
+    expect(raw.active).toBe(true)
+    await expect(write.execute({ mode: 'autopilot', state: '{broken' }, exec)).rejects.toThrow(/参数校验失败.*state/)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
 })
 
 test('registerStateTools 注册 58 个 omd_ 前缀工具且 execute 自动派生会话锚', async () => {
