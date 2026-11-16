@@ -1,6 +1,6 @@
 ---
 name: cancel
-description: Cancel any active omd execution mode (autopilot, ralph, team, ralplan, deep-interview) and clean up mode state
+description: Use when canceling any active omd mode (autopilot, ralph, team, ralplan, deep-interview) — cancelomd/stopomd — and cleaning up mode state.
 when-to-use: Triggered by the `cancelomd` / `stopomd` keywords or the `/omd-cancel` command; also when the user says stop while a mode is active, or when a mode finished and needs proper state cleanup. Deliberately does NOT match bare "cancel"/"stop" to avoid false triggers in everyday language.
 ---
 

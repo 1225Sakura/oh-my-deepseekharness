@@ -1,6 +1,6 @@
 ---
 name: ralplan
-description: Consensus planning entrypoint that auto-gates vague ralph/autopilot/team requests before execution
+description: Use when a ralph/autopilot/team request is too vague — consensus planning gate before execution.
 when-to-use: User says "ralplan" or wants a consensus-refined plan before execution; also the redirect target when a ralph/autopilot/team request is too vague to execute (no file paths, symbols, issue numbers, or testable anchors). Not for well-specified requests that can execute directly.
 ---
 

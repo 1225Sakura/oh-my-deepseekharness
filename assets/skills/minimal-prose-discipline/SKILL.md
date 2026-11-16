@@ -1,6 +1,6 @@
 ---
 name: minimal-prose-discipline
-description: "Writing-time discipline for the prose an agent speaks to a human (replies, reports, pointers): a protected core never rewritten (code, commands, paths, errors, negators, numbers), filler dies, no narration. Compression never costs meaning."
+description: Use when writing agent-to-human prose (replies, reports, handoff pointers) — protected core never rewritten, filler banned, compression never loses meaning.
 when-to-use: agent 对人发言（回复、报告、交接指针）落笔时套用；工件（代码/文档/笔记）各有 companion 纪律，不在本卡范围。
 ---
 

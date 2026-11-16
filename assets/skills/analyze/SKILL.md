@@ -1,6 +1,6 @@
 ---
 name: analyze
-description: Run read-only deep repository analysis and return a ranked synthesis with explicit confidence, concrete file references, and clear evidence-vs-inference boundaries
+description: Use when a deep read-only repository analysis is needed — ranked synthesis with explicit confidence, file references, and evidence-bounded conclusions.
 when-to-use: The user says "analyze", "investigate", "why does", "what's causing", or needs a grounded cross-file explanation before any changes are proposed. Not for edits, implementation, a new product plan, or a simple one-file lookup.
 ---
 

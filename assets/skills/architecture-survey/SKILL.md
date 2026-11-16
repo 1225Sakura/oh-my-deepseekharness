@@ -1,6 +1,6 @@
 ---
 name: architecture-survey
-description: "Periodic architecture survey — walk the module graph and report ranked deepening candidates (shallow modules, hypothetical seams, logic behind the wrong seam). Survey, not rescue: it finds candidates and hands them over with evidence; it never refactors on its own."
+description: Use when surveying module structure for shallow modules, assumption seams, and misplaced logic — reports ranked candidates with evidence only, never refactors.
 when-to-use: 每隔数天活跃构建后、一批 ticket 落地后，或仓库「比上周更难改」时做周期性架构盘点；只产出排序候选，不动手修。
 ---
 

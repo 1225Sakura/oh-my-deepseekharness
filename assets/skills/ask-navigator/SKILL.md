@@ -1,6 +1,6 @@
 ---
 name: ask-navigator
-description: Navigator lane — chart a foggy effort (destination unclear, questions not yet stateable) into a map of decision tickets, work the frontier one ticket per session, then hand the collapsed decisions off as a mission brief. Wayfinding, not building — it produces decisions, never deliverables.
+description: Use when a task destination is unclear and questions are still forming — charts a decision-map and advances one frontier ticket per session until routes are clear.
 when-to-use: An effort is wrapped in fog — the destination cannot be stated in one sentence, or the first three decisions cannot be stated precisely. Invoke with a loose idea, with residual questions, with a map path, or with nothing to continue the open map. Not for work whose route is already clear (deliver with autopilot/team instead).
 ---
 

@@ -2,7 +2,7 @@ import { test, expect } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { loadAssets } from '../../lib/skills.js'
+import { loadAssets, registerAssets } from '../../lib/skills.js'
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'omd-'))
@@ -48,6 +48,16 @@ test('角色卡拼接档位 overlay（zh）', async () => {
   expect(role.tier).toBe('medium')
   expect(role.content).toContain('中文角色')
   expect(role.content).toContain('## 档位：medium')
+})
+
+test('registerAssets 只注册技能——角色卡退出模型目录（A2 契约）', async () => {
+  const assets = await loadAssets({ assetsRoot: await fixture(), language: 'en' })
+  const registered = []
+  const ctx = { skills: { register: entry => registered.push(entry) } }
+  const count = registerAssets(ctx, assets)
+  expect(count).toBe(registered.length)
+  expect(registered.map(e => e.name)).toEqual(['demo'])
+  expect(registered.some(e => e.name.startsWith('omd-agent-'))).toBe(false)
 })
 
 test('zh 文件缺失时 fallback 到英文资产', async () => {

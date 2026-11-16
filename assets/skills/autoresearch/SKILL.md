@@ -1,6 +1,6 @@
 ---
 name: autoresearch
-description: Stateful single-mission improvement loop with strict evaluator contract, markdown decision logs, and max-runtime stop behavior
+description: Use when running a stateful single-mission improvement loop — strict evaluator contract, markdown decision log, max-runtime stop.
 when-to-use: You already have a mission and an evaluator and want persistent single-mission iterative improvement with durable experiment logs under .omd/autoresearch/. Not for evaluator generation at runtime (interview or author it first) and not for multi-mission orchestration (v1 forbids it).
 ---
 

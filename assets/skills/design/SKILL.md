@@ -1,6 +1,6 @@
 ---
 name: design
-description: Canonical repo-local DESIGN.md workflow for product, UI/UX, and frontend decision source of truth
+description: Use when product, UI/UX, or frontend decisions need a canonical home — repo-local DESIGN.md workflow.
 when-to-use: Product, UX, frontend, or design-system decisions need a repo-local source of truth; a feature needs a design brief before a designer lane or implementation; existing UI, assets, screenshots, or constraints need an actionable design summary. Not for pixel-matching against a visual reference or backend/infrastructure work without user-facing design impact.
 ---
 

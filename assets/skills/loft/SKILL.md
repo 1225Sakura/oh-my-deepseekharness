@@ -1,6 +1,6 @@
 ---
 name: loft
-description: Loft the shape before cutting steel — answer a design question that prose cannot settle by building a throwaway artifact — a pure logic module in a clickable shell, or structurally different UI variants behind one route. The captain reacts to the artifact; the answer folds into the decision; the artifact never docks. Use when a design question stalls in words or a spec discussion reaches "we would have to see it".
+description: Use when a design question cannot be settled in prose — answer with a throwaway artifact (clickable logic module or UI variant); artifacts never ship.
 when-to-use: A design question stalls in prose (rephrased repeatedly, still unsettleable); a spec discussion reaches "we would have to see it first". Not for questions answerable from repo evidence or by asking (that is interviewing), not when the destination itself is unclear (fog — use deep-interview/plan), not for settled ADR decisions, not for bugs (that is the debugger's jurisdiction).
 ---
 

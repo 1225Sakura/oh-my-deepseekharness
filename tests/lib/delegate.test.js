@@ -355,3 +355,25 @@ test('C1 同点落盘：model 校验抛错车次 → events 与 run-state 双面
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+// ---- A2/A5：角色卡全文内联 + 子代理叶子豁免（角色卡退出模型目录后的派发契约） ----
+test('派发内联角色卡全文并带叶子豁免（不再指示子代理经 skill 工具加载）', async () => {
+  const { def, calls } = await setupTool({ roles: [{ name: 'omd-agent-explore', tier: 'low', content: 'ROLE BODY UNIQUE' }] })
+  await def.execute({ description: 'x', prompt: 'TASK-PLAIN', role: 'omd-agent-explore', tier: 'low' }, { agent: makeFakes().parent })
+  const wire = JSON.stringify(calls.start)
+  expect(wire).toContain('<role_card>')
+  expect(wire).toContain('ROLE BODY UNIQUE')
+  expect(wire).toContain('叶子执行者')
+  expect(wire).toContain('TASK-PLAIN')
+  expect(wire).not.toContain('先经 skill 工具')
+})
+
+test('角色卡无 content 时回退角色名头且不引用 skill 工具（路由表条目无正文的形态）', async () => {
+  const { def, calls } = await setupTool({ roles: [{ name: 'omd-agent-explore', tier: 'low' }] })
+  await def.execute({ description: 'x', prompt: 'TASK-PLAIN', role: 'omd-agent-explore', tier: 'low' }, { agent: makeFakes().parent })
+  const wire = JSON.stringify(calls.start)
+  expect(wire).toContain('omd-agent-explore')
+  expect(wire).toContain('TASK-PLAIN')
+  expect(wire).not.toContain('先经 skill 工具')
+  expect(wire).not.toContain('<role_card>')
+})

@@ -1,6 +1,6 @@
 ---
 name: deepinit
-description: Deep codebase initialization with hierarchical AGENTS.md documentation
+description: Use when initializing a codebase — generates hierarchical AGENTS.md documentation.
 when-to-use: A repo lacks AI-readable documentation and agents/humans keep re-discovering structure; you want a navigable AGENTS.md hierarchy covering every directory. Re-run in update mode to refresh stale files. Not for throwaway prototypes or single-file scripts.
 ---
 

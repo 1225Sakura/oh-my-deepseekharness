@@ -1,6 +1,6 @@
 ---
 name: best-practice-research
-description: Bounded best-practice research wrapper using official/upstream evidence first, with a cited recommendation and explicit handoff
+description: Use when a best-practice question needs bounded research — official upstream evidence first, sourced recommendations and a clear handoff.
 when-to-use: A task depends on current external best practices, version-aware guidance, standards, official recommendations, or upstream behavior for an already chosen technology. Not for fully repo-local answers (use explore/research) or dependency adoption/comparison decisions.
 ---
 

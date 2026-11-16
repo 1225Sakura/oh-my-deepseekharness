@@ -1,6 +1,6 @@
 ---
 name: visual-verdict
-description: Structured visual QA verdict — compare a generated UI screenshot against reference images and return a strict JSON verdict (score, pass/revise/fail, differences, suggestions) that drives the next edit iteration
+description: Use when judging generated UI against a reference image — structured JSON verdict (score, pass/revise/fail) drives the next edit iteration.
 when-to-use: The task has visual fidelity requirements (layout, spacing, typography, component styling), you have a generated screenshot plus at least one reference image, and you need deterministic pass/fail guidance before continuing edits. Run it every iteration of a visual task, before the next edit.
 ---
 

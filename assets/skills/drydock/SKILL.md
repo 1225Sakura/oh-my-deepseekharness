@@ -1,6 +1,6 @@
 ---
 name: drydock
-description: Lay the keel of the shipyard harness in any repo — the 4-pillar shared environment (Context, Rules, Tools, Standards) across its surfaces (CLAUDE.md, project skills, design-system, scripts, shared context) so that every human and agent inherits the same design language and anyone can ship. Run once per repo; re-run with --check to audit drift.
+description: Use when laying a repo shared harness (context, rules, tools, standards) across CLAUDE.md, project skills, design-system, and scripts — once per repo; --check re-audits drift.
 when-to-use: Starting a repo that humans and agents will both build on; knowledge lives in people's heads and chat history instead of files; onboarding should happen by reading, not by asking. Not for throwaway prototypes with no collaborators; on a repo already running the harness, use --check instead.
 ---
 

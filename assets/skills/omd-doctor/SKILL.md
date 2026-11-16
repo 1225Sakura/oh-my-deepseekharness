@@ -1,6 +1,6 @@
 ---
 name: omd-doctor
-description: Diagnose an oh-my-dsh installation — host version, registration counts, Config model resolvability, MCP smoke, .omd/ writability, probe matrix — as a checklist table with fix suggestions
+description: Use when diagnosing an oh-my-dsh install — host version, registration counts, Config parse, MCP smoke, .omd writability, probe matrix — checklist output with fixes.
 when-to-use: Invoked via the `/omd-cancel`-sibling command `/omd-doctor` (the command is a thin shell that loads this skill), or when the user asks to verify/diagnose their omd installation ("doctor", "check omd", "omd not working"). Not a substitute for E2E release gates.
 ---
 

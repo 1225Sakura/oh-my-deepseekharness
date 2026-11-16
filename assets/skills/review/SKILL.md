@@ -1,6 +1,6 @@
 ---
 name: review
-description: Evaluate finished work for defects, risk, and simplification before it ships
+description: Use before shipping finished work — evaluate defects, risks, and simplification opportunities.
 when-to-use: Work already exists and needs evaluation — pre-merge review, the approval pass after an implementation lane, or the "code review" / "代码评审" keyword. Not for authoring changes; review never writes the change it judges.
 ---
 

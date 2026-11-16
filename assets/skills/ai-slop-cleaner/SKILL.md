@@ -1,6 +1,6 @@
 ---
 name: ai-slop-cleaner
-description: Clean AI-generated code slop with a regression-safe, deletion-first workflow and an optional reviewer-only mode
+description: Use when cleaning AI-generated code slop — regression-safe, deletion-first workflow; supports review-only mode (--review).
 when-to-use: The user says "deslop" / "anti-slop" / "AI slop", or asks to clean up code that works but feels bloated, repetitive, over-abstracted, or weakly tested. Also for a reviewer-only anti-slop pass (`--review`). Not for new feature delivery or broad redesign.
 ---
 

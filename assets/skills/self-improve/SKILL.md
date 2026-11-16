@@ -1,6 +1,6 @@
 ---
 name: self-improve
-description: Autonomous evolutionary code improvement engine with tournament selection
+description: Use when evolving code autonomously — tournament-selected improvement engine.
 when-to-use: The user explicitly asks to run a self-improvement loop against a measurable benchmark in a target repository — iterative hypothesis → plan → execute → benchmark → tournament-merge cycles until a target score, plateau, or iteration cap. Explicit invocation only; never auto-triggered.
 ---
 
@@ -102,34 +102,7 @@ Read these files at startup and at the beginning of each iteration:
 
 ## Setup Phase
 
-1. Check if target repo path exists. If not configured, ask user for the path to the repository to improve.
-2. Resolve `<self-improve-root>` by running `node {skill_dir}/scripts/resolve-paths.mjs --project-root {repo_path} [--topic "..."] [--slug "..."] [--session-id <sid>] --ensure-dirs`.
-3. Create the `<self-improve-root>/` directory structure by copying from `templates/` in this skill directory into the resolved `config/` root.
-4. Read `<self-improve-root>/state/agent-settings.json`. Check `si_setting_goal`, `si_setting_benchmark`, `si_setting_harness`.
-5. **Trust confirmation** (mandatory, cannot be skipped):
-   a. If `trust_confirmed` is already `true` in agent-settings.json, skip to step 6 (resume path).
-   b. Display the target repo path and ask user to confirm:
-      `"Self-improve will run benchmark commands inside {repo_path}. This executes arbitrary code in that repository. Confirm? [yes/no]"`
-   c. If user declines: abort setup and exit. Do NOT proceed.
-   d. Record consent: set `trust_confirmed: true` in agent-settings.json.
-6. Persist `topic_slug` into `config/settings.json` when the resolved root is topic-scoped so future resumes stay on the same track.
-7. If goal not set → read `si-goal-clarifier.md` from this skill directory and run the 4-dimension Socratic interview directly in this context (Objective, Metric, Target, Scope). Write result to `<self-improve-root>/config/goal.md`.
-8. If benchmark not set → read `si-benchmark-builder.md` from this skill directory, spawn a high-tier `subagent` with its content as prompt. The agent surveys the repo, creates or wraps a benchmark, validates 3x, and records baseline.
-   After benchmark is set, confirm the benchmark command with user:
-      `"Benchmark command: {benchmark_command}. This will be run repeatedly during the loop. Confirm? [yes/no]"`
-   If user declines: abort setup and exit.
-9. If harness not set → confirm default harness rules (H001/H002/H003) with user or customize.
-10. **Gate**: All of `si_setting_goal`, `si_setting_benchmark`, `si_setting_harness`, `trust_confirmed` must be true.
-11. **Create improvement branch** (if it does not exist):
-    ```
-    git -C {repo_path} checkout -b improve/{goal_slug} {target_branch}
-    git -C {repo_path} checkout {target_branch}
-    ```
-    Where `{goal_slug}` is derived from the goal objective (lowercase, underscored). If the branch already exists, skip creation. Persist `goal_slug` in agent-settings.json.
-12. **Mode exclusivity**: Call `mcp__omd-state__state_list_active({ cwd })`. If any omd mode is active (autopilot, ralph, team, ralplan, deep-interview), refuse to start — omd modes are mutually exclusive.
-13. Write initial state per the State Contract: `state_write` with `mode: "self-improve"`, `active: true`, `iteration: 0`, `started_at`.
-
----
+Full setup procedure (candidate discovery, baseline capture, budget setup): load `references/setup-phase.md` on demand — only when initializing a fresh campaign.
 
 ## Git Strategy
 
@@ -267,23 +240,7 @@ Expected output: Benchmark Result JSON (written by executor or returned as outpu
 
 ### Step 8 — Tournament Selection
 
-SKILL.md does this directly (not delegated):
-
-1. **Collect** all executor results
-2. **Filter** to `status: "success"` only. If zero candidates, skip to Step 9 (Record & Visualize).
-3. **Rank** by `benchmark_score` (respecting `benchmark_direction`)
-4. **Ranked-candidate loop** — for each candidate in rank order (best first):
-   a. **No-regression check**: candidate score must improve or hold even vs `best_score`, respecting `benchmark_direction` (`higher_is_better`: score >= best_score; `lower_is_better`: score <= best_score)
-   b. **Merge** via `omd-agent-git-master`: `git merge experiment/round_{n}_executor_{id} --no-ff -m "Iteration {n}: {hypothesis} (score: {before} → {after})"`
-   c. **Re-benchmark** on merged state to confirm improvement
-   d. If re-benchmark **confirms** improvement: **accept winner**, break loop
-   e. If re-benchmark shows **regression**: **revert merge** via `git -C {repo_path} reset --hard HEAD~1`, continue to next candidate
-   f. If merge **conflicts**: `git -C {repo_path} merge --abort`, continue to next candidate
-5. If a winner was accepted AND `auto_push` is `true` in settings: **Push** improvement branch: `git -C {repo_path} push origin improve/{goal_slug}` (non-blocking).
-   If `auto_push` is `false` (default): skip push. Log: `"Push skipped (auto_push: false). Run manually: git -C {repo_path} push origin improve/{goal_slug}"`
-6. **Archive** all non-winner branches via git-master: tag + delete
-7. If no candidate survived the loop: no merge this round. Improvement branch stays at prior state.
-8. **Write Merge Report** JSON to `<self-improve-root>/state/merge_reports/round_{n}.json` (schema: data_contracts.md Section 9).
+Full selection procedure (pairing, judging, winner promotion): load `references/tournament-selection.md` on demand — only when actually running a selection round.
 
 ### Step 9 — Record & Visualize
 

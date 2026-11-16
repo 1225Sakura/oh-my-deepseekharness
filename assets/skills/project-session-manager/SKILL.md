@@ -1,6 +1,6 @@
 ---
 name: project-session-manager
-description: Worktree-first isolated dev environments for issues, PRs, and features — git worktree + provider CLI (gh/jira) methodology adapted to dsh sessions
+description: Use when isolating work for an issue, PR, or feature — git worktree plus provider CLI (gh/jira) with separate dsh sessions.
 when-to-use: The user wants an isolated environment to review a PR, fix an issue, or develop a feature in parallel with other work ("review PR #123 in a worktree", "set up a session for issue #42", "psm", "teleport"). OMC's psm.sh/omc teleport CLI do not exist in omd — this skill executes the same methodology with plain git/gh commands and dsh sessions.
 ---
 

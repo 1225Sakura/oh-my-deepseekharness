@@ -1,6 +1,6 @@
 ---
 name: research
-description: Investigate an open question and return grounded, sourced findings
+description: Use when investigating an open question — grounded, sourced conclusions.
 when-to-use: The next step depends on something not yet known — codebase facts, external SDK/framework/API behavior, history. Research answers questions; it does not implement. Not for stateful iterative improvement loops (use autoresearch).
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: release
-description: Repo-aware release assistant — derives release rules from repo/CI inspection, caches them in .omd/RELEASE_RULE.md, then guides version bump, notes, tag, and publish
+description: Use when preparing a release — derives rules from repo and CI inspection, caches RELEASE_RULE.md, guides version, notes, tag, and publish.
 when-to-use: The user (maintainer) asks to cut a release ("release", "bump version", "publish vX.Y.Z", "prepare a release"). Maintainer-only flow; never bypasses the repo's own release boundary (CI gates, protected branches, required reviews).
 ---
 

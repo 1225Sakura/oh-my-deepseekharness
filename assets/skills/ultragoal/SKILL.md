@@ -1,6 +1,6 @@
 ---
 name: ultragoal
-description: Durable multi-goal initiative — ordered stories with attempt counts and per-story evidence persisted under .omd/ultragoal, driven by dsh's native goal mechanism (create_goal/update_goal) with a final review gate
+description: Use when running a durable multi-goal initiative — ordered stories, attempt counts, and per-story evidence under .omd/ultragoal, driven by the native goal loop with review gates.
 when-to-use: The user wants a large, multi-step initiative tracked durably across sessions/worktrees ("ultragoal", "track this as a durable goal", "multi-story initiative") — bigger than one change (use ralph or direct delegation for that), and wanting execution with a final quality gate, not a planning-only artifact (use plan for that).
 ---
 

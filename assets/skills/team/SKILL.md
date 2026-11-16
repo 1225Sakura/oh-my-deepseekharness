@@ -1,6 +1,6 @@
 ---
 name: team
-description: Explicit-invocation multi-agent pipeline — the lead orchestrates role-carded subagents through a five-stage pipeline with mandatory stage handoffs
+description: Use when the user explicitly invokes team — the lead orchestrates role-carded subagents through the five-stage pipeline with handoff docs between stages.
 when-to-use: EXPLICIT INVOCATION ONLY ("use team to …", "/team …"). No keyword trigger — the word "team" in ordinary text must NOT activate this skill, and inside worker sessions the whole keyword routing table is inert. Use for parallel multi-agent execution of a decomposable task. **Since v0.4 there IS a leader runtime** (lib/team.js): the phase state machine (`team_phase_transition`), worker UUID lifecycle (`team_register_worker`/`team_worker_update`/`team_registry`), mailbox (`team_mail_*`), heartbeat scan (`team_heartbeat_scan`), and merge planning (`team_merge_plan`) are all available as MCP tools. Actual spawning is still done by the lead via `subagent`/`omd_delegate` (the runtime owns lifecycle + coordination data, not dispatch decisions); there is no tmux pane guardian (no dsh surface, 🚫).
 ---
 

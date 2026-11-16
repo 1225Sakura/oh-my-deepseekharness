@@ -1,6 +1,6 @@
 ---
 name: ask
-description: Second-opinion advisor lane — route a question to an independent subagent (optionally with a different role card) and persist the answer as an ask artifact
+description: Use when a second opinion is needed on a question or plan — routes to an independent subagent and persists the answer as an ask artifact.
 when-to-use: You want an outside perspective on a question or task — a security read of a patch, UX suggestions, a fresh plan draft — from a context that did not author the work. Not for questions answerable from the repo itself (use research).
 ---
 

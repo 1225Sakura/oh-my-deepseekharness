@@ -1,6 +1,6 @@
 ---
 name: graph
-description: Declarative DAG pipeline contract — deterministic graph semantics and journal-based crash recovery, executed model-driven in omd until the phase-2 runtime lands
+description: Use when declaring a DAG pipeline — deterministic graph semantics and journal-based crash recovery; model-driven until the omd runtime lands.
 when-to-use: Repeatable multi-step pipelines with explicit dependencies (DAG), work that must survive interruption, auditable runs. Not for exploratory one-off work (use conversation or team) or anything needing adaptive re-planning mid-run (graphs are deterministic).
 ---
 

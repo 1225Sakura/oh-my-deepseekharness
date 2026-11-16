@@ -1,6 +1,6 @@
 ---
 name: diagram
-description: "Use the smallest visual when prose must carry structure — control flow, call depth, module ownership, or change shape: pseudocode, call tree, component/file tree, Mermaid, or diff. Skip it when prose already answers the question."
+description: Use when prose must carry structure — control flow, call depth, ownership, or change shape as pseudocode, call tree, file tree, Mermaid, or diff; skip when prose already answers.
 when-to-use: 回复/报告里需要承载结构（控制流、调用深度、模块归属、变更形态）时，选最小视觉；散文已能回答就不画。
 ---
 

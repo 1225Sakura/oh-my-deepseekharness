@@ -1,6 +1,6 @@
 ---
 name: performance-goal
-description: Evaluator-gated performance optimization workflow — baseline measurement, bottleneck analysis, small reversible optimizations, re-measurement loop, gated completion
+description: Use when optimizing performance under an evaluator gate — baseline measurement, bottleneck analysis, small reversible steps, re-measure loop.
 when-to-use: The user asks to optimize performance and wants a goal-oriented loop with a measurable target rather than a one-off review. Requires an evaluator command and a pass/fail contract before any optimization starts.
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-first at pre-agreed seams — one test, one implementation, tracer-bullet red/green; independent expected values; substitutes only at the seam's declared boundary class.
+description: Use when writing test-first at pre-agreed seams — one test, one implementation, red-green tracer bullets; expectations from independent sources.
 when-to-use: The user says "tdd" / "TDD 模式" or asks for test-first work with strict red/green discipline — building new behavior or fixing a bug under seam discipline. Not for bulk test backfilling or refactoring-only passes.
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: launch
-description: 船坞的受治理交付管道——收敛使命、综合持久规格、分解带阻塞边的垂直切片 ticket、经 team 并行跑 frontier、以验证收尾、带完整决策日志报告。两道入门闸——yard 闸（drydock 审计）与雾闸（目的地不清的活先转 ask-navigator（首选）/ deep-interview/plan（替代）再进本管道）。没有唯一答案或犯错代价惨重的检查点归人类；一切可重复、可凭证据验收的归 agent 连续跑。
+description: Use when 用户要治理式端到端交付（完整功能/项目级 launch 管道）——多阶段、切片、并行、验证收尾；入口先过 drydock 门。不要用于单点小任务（直接 execute）。
 when-to-use: 一份使命简报或既有规格需要带人类检查点（C1-C5）与完整 paper trail 的受治理端到端交付。前置：drydock 船坞已存在（否则 yard 闸硬阻塞）。不适用于单点修复（交给 execute）、目的地说不清的起雾工程（先交给 ask-navigator 绘图（首选），或用 deep-interview/plan 收敛（替代））。opt-in；显式调用。
 ---
 

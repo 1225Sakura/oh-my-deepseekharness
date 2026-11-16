@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Strategic planning with optional interview workflow and consensus mode
+description: Use when strategic planning is needed — optional interview flow and consensus mode.
 when-to-use: User wants to plan before implementing ("plan this", "let's plan"), wants structured requirements gathering for a vague idea, wants an existing plan reviewed ("--review"), or wants multi-perspective consensus ("--consensus" / ralplan). Not for autonomous end-to-end execution (autopilot), immediate coding on a clear task (ralph / executor), or simple questions.
 ---
 

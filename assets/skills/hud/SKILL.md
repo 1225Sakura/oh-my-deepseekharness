@@ -1,6 +1,6 @@
 ---
 name: hud
-description: Status visibility for omd sessions — the five-element HUD contract (mode, round, story, agents, todos) and its three shipped surfaces: MCP hud_render/hud_summary, the web GUI right-sidebar HUD panel (client half), and the /oh-my-dsh/hud.json data route
+description: Use when exposing omd session status — five-element HUD (mode, round, story, agent, todo) via MCP hud_render/hud_summary, the GUI side panel, and /oh-my-dsh/hud.json.
 when-to-use: The user asks about HUD/statusline setup, wants persistent session status visibility, or asks "where is my HUD". Since v0.4 all three surfaces are live; CLI sessions without a panel use the MCP tools for the same summary.
 ---
 

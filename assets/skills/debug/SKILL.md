@@ -1,6 +1,6 @@
 ---
 name: debug
-description: Diagnose the current omd session or repo state using mode state, notepad, logs, and focused reproduction
+description: Use when diagnosing the current omd session or repo state — mode state, notepad, logs, and focused reproduction.
 when-to-use: The user wants help diagnosing a current omd/DeepSeek-Harness session problem, workflow breakage, or confusing runtime behavior — stuck modes, stale state, orchestration misbehavior. Not for prescribing fixes before the failure is isolated.
 ---
 

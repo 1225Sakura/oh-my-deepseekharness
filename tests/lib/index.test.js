@@ -51,7 +51,7 @@ test('apply 全量注册：1 section + 1 context + 40 skill + 19 角色 + 3 命�
   await apply(ctx, Config.parse({}), { assetsRoot, defineTool: (x) => x })
   expect(reg.sections).toHaveLength(1)
   expect(reg.contexts).toHaveLength(1)
-  expect(reg.skills).toHaveLength(2)   // 1 skill + 1 role（fixture 规模；真实 assets 是 40+19）
+  expect(reg.skills).toHaveLength(1)   // A2 契约：角色卡退出模型目录，仅技能注册（fixture 规模；真实 assets 是 49 技能+33 角色卡不注册）
   expect(reg.commands).toHaveLength(3)
   expect(reg.tools).toHaveLength(4)
   // §7-2 核验：dsh-system-prompt 的 section/context 均强制有限 order；text 必须同步求值

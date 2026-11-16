@@ -1,6 +1,6 @@
 ---
 name: external-context
-description: Spawn parallel document-specialist subagents for external web searches and documentation lookup
+description: Use when external docs or web lookups are needed in parallel — spawns document-specialist subagents.
 when-to-use: A question needs external documentation, references, or context from the web — best practices, library comparisons, latest framework patterns. Explicit invocation only; not for repo-local questions (use research).
 ---
 

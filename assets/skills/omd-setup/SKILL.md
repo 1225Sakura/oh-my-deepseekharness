@@ -1,6 +1,6 @@
 ---
 name: omd-setup
-description: Install and configure oh-my-dsh — dsh plugin add (npm or local path), Config keys explained, verify with /omd-doctor, update and uninstall flows
+description: Use when installing or configuring oh-my-dsh — dsh plugin add, Config keys, /omd-doctor verification, update and uninstall flows.
 when-to-use: The user asks to install, configure, update, repair, or uninstall oh-my-dsh ("setup omd", "install omd", "configure omd", "omd update"). Also the landing skill when omd is freshly added to a profile and the user asks what to do next.
 ---
 

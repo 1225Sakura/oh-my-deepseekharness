@@ -1,6 +1,6 @@
 ---
 name: skill
-description: Manage local dsh skills — list, add, remove, edit, search, info, sync, setup wizard
+description: Use when managing local dsh skills — list, add, remove, edit, search, info, sync, setup wizard.
 when-to-use: The user wants to manage skills — list what is installed, create a new skill, edit or remove an existing one, search the skill library, or sync skills between user and project scope. Explicit invocation only.
 ---
 

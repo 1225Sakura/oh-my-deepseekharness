@@ -1,6 +1,6 @@
 ---
 name: harbor
-description: Harbor intake for external work — the captain only handles unresolved decisions. Sweeps incoming issues and PRs, verifies every claim before disposition, reuses every decision already made, and hands the maintainer a docket whose pending items each carry one question with options, recommendation, impact and evidence. Agent-autonomous for facts and for actions covered by standing authorization; signed for every new judgment. Never merges.
+description: Use when sweeping external issues and PRs — verify every claim before disposition, reuse made decisions, hand maintainers one-question decision tickets; never merge.
 when-to-use: A repo receives external issues/bug reports/PRs and the maintainer is drowning in triage; you want an evidence-first intake that only escalates genuinely unresolved judgments. Requires a reachable GitHub remote (V1) and the gh CLI. Not the debugger, not the review surface, never a merger.
 ---
 

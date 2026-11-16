@@ -1,6 +1,6 @@
 ---
 name: wiki
-description: LLM Wiki — persistent markdown knowledge base under .omd/wiki that compounds across sessions (Karpathy model), maintained with plain file tools
+description: Use when building the persistent .omd/wiki knowledge base — markdown that compounds across sessions, maintained with plain file tools.
 when-to-use: The user wants to store, query, or groom durable project/session knowledge ("wiki this", "wiki add", "wiki query", "wiki lint"), or significant discoveries should be captured as wiki pages instead of being lost at session end.
 ---
 

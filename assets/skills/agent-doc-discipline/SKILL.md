@@ -1,6 +1,6 @@
 ---
 name: agent-doc-discipline
-description: Writing-time discipline for documents agents consume (agent-facing docs, specs, tickets, .dsh/skills/) — every rule checkable and carrying a why, steps before reference, one meaning in one home, no restating what the environment already says
+description: Use when writing or editing agent-facing docs, specs, tickets, or .dsh/skills files — every rule checkable with a why, steps before references, one home per meaning.
 when-to-use: Creating or editing any document an agent reads to act — AGENTS.md / CLAUDE.md, specs, plans, tickets, skill files under `.dsh/skills/`. The companion of minimal-code-discipline: that one disciplines code, this one disciplines papers.
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: skillify
-description: Turn a repeatable workflow from the current session into a reusable dsh skill draft
+description: Use when a repeatable workflow from this session should become a reusable dsh skill draft.
 when-to-use: The current session uncovered a repeatable, hard-won workflow that should become a reusable skill — after a tricky debugging session, a codebase-specific workaround, or a multi-step process worth capturing. Not for generic snippets or library usage examples.
 ---
 

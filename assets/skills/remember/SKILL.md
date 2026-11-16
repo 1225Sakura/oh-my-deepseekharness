@@ -1,6 +1,6 @@
 ---
 name: remember
-description: Review reusable project knowledge and decide what belongs in project memory, notepad, or durable docs
+description: Use when reusable session knowledge should be captured — route it to project memory, notepad, or durable docs.
 when-to-use: The user wants to preserve or organize useful knowledge discovered during a session — promoting durable facts, operator preferences, or hard-won findings into the right memory surface. Not for transient task state.
 ---
 

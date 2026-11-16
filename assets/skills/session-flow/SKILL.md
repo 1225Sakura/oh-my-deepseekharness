@@ -1,6 +1,6 @@
 ---
 name: session-flow
-description: "Reorient in the current session with an evidence-backed map of its goal, pivots, outcomes, current step, and open decisions. Advisory summary — never a planner or executor."
+description: Use when reorienting the current session with an evidence-backed map — goal, pivots, outputs, current step, open decisions; advisory summary only.
 when-to-use: 会话切换/压缩后需要快速重定向时；产出证据回路的会话地图（short 模式只报目标/当前步/待决），reset 模式清理由本 skill 持有的记录。
 ---
 

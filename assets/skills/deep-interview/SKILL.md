@@ -1,6 +1,6 @@
 ---
 name: deep-interview
-description: Socratic deep interview with mathematical ambiguity gating before explicit execution approval
+description: Use when requirements are too vague to start — Socratic deep interview with ambiguity gating until the user explicitly approves execution.
 when-to-use: User has a vague idea and wants thorough requirements gathering before execution ("deep interview", "interview me", "don't assume", "not sure exactly what I want"). Not for detailed requests with file paths / acceptance criteria (execute directly), quick fixes, or when the user already has a PRD or plan.
 ---
 
@@ -228,49 +228,8 @@ After the spec is written, mark it `pending approval` and present options via `a
 
 ### The 3-stage approval-gated pipeline
 
-```
-Stage 1: deep-interview   →  Stage 2: ralplan consensus   →  Stage 3: separate approval
-Socratic Q&A + scoring       Planner → Architect → Critic     User explicitly chooses
-Gate: clarity                Gate: feasibility               Gate: consent — no auto-handoff
-Output: spec                 Output: consensus plan           Output: pending approval
-```
+Full walkthrough (stage diagram, gate semantics, ralplan/autopilot handoff wiring): load `references/approval-pipeline.md` on demand — only when wiring the handoff or auditing gate semantics.
 
-Each stage gates a different quality axis. Skipping Stage 3 is by design: a refined plan without execution is a valid outcome.
-
-</Steps>
-
-<Tool_Usage>
-- `ask_user_question` for every interview question — clickable UI with contextual options.
-- `omd-agent-explore` via `subagent` for brownfield exploration — run BEFORE asking the user about the codebase; cite the evidence it returns.
-- High tier model for ambiguity scoring — consistency is critical.
-- `mcp__omd-state__state_write` / `state_read` for interview state; include `threshold` + `threshold_source` in every payload.
-- `write` tool for the final spec at `.omd/specs/deep-interview-<slug>.md` exactly.
-- Challenge modes are prompt injections, not separate subagent spawns.
-- Bridge to execution modes via the `skill` tool only after explicit execution approval.
-</Tool_Usage>
-
-<Escalation_And_Stop_Conditions>
-- **Hard cap 20 rounds**; soft warning at 10; early exit allowed from round 3 with a warning when ambiguity > threshold.
-- **User says "stop"/"cancel"/"abort"**: stop immediately, keep state for resume.
-- **Ambiguity stalls** (±0.05 for 3 rounds): activate Ontologist mode to reframe.
-- **All dimensions ≥ 0.9**: skip to spec generation.
-- **Codebase exploration fails**: proceed as greenfield, note the limitation.
-</Escalation_And_Stop_Conditions>
-
-<Final_Checklist>
-- [ ] Phase 0 completed first; the first user-visible line was the threshold marker with its source
-- [ ] State and spec metadata both record `threshold` and `threshold_source`
-- [ ] Oversized initial context summarized before scoring/question/spec/handoff
-- [ ] Round 0 topology gate completed before scoring; `topology.confirmed_at` persisted
-- [ ] Ambiguity displayed after every round; weakest component/dimension named each round
-- [ ] Multi-component interviews rotated targeting across active components
-- [ ] Challenge modes fired at rounds 4 / 6 / 8, each once
-- [ ] Spec written to `.omd/specs/deep-interview-<slug>.md`; includes Topology, Goal, Constraints, Acceptance Criteria, Clarity Breakdown, Ontology + Convergence, Transcript
-- [ ] Execution bridge presented via `ask_user_question`; chosen mode invoked via `skill` only after explicit approval — never direct implementation
-- [ ] State cleaned up after execution handoff
-</Final_Checklist>
-
-<Advanced>
 ## Resume
 
 If interrupted, invoke deep-interview again: read `.omd/state/sessions/{sessionId}/deep-interview-state.json` (via `state_read` or plain file tools) and resume from the last completed round. State older than 2h is stale — report and confirm before resuming.

@@ -1,6 +1,6 @@
 ---
 name: autopilot
-description: Autonomous end-to-end pipeline from a brief idea to verified working code, driven by the native dsh goal mechanism
+description: Use when the user says autopilot or full auto, or wants an idea turned autonomously into verified working code end to end.
 when-to-use: User wants hands-off end-to-end execution from an idea to working code ("autopilot", "full auto", "build me …"); the task spans planning, implementation, QA and validation. Not for quick fixes, brainstorming, or single focused changes.
 ---
 

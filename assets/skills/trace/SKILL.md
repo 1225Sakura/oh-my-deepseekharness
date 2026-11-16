@@ -1,6 +1,6 @@
 ---
 name: trace
-description: Evidence-driven tracing lane that orchestrates competing tracer hypotheses as parallel subagents
+description: Use when competing hypotheses need evidence-driven tracing — orchestrates parallel tracer subagents.
 when-to-use: Ambiguous, causal, evidence-heavy "why did this happen" questions — runtime bugs/regressions, performance behavior, postmortems, config/orchestration mysteries — where competing explanations should be explored in parallel before any fix is attempted.
 ---
 

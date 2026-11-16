@@ -1,6 +1,6 @@
 ---
 name: minimal-code-discipline
-description: YAGNI-ladder coding discipline for writing changes — existence-first, reuse before writing, dependency ladder, shortest correct diff, with non-negotiables that must never be minimized away
+description: Use when writing code changes — YAGNI ladder: existence-first, reuse over rewrite, dependency ladder, shortest correct diff; bottom-line items are never minimized away.
 when-to-use: The user asks for a minimal, lean, YAGNI, or smallest-possible-diff implementation; a plan or in-flight change is growing beyond the stated request; writing new code where scope creep, reinvented helpers, or speculative generality are likely; sizing a proposed diff before implementation.
 ---
 

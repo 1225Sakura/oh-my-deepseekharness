@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Verify that a change really works before you claim completion
+description: Use before claiming completion — prove the change actually works.
 when-to-use: The user wants confidence that a feature, fix, or refactor actually works — before claiming completion, before a commit, or as the independent verification pass after implementation (omd-agent-verifier lane). Not for authoring changes.
 ---
 

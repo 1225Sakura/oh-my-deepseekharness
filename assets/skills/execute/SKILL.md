@@ -1,6 +1,6 @@
 ---
 name: execute
-description: Carry an approved task through to working, verified code
+description: Use when an approved task must land as working, verified code.
 when-to-use: The work is understood and the job is to build it — an approved plan or spec exists and needs implementing with verification evidence. Not for vague ideas (plan or deep-interview first) or pure evaluation of existing work (review/verify).
 ---
 

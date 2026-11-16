@@ -1,6 +1,6 @@
 ---
 name: ralph
-description: PRD-driven fresh-agent persistence loop — iterates until every story passes with command evidence and an independent verifier signs off
+description: Use when the user says ralph — PRD-driven fresh-agent loop iterating until every story passes with command evidence and an independent verifier signs off.
 when-to-use: A task requires guaranteed, evidence-backed completion across multiple rounds. Explicit invocation only ("ralph: <task>", "run ralph on …"); only the direct human can start it, in the main session. Not for one-shot fixes or autonomous idea-to-code pipelines (use autopilot).
 ---
 

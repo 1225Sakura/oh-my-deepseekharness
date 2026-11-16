@@ -1,6 +1,6 @@
 ---
 name: refit
-description: "Cross-session environment retrospective driven by omd instrumentation - trace timelines, events.jsonl, hb.log, notepads. Every finding lands on the surface that owns the fix (deterministic check, steering volume, tooling, or information access); nothing lands without user approval."
+description: Use when reviewing the cross-session environment from omd instrumentation (trace timeline, events.jsonl, hb.log, notepad) — findings land on owning surfaces; user approval required.
 when-to-use: 回顾数个会话/运行累积的环境摩擦（不是代码评审、不是单次 run 复盘）；把仪表面记录的摩擦转成环境修复，逐条经用户批准落地。
 ---
 

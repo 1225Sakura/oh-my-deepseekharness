@@ -1,6 +1,6 @@
 ---
 name: map
-description: The skill map — which skill owns which job, in delivery-loop order. Use when something needs doing but not which of the shipped skills owns it; the map routes, it never executes.
+description: Use when the job is known but the owning skill is not — routes by delivery-loop order; routes only, never executes.
 when-to-use: The user knows what kind of work is needed but not which skill owns it; or asks "which skill should I use for X". The map only routes across shipped skills — it never executes them.
 ---
 
