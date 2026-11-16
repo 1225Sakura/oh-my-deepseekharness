@@ -59,7 +59,7 @@ Self-improve 产物落在 `scripts/resolve-paths.mjs`（本技能目录内）解
     └── progress.png           # 生成的图表
 ```
 
-omd 模式生命周期：`self-improve` 的模式状态存在 omd 状态库（per-session），经 `mcp__omd-state__state_*` MCP 工具读写——见文末「状态契约」。
+omd 模式生命周期：`self-improve` 的模式状态存在 omd 状态库（per-session），经 `omd_state_*` MCP 工具读写——见文末「状态契约」。
 
 ---
 
@@ -129,7 +129,7 @@ omd 模式生命周期：`self-improve` 的模式状态存在 omd 状态库（pe
 
 **Gate**：所有设置项必须为 true。gate 通过后不停顿地连续执行。
 
-更新 `state_write(mode="self-improve", state: { active: true, status: "running" })`。
+更新 `omd_state_write(mode="self-improve", state: { active: true, status: "running" })`。
 
 ### Step 0 —— 清理 stale worktree（强制，每轮都跑）
 
@@ -142,11 +142,11 @@ omd 模式生命周期：`self-improve` 的模式状态存在 omd 状态库（pe
 
 ### Step 1 —— 刷新状态
 
-每个迭代边界执行 `state_write(mode="self-improve", state: { active: true, iteration: N })`，让模式快照反映进度。（omd 状态超过 2 小时未动即 stale——stale 状态下次读取时只报告，绝不自动续跑。）
+每个迭代边界执行 `omd_state_write(mode="self-improve", state: { active: true, iteration: N })`，让模式快照反映进度。（omd 状态超过 2 小时未动即 stale——stale 状态下次读取时只报告，绝不自动续跑。）
 
 ### Step 2 —— 检查停止请求
 
-经 `state_read(mode="self-improve")` 读状态。
+经 `omd_state_read(mode="self-improve")` 读状态。
 
 若状态已清除（cancel 被调用）或 status 为 `user_stopped`：
   a. 在 `<self-improve-root>/state/agent-settings.json` 置 `status: "user_stopped"`
@@ -316,7 +316,7 @@ git -C {repo_path} worktree prune
    Best Score: {best_score} (baseline: {baseline})
    Improvement: {delta} ({delta_pct}%)
    ```
-5. 运行 omd 的 `cancel` 技能（对 `self-improve` 做 `state_clear`）完成状态清理
+5. 运行 omd 的 `cancel` 技能（对 `self-improve` 做 `omd_state_clear`）完成状态清理
 
 ---
 
@@ -361,10 +361,10 @@ git -C {repo_path} worktree prune
 
 ## 状态契约
 
-**调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；模式字段嵌套在 `state` 键下。
+**调用形状约定**：`cwd`/`sessionId` 已从当前会话自动派生——无需传（仅多仓/worktree 锚显式传 `cwd`）；模式字段嵌套在 `state` 键下。
 
-- **开始**：`mcp__omd-state__state_write({ cwd, sessionId, mode: "self-improve", state: { active: true, started_at: <ISO 8601>, current_phase: "setup", iteration: 0, prompt_echo: <压缩 ≤1200 字符> } })`。
-- **阶段/迭代转换**：每个迭代边界用 `state_write` 更新 `state.current_phase`（`setup|running|complete|failed`）与 `state.iteration`。
-- **完成/取消**：`mcp__omd-state__state_clear({ cwd, sessionId, mode: "self-improve" })`。`<self-improve-root>/` 下的一切（config、state、plans、tracking）**保留**，供审计与恢复。
+- **开始**：`omd_state_write({ mode: "self-improve", state: { active: true, started_at: <ISO 8601>, current_phase: "setup", iteration: 0, prompt_echo: <压缩 ≤1200 字符> } })`。
+- **阶段/迭代转换**：每个迭代边界用 `omd_state_write` 更新 `state.current_phase`（`setup|running|complete|failed`）与 `state.iteration`。
+- **完成/取消**：`omd_state_clear({ mode: "self-improve" })`。`<self-improve-root>/` 下的一切（config、state、plans、tracking）**保留**，供审计与恢复。
 - **异常退出**：模式状态与产物树留在盘上；状态超过 2 小时未动即 stale——只报告，绝不仅凭 stale 自动续跑（文件级恢复走上文「可恢复性」）。
 - **MCP server 挂了**：用普通文件工具对 `.omd/state/sessions/{sessionId}/self-improve-state.json` 做同样的模式状态读写，并显式说明。

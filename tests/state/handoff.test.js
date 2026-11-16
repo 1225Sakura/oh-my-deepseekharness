@@ -1,9 +1,9 @@
-// tests/mcp-server/handoff.test.js
+// tests/state/handoff.test.js
 import { test, expect } from 'vitest'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { makeHandoffTools } from '../../mcp-server/tools/handoff.mjs'
+import { makeHandoffTools } from '../../lib/state/tools/handoff.mjs'
 
 const sections = { decided: '用方案 A', rejected: '方案 B：太重', risks: '无', files: 'a.js', remaining: '无' }
 

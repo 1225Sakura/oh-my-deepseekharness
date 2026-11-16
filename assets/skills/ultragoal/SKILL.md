@@ -51,7 +51,7 @@ Append events to `.omd/ultragoal/plans/<planId>/ledger.md` — append-only, one 
 
 ### 3. Checkpoint
 
-When a story completes with evidence, tick it in `plan.md` and append the checkpoint event. Evidence is mandatory — no evidence, no tick (same contract as `prd_check`).
+When a story completes with evidence, tick it in `plan.md` and append the checkpoint event. Evidence is mandatory — no evidence, no tick (same contract as `omd_prd_check`).
 
 ### 4. Final quality gate (before completing the initiative)
 
@@ -80,4 +80,4 @@ Two concurrent ultragoal runs in one workspace must not share a plan directory. 
 
 ## State Contract (状态契约)
 
-ultragoal **does not hold omd mode state** (no `state_write`/`state_clear` — it is not an execution mode; the omd keyword router does not activate it). Its persistence lives in two places: the dsh goal (session-scoped, managed via `create_goal`/`get_goal`/`update_goal` — always `get_goal` before `update_goal` to copy the exact id/revision) and the durable repo artifacts `.omd/ultragoal/plans/<planId>/{plan.md,ledger.md}`.
+ultragoal **does not hold omd mode state** (no `omd_state_write`/`omd_state_clear` — it is not an execution mode; the omd keyword router does not activate it). Its persistence lives in two places: the dsh goal (session-scoped, managed via `create_goal`/`get_goal`/`update_goal` — always `get_goal` before `update_goal` to copy the exact id/revision) and the durable repo artifacts `.omd/ultragoal/plans/<planId>/{plan.md,ledger.md}`.

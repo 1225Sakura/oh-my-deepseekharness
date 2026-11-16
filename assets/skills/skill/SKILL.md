@@ -454,4 +454,4 @@ Good skills are:
 
 ## State Contract (状态契约)
 
-Skill **holds no mode state**. It performs no `state_write`/`state_clear`; its only side effects are the skill files it creates, edits, moves, or deletes under the user/project scan roots. When invoked inside an enclosing mode, that mode's state contract governs mode persistence.
+Skill **holds no mode state**. It performs no `omd_state_write`/`omd_state_clear`; its only side effects are the skill files it creates, edits, moves, or deletes under the user/project scan roots. When invoked inside an enclosing mode, that mode's state contract governs mode persistence.

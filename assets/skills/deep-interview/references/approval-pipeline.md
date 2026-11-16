@@ -20,7 +20,7 @@ Each stage gates a different quality axis. Skipping Stage 3 is by design: a refi
 - `ask_user_question` for every interview question — clickable UI with contextual options.
 - `omd-agent-explore` via `subagent` for brownfield exploration — run BEFORE asking the user about the codebase; cite the evidence it returns.
 - High tier model for ambiguity scoring — consistency is critical.
-- `mcp__omd-state__state_write` / `state_read` for interview state; include `threshold` + `threshold_source` in every payload.
+- `omd_state_write` / `omd_state_read` for interview state; include `threshold` + `threshold_source` in every payload.
 - `write` tool for the final spec at `.omd/specs/deep-interview-<slug>.md` exactly.
 - Challenge modes are prompt injections, not separate subagent spawns.
 - Bridge to execution modes via the `skill` tool only after explicit execution approval.

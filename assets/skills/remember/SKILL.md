@@ -15,8 +15,8 @@ Promote durable, reusable knowledge into the right memory surface instead of lea
 ## Memory surfaces (omd mapping)
 
 - **Project memory** — durable team/project knowledge. Write with the in-plugin tool `omd_memory_set({ projectPath, key, value })`, read with `omd_memory_get`, remove with `omd_memory_delete` (profile-level storage, isolated per project path — this replaces OMC's `project_memory_*` MCP tools and `.omc/project-memory.json`; see the spec divergence table).
-- **Notepad priority** — short high-signal context meant to survive indefinitely. Write with `mcp__omd-state__notepad_write_priority({ cwd, text })`.
-- **Notepad working** — temporary active-session notes (7-day TTL). Write with `mcp__omd-state__notepad_write_working({ cwd, text })`.
+- **Notepad priority** — short high-signal context meant to survive indefinitely. Write with `omd_notepad_write_priority({ cwd, text })`.
+- **Notepad working** — temporary active-session notes (7-day TTL). Write with `omd_notepad_write_working({ cwd, text })`.
 - **Docs / AGENTS files** — durable instructions and conventions that truly belong in the repo (`AGENTS.md`, `CLAUDE.md`, `docs/`) — edit them directly only when the knowledge is repo doctrine.
 
 Note: OMC captured `<remember>x</remember>` tags from model output via a hook. dsh has no equivalent hook surface, so omd makes capture an **explicit tool call** — there is no tag syntax; call the notepad tool directly (spec divergence table).
@@ -49,4 +49,4 @@ Note: OMC captured `<remember>x</remember>` tags from model output via a hook. d
 
 ## State Contract (状态契约)
 
-Remember **holds no mode state**. It performs no `state_write`/`state_clear`; its only persistence is the memory surfaces above — notepad entries under `.omd/notepad.md` (via the MCP tools) and project memory in profile-level storage (via `omd_memory_*`). When running inside an enclosing mode, that mode's state contract governs mode persistence.
+Remember **holds no mode state**. It performs no `omd_state_write`/`omd_state_clear`; its only persistence is the memory surfaces above — notepad entries under `.omd/notepad.md` (via the MCP tools) and project memory in profile-level storage (via `omd_memory_*`). When running inside an enclosing mode, that mode's state contract governs mode persistence.

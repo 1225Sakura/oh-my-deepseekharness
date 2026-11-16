@@ -14,7 +14,7 @@ import {
   suggestTier, clampTier, buildRoutingTable, routeOnce, recordFallback,
 } from '../../lib/routing.js'
 import { buildMirrorPatch, writeRunStateMirror } from '../../lib/runstate.js'
-import { atomicWriteJson } from '../../mcp-server/lib/atomic.mjs'
+import { atomicWriteJson } from '../../lib/state/lib/atomic.mjs'
 
 const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../assets')
 

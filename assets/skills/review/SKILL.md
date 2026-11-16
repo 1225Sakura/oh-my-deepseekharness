@@ -44,7 +44,7 @@ Find what is actually wrong, ranked by severity, with enough detail to act on.
 
 ## State Contract (状态契约)
 
-Review **holds no mode state**. When it runs as a gate inside an enclosing mode (autopilot dual review gate, ralph verifier pass, team-verify), the enclosing mode records the verdict in its own state; review itself creates no files under `.omd/` and performs no `state_write`/`state_clear`.
+Review **holds no mode state**. When it runs as a gate inside an enclosing mode (autopilot dual review gate, ralph verifier pass, team-verify), the enclosing mode records the verdict in its own state; review itself creates no files under `.omd/` and performs no `omd_state_write`/`omd_state_clear`.
 
 ## Merge-readiness mode (opt-in dual-lane gate)
 
@@ -56,6 +56,6 @@ When explicitly used as a merge gate ("merge-ready review", "pre-release dual-la
 4. **Synthesis matrix**: architect=BLOCK → REQUEST CHANGES; else reviewer=REQUEST CHANGES → REQUEST CHANGES; else architect=WATCH → COMMENT; else follow the reviewer's verdict.
 5. **Finding discipline**: every finding names `file:line` + the issue + risk + a concrete fix; facts separated from suggestions.
 6. **Report contract**: the final report presents both lanes' original verdicts side by side with the synthesized verdict; architect BLOCK items go first and must not be buried; an unavailable state is reported as "independent review unavailable", never recorded as APPROVE or merge-ready.
-7. Boundary: the default advisory posture and all other gates are unchanged — other explicit gates (the autopilot dual-review gate, ralph's independent review layer, team-verify escalation) remain defined by their own modes; this mode serves independently invoked merge gates. It holds no mode state and never calls `state_write`/`state_clear`.
+7. Boundary: the default advisory posture and all other gates are unchanged — other explicit gates (the autopilot dual-review gate, ralph's independent review layer, team-verify escalation) remain defined by their own modes; this mode serves independently invoked merge gates. It holds no mode state and never calls `omd_state_write`/`omd_state_clear`.
 
 (Adapted from the OMX code-review card — gate matrix, fail-closed unavailable state, and dual-lane discipline are ported verbatim; OMX-specific surfaces (`omx state write` CLI, hook-owned `skill-active-state.json`, and the Autopilot `handoff_artifacts.code_review`→`ultraqa` flow) are intentionally not carried: verdicts and follow-up flow belong to the invoking outer mode's own state. Upstream: reference/oh-my-codex/skills/code-review. This section must be written identically (translated) into both SKILL.zh.md and SKILL.md.)

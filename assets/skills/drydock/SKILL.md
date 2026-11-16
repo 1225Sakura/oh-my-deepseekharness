@@ -40,7 +40,7 @@ Inventory what exists before writing anything (use `glob`/`read`, not shell gues
 
 - `CLAUDE.md` present? `AGENTS.md` present? (rule: if either exists, extend it in place; create the missing one as a one-line pointer to the other; **never create both fresh**)
 - `GLOSSARY.md`, `docs/adr/`, `docs/standards/`, `docs/business/`, `design-system/`, `.dsh/skills/`, `scripts/`, `.gitattributes` — which exist, which are missing?
-- omd plugin installed? — only worth checking when running inside an omd-equipped session (look for the omd protocol section and `mcp__omd-state__*` tools); outside one, skip this check silently (the harness works with or without omd)
+- omd plugin installed? — only worth checking when running inside an omd-equipped session (look for the omd protocol section and the 58 built-in `omd_state_*` tools); outside one, skip this check silently (the harness works with or without omd)
 
 Report the map first, then act.
 
@@ -321,7 +321,7 @@ Tell the user, and rely on these flows to fill the skeleton:
 - **launch** writes GLOSSARY.md vocabulary, ADRs, and docs/business/ as decisions settle (paper trail)
 - **launch C5 sediment / review** sediment recurring corrections into docs/standards/ and CLAUDE.md principles
 - **anyone** can add a project skill to .dsh/skills/ — the barrier is the quality gate, not permission
-- **omd notepad** (`mcp__omd-state__notepad_write_priority` / `notepad_write_working`) compounds session knowledge; promote anything referenced twice into docs/business/
+- **omd notepad** (`omd_notepad_write_priority` / `omd_notepad_write_working`) compounds session knowledge; promote anything referenced twice into docs/business/
 
 The rule that keeps 先动手 aligned: **starting needs no permission; landing goes into a shipyard slot.** A change that cannot say which slot it lands in (or explicitly none) is the smell.
 
@@ -338,4 +338,4 @@ Diff actual repo state against the shipyard map; report: missing surfaces, a mis
 
 ## State Contract (状态契约)
 
-drydock **holds no mode state**: no `state_write`/`state_clear`. Its deliverables are user-owned repo files (CLAUDE.md, GLOSSARY.md, docs/, design-system/, .dsh/skills/ seeds) — it never touches `.omd/`; no runtime state is created. `--check` mode is strictly read-only. On interruption, re-run: detection is idempotent and never clobbers existing files.
+drydock **holds no mode state**: no `omd_state_write`/`omd_state_clear`. Its deliverables are user-owned repo files (CLAUDE.md, GLOSSARY.md, docs/, design-system/, .dsh/skills/ seeds) — it never touches `.omd/`; no runtime state is created. `--check` mode is strictly read-only. On interruption, re-run: detection is idempotent and never clobbers existing files.

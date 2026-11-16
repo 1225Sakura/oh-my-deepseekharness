@@ -29,7 +29,7 @@ description: Reference detail for the self-improve setup phase — load only whe
     git -C {repo_path} checkout {target_branch}
     ```
     Where `{goal_slug}` is derived from the goal objective (lowercase, underscored). If the branch already exists, skip creation. Persist `goal_slug` in agent-settings.json.
-12. **Mode exclusivity**: Call `mcp__omd-state__state_list_active({ cwd })`. If any omd mode is active (autopilot, ralph, team, ralplan, deep-interview), refuse to start — omd modes are mutually exclusive.
-13. Write initial state per the State Contract: `state_write` with `mode: "self-improve"`, `active: true`, `iteration: 0`, `started_at`.
+12. **Mode exclusivity**: Call `omd_state_list_active({ cwd })`. If any omd mode is active (autopilot, ralph, team, ralplan, deep-interview), refuse to start — omd modes are mutually exclusive.
+13. Write initial state per the State Contract: `omd_state_write` with `mode: "self-improve"`, `active: true`, `iteration: 0`, `started_at`.
 
 ---

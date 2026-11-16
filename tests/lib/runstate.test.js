@@ -13,7 +13,7 @@ import {
   RUN_STATE_FIELDS, assertSevenFields, buildTodoSummary, buildMirrorPatch, writeRunStateMirror,
 } from '../../lib/runstate.js'
 import { beginTeamRun, runStatePath, casWriteRunState } from '../../lib/worktree.js'
-import { atomicWriteJson, readJson } from '../../mcp-server/lib/atomic.mjs'
+import { atomicWriteJson, readJson } from '../../lib/state/lib/atomic.mjs'
 
 /** 轻量夹具：直接播种 beginTeamRun 同形 run-state（v1 active），免 git 开销。 */
 async function makeSeeded() {

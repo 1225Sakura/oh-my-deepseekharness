@@ -161,4 +161,4 @@ docket 是**一个常驻 issue，原地刷新**——绝不每轮扫荡开新 is
 
 ## 状态契约
 
-harbor **不持模式状态**：无 `state_write`/`state_clear`，`.omd/` 下不写任何东西。tracker（评论、label、那个常驻 docket issue）是唯一记录源、也是唯一续跑面——下一轮扫荡重读 tracker 状态而非任何本地缓存。中断即停；后续调用重新绑定 tracker（第 0 步）并重读每艘船的最新状态。
+harbor **不持模式状态**：无 `omd_state_write`/`omd_state_clear`，`.omd/` 下不写任何东西。tracker（评论、label、那个常驻 docket issue）是唯一记录源、也是唯一续跑面——下一轮扫荡重读 tracker 状态而非任何本地缓存。中断即停；后续调用重新绑定 tracker（第 0 步）并重读每艘船的最新状态。

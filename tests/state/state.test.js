@@ -2,7 +2,7 @@ import { test, expect } from 'vitest'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { makeStateTools } from '../../mcp-server/tools/state.mjs'
+import { makeStateTools } from '../../lib/state/tools/state.mjs'
 
 async function tools() {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-'))

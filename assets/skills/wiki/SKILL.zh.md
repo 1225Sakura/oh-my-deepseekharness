@@ -74,4 +74,4 @@ dsh 没有 session-start / session-end hook，wiki 的「自动挂载、自动�
 
 ## 状态契约
 
-wiki **不持 omd 模式状态**：无 `state_write`/`state_clear`。它的全部状态就是它维护的 `.omd/wiki/` 内容。短生命周期的随手记请用 notepad MCP 工具（`mcp__omd-state__notepad_*`）；wiki 只装要复利沉淀的知识。
+wiki **不持 omd 模式状态**：无 `omd_state_write`/`omd_state_clear`。它的全部状态就是它维护的 `.omd/wiki/` 内容。短生命周期的随手记请用 notepad MCP 工具（`omd_notepad_*`）；wiki 只装要复利沉淀的知识。

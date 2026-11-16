@@ -10,8 +10,8 @@ Refit 盘点 agent 工作所处的环境——不是它产出的代码（那归 
 
 从仪表出发，而不是从清单出发。提问之前先读：
 
-- `trace_summary` / `trace_list`（MCP）——回合在哪里 stalls、重复、无谓扇出
-- `events_read`（MCP）——派发审计轨迹（route/fallback 1:1）
+- `omd_trace_summary` / `omd_trace_list`（MCP）——回合在哪里 stalls、重复、无谓扇出
+- `omd_events_read`（MCP）——派发审计轨迹（route/fallback 1:1）
 - `.omd/hb.log` 与 `.omd/state/` 下会话状态——stale 队员、被吞掉的失败
 - notepad（工作区）——近期会话累积的问题
 - 仓库自有检查面（`package.json` scripts、CI workflow）——提议任何新检查前先读，因为「已存在但没接线/静默失效的检查」本身就是发现，而不是重发明

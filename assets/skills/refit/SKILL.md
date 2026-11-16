@@ -10,8 +10,8 @@ Refit surveys the environment the agent worked in - not the code it produced (re
 
 Start from the instruments, not a checklist. Read before asking the user anything:
 
-- `trace_summary` / `trace_list` (MCP) - where turns stalled, repeated, or fanned out wastefully
-- `events_read` (MCP) - the dispatch audit trail (route/fallback 1:1)
+- `omd_trace_summary` / `omd_trace_list` (MCP) - where turns stalled, repeated, or fanned out wastefully
+- `omd_events_read` (MCP) - the dispatch audit trail (route/fallback 1:1)
 - `.omd/hb.log` and session state under `.omd/state/` - stale workers, swallowed failures
 - notepad (working zone) - problems that accumulated across recent sessions
 - the repo's own check surface (`package.json` scripts, CI workflows) - read before proposing any new check, because a check that exists but sits unwired or silently broken is the finding, not a reinvention

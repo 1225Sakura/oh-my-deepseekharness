@@ -43,4 +43,4 @@ when-to-use: 创建或编辑任何 agent 要读来行动的文档——AGENTS.md
 
 ## 状态契约
 
-agent-doc-discipline **不持模式状态**。它是写作期纪律：不做 `state_write`/`state_clear`，不在 `.omd/` 下创建文件。它的交付物就是被编辑的文档本身。
+agent-doc-discipline **不持模式状态**。它是写作期纪律：不做 `omd_state_write`/`omd_state_clear`，不在 `.omd/` 下创建文件。它的交付物就是被编辑的文档本身。

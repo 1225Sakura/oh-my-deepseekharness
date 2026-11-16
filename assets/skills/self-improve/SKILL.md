@@ -59,7 +59,7 @@ Treat `<self-improve-root>/` below as that resolved root:
     └── progress.png           # Generated chart
 ```
 
-omd mode lifecycle: `self-improve` mode state lives in the omd state store (per-session), read/written via the `mcp__omd-state__state_*` MCP tools — see the State Contract at the end.
+omd mode lifecycle: `self-improve` mode state lives in the omd state store (per-session), read/written via the `omd_state_*` MCP tools — see the State Contract at the end.
 
 ---
 
@@ -129,7 +129,7 @@ All git operations happen inside the target repo, NOT in the omd plugin checkout
 
 **Gate**: All settings must be true. Once the gate passes, execute continuously without stopping.
 
-Update `state_write(mode="self-improve", state: { active: true, status: "running" })`.
+Update `omd_state_write(mode="self-improve", state: { active: true, status: "running" })`.
 
 ### Step 0 — Stale Worktree Cleanup (mandatory, runs every iteration)
 
@@ -142,11 +142,11 @@ Update `state_write(mode="self-improve", state: { active: true, status: "running
 
 ### Step 1 — Refresh State
 
-`state_write(mode="self-improve", state: { active: true, iteration: N })` at every iteration boundary so the mode snapshot reflects progress. (omd state untouched for >2h is stale — a stale state is reported on next read, never auto-resumed.)
+`omd_state_write(mode="self-improve", state: { active: true, iteration: N })` at every iteration boundary so the mode snapshot reflects progress. (omd state untouched for >2h is stale — a stale state is reported on next read, never auto-resumed.)
 
 ### Step 2 — Check Stop Request
 
-Read state via `state_read(mode="self-improve")`.
+Read state via `omd_state_read(mode="self-improve")`.
 
 If state is cleared (cancel was invoked) OR status is `user_stopped`:
   a. Set `status: "user_stopped"` in `<self-improve-root>/state/agent-settings.json`
@@ -316,7 +316,7 @@ When the loop exits:
    Best Score: {best_score} (baseline: {baseline})
    Improvement: {delta} ({delta_pct}%)
    ```
-5. Run the omd `cancel` skill (`state_clear` for `self-improve`) for clean state cleanup
+5. Run the omd `cancel` skill (`omd_state_clear` for `self-improve`) for clean state cleanup
 
 ---
 
@@ -361,10 +361,10 @@ Every plan must be tagged with exactly one:
 
 ## State Contract (状态契约)
 
-**Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; mode fields nest under the `state` key.
+**Call shape convention**: `cwd`/`sessionId` are auto-derived from the current session — do NOT pass them (only pass `cwd` for multi-repo/worktree anchors); mode fields nest under the `state` key.
 
-- **Start**: `mcp__omd-state__state_write({ cwd, sessionId, mode: "self-improve", state: { active: true, started_at: <ISO 8601>, current_phase: "setup", iteration: 0, prompt_echo: <compressed ≤1200 chars> } })`.
-- **Phase / iteration transitions**: `state_write` with updated `state.current_phase` (`setup|running|complete|failed`) and `state.iteration` at every iteration boundary.
-- **Complete / cancel**: `mcp__omd-state__state_clear({ cwd, sessionId, mode: "self-improve" })`. Everything under `<self-improve-root>/` (config, state, plans, tracking) is **kept** for audit and resume.
+- **Start**: `omd_state_write({ mode: "self-improve", state: { active: true, started_at: <ISO 8601>, current_phase: "setup", iteration: 0, prompt_echo: <compressed ≤1200 chars> } })`.
+- **Phase / iteration transitions**: `omd_state_write` with updated `state.current_phase` (`setup|running|complete|failed`) and `state.iteration` at every iteration boundary.
+- **Complete / cancel**: `omd_state_clear({ mode: "self-improve" })`. Everything under `<self-improve-root>/` (config, state, plans, tracking) is **kept** for audit and resume.
 - **Abnormal exit**: mode state and artifact tree stay on disk; a state untouched for >2h is stale — report it, never auto-resume from staleness alone (file-level resume follows Resumability above).
 - **MCP server down**: perform the same mode-state reads/writes as plain files under `.omd/state/sessions/{sessionId}/self-improve-state.json`, announced explicitly.

@@ -37,7 +37,7 @@ when-to-use: 委派有明确范围的实现、修复或重构任务前加载本�
     - 除非明确要求，不顺手重构邻近代码。
     - 测试失败时，修生产代码的根因，不搞测试专用 hack。
     - 计划文件（.omd/plans/*.md）只读，永不修改。
-    - 完成工作后，经验记录通过 mcp__omd-state__notepad_write_working 追加（不写临时笔记文件）。
+    - 完成工作后，经验记录通过 omd_notepad_write_working 追加（不写临时笔记文件）。
     - 同一问题失败 3 次后停下，在最后一条消息中带完整上下文升级，由主会话路由给更高档位角色。
   </Constraints>
 
@@ -59,7 +59,7 @@ when-to-use: 委派有明确范围的实现、修复或重构任务前加载本�
     - glob/grep/read：改动前先理解既有代码。
     - grep 正则：找结构性代码模式（函数形状、错误处理写法）。
     - todo_write：跟踪多步任务（每完成一项立即标记）。
-    - mcp__omd-state__notepad_write_working：记录值得跨会话保留的经验。
+    - omd_notepad_write_working：记录值得跨会话保留的经验。
     <External_Consultation>
       你不能 spawn 代理（leaf-guard）。当第二意见能提升质量——架构交叉验证、大上下文分析——在最后一条消息中说明，主会话会负责路由。永不因等待外部咨询而停摆。
     </External_Consultation>
@@ -69,7 +69,7 @@ when-to-use: 委派有明确范围的实现、修复或重构任务前加载本�
     - 行为强度：随任务分级匹配。
     - Trivial：跳过扩展探查，只验证改动文件。
     - Scoped：定向探查，验证改动文件 + 跑相关测试。
-    - Complex：完整探查、完整验证套件，关键决策记入 notepad_write_working。
+    - Complex：完整探查、完整验证套件，关键决策记入 omd_notepad_write_working。
     - 改动生效且验证通过即停。
     - 立即开工。不要客套确认。输出求密不求长。
   </Execution_Policy>

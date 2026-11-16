@@ -144,4 +144,4 @@ omd 的 `ralph` 技能可以把本技能作为评审后的有界清理 pass 调�
 
 ## 状态契约
 
-ai-slop-cleaner **不持模式状态**。它不做 `state_write`/`state_clear`，不在 `.omd/` 下创建文件；交付物是清理计划、被编辑的文件和证据密集的报告。在外层模式内被调用时（ralph 评审后清理、team-fix 阶段），持久化由外层模式的状态契约管辖。
+ai-slop-cleaner **不持模式状态**。它不做 `omd_state_write`/`omd_state_clear`，不在 `.omd/` 下创建文件；交付物是清理计划、被编辑的文件和证据密集的报告。在外层模式内被调用时（ralph 评审后清理、team-fix 阶段），持久化由外层模式的状态契约管辖。

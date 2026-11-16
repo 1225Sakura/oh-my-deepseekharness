@@ -58,4 +58,4 @@ when-to-use: 用户要求最小、精简、YAGNI、最小 diff 的实现；计�
 
 ## 状态契约
 
-minimal-code-discipline **不持模式状态**。它是写作期纪律，不是执行模式：不做 `state_write`/`state_clear`，不在 `.omd/` 下创建文件。在外层模式（autopilot、ralph、team）内应用时，持久化由外层模式的状态契约管辖。
+minimal-code-discipline **不持模式状态**。它是写作期纪律，不是执行模式：不做 `omd_state_write`/`omd_state_clear`，不在 `.omd/` 下创建文件。在外层模式（autopilot、ralph、team）内应用时，持久化由外层模式的状态契约管辖。

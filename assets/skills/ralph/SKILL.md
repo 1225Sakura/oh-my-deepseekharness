@@ -18,7 +18,7 @@ Ralph is a PRD-driven persistence loop built on the native dsh `ralph` tool: eac
 
 ## Step 1 — PRD setup (before calling the ralph tool)
 
-1. **Read state first**: `mcp__omd-state__state_read({ cwd, sessionId, mode: "ralph" })` and `state_list_active({ cwd })`. Refuse if another mode is active; if a stale ralph PRD exists, apply the stale protocol below.
+1. **Read state first**: `omd_state_read({ mode: "ralph" })` and `omd_state_list_active({ cwd })`. Refuse if another mode is active; if a stale ralph PRD exists, apply the stale protocol below.
 2. **Create/refine the structured PRD** (prd.json) at `.omd/prd/<topic>.json`, starting from the template `assets/templates/prd-template.json`. The PRD is structured JSON, not a markdown checklist. Each story carries:
    - `passes: boolean` — the completion claim; may only be set with evidence.
    - `acceptanceCriteria: [{ id, text, revision }]` — concrete and verifiable, each with an executable check. **Generic entries ("implementation is complete") are forbidden**: replace scaffold criteria with task-specific ones before starting the loop.
@@ -38,13 +38,13 @@ ralph(objective = "<PRD path> + completion criteria + evidence contract", maxRou
 - The objective text must instruct every round to:
   1. Read the PRD and `progress.txt`; pick the highest-priority story with `passes: false`.
   2. Implement it (delegate to `omd-agent-executor` via `subagent` when useful; independent work in parallel, in the background).
-  3. **Evidence contract**: run the story's verification command(s) and write the RAW output into the round's handoff report. Never set `passes: true` without having run the checks — a `prd_check` call without evidence is rejected by the tool.
-  4. Mark completion through `mcp__omd-state__prd_check` (structured PRD operation — prefer it over hand-editing the JSON).
+  3. **Evidence contract**: run the story's verification command(s) and write the RAW output into the round's handoff report. Never set `passes: true` without having run the checks — a `omd_prd_check` call without evidence is rejected by the tool.
+  4. Mark completion through `omd_prd_check` (structured PRD operation — prefer it over hand-editing the JSON).
   5. Append to `.omd/prd/progress.txt`: what was implemented, files changed, learnings and codebase patterns for later rounds.
 
 ## Criterion amendments
 
-When measurement proves a criterion empirically false, do NOT silently delete or weaken it. Amend through `mcp__omd-state__prd_amend`:
+When measurement proves a criterion empirically false, do NOT silently delete or weaken it. Amend through `omd_prd_amend`:
 
 - Keep the original criterion verbatim in `criterionAmendments[]`, with `kind` (`replaced` | `superseded`), `reason`, bounded `evidence`, and optional `authority` (defaults to `user`); the timestamp is recorded automatically by the tool (`at` field).
 - An amendment missing evidence/reason is invalid — the PRD **fails closed** on read. A contradictory ledger (original still active, or amended twice) likewise invalidates the PRD.
@@ -87,10 +87,10 @@ dsh has no session-end hook. Before completion cleanup, run one explicit distill
 
 ## State Contract (状态契约)
 
-**Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; mode fields nest under the `state` key.
+**Call shape convention**: `cwd`/`sessionId` are auto-derived from the current session — do NOT pass them (only pass `cwd` for multi-repo/worktree anchors); mode fields nest under the `state` key.
 
-- **Start**: `state_write({ cwd, sessionId, mode: "ralph", state: { active: true, started_at: <ISO 8601>, current_phase: "execution", prompt_echo: <compressed ≤1200 chars>, max_rounds: <cap>, prd_path: ".omd/prd/<topic>.json" } })`. State file: `.omd/state/sessions/{sessionId}/ralph-state.json`.
+- **Start**: `omd_state_write({ mode: "ralph", state: { active: true, started_at: <ISO 8601>, current_phase: "execution", prompt_echo: <compressed ≤1200 chars>, max_rounds: <cap>, prd_path: ".omd/prd/<topic>.json" } })`. State file: `.omd/state/sessions/{sessionId}/ralph-state.json`.
 - **Transitions**: update iteration/progress fields (inside `state`) at every round boundary and whenever the phase changes.
-- **Complete / cancel**: `state_clear({ cwd, sessionId, mode: "ralph" })`. Everything under `.omd/prd/` (PRD JSON, progress.txt, reconciliation.jsonl) is **preserved** for audit and resume.
+- **Complete / cancel**: `omd_state_clear({ mode: "ralph" })`. Everything under `.omd/prd/` (PRD JSON, progress.txt, reconciliation.jsonl) is **preserved** for audit and resume.
 - **Abnormal exit**: state and PRD stay on disk; stale (>2h) state is reported, never auto-continued.
 - **MCP server down**: same reads/writes with plain file tools against `.omd/`, announced explicitly.

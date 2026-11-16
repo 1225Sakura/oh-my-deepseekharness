@@ -104,12 +104,13 @@ test('终审修复 #1：状态契约的 MCP 伪调用是真实 schema 形状（c
   expect(text).not.toContain('{mode}-state.json')
 })
 
-test('终审修复 #2：MCP 工具引用统一带 mcp__omd-state__ 前缀', () => {
+test('一期 dsh-native：协议段工具引用统一带 omd_ 前缀（MCP 传输名已废除）', () => {
   const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
-  expect(text).toContain('mcp__omd-state__state_write')
-  expect(text).toContain('mcp__omd-state__notepad_write_priority')
-  // 不带前缀的裸引用不得出现在工具调用语境
-  expect(text).not.toMatch(/(?<!__)notepad_write_working/)
+  expect(text).toContain('omd_state_write')
+  expect(text).toContain('omd_notepad_write_priority')
+  // MCP wire 名不得残留；会话锚已自动派生，调用形状不再要求 cwd/sessionId 必填
+  expect(text).not.toContain('mcp__omd-state__')
+  expect(text).not.toContain('sessionId=当前会话 id')
 })
 
 test('终审修复 #3：协议段渲染 deep-interview 当前生效配置（模型无法读插件 Config）', () => {

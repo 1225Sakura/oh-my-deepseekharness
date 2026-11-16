@@ -161,4 +161,4 @@ A sweep ends with the docket accurate: every arrival inspected or explicitly blo
 
 ## State Contract (状态契约)
 
-harbor **holds no mode state**: no `state_write`/`state_clear`, nothing under `.omd/`. The tracker (comments, labels, the single docket issue) is the only record source and the only resume surface — the next sweep re-reads tracker state instead of any local cache. On interruption, stop; a later invocation re-binds the tracker (Step 0) and re-reads each ship's latest state.
+harbor **holds no mode state**: no `omd_state_write`/`omd_state_clear`, nothing under `.omd/`. The tracker (comments, labels, the single docket issue) is the only record source and the only resume surface — the next sweep re-reads tracker state instead of any local cache. On interruption, stop; a later invocation re-binds the tracker (Step 0) and re-reads each ship's latest state.

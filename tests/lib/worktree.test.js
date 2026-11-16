@@ -15,7 +15,7 @@ import {
   beginTeamRun, listTreeDiff, disposeRunWorktree, cancelTeamRun, scanOrphans,
   casWriteRunState, monotonicIsoNow,
 } from '../../lib/worktree.js'
-import { readJson } from '../../mcp-server/lib/atomic.mjs'
+import { readJson } from '../../lib/state/lib/atomic.mjs'
 
 /** 临时 git 夹具仓（单提交 HEAD）；g 现场执行 git 命令。 */
 async function makeFixtureRepo() {

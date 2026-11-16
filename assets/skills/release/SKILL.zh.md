@@ -104,4 +104,4 @@ release [version] [--refresh]
 
 ## 状态契约
 
-release **不持 omd 模式状态**：无 `state_write`/`state_clear`。唯一的持久产物是 `.omd/RELEASE_RULE.md` 缓存（外加经用户确认创建的发布 commit/tag）。push、publish、任何部署动作执行前一律要用户明确确认。
+release **不持 omd 模式状态**：无 `omd_state_write`/`omd_state_clear`。唯一的持久产物是 `.omd/RELEASE_RULE.md` 缓存（外加经用户确认创建的发布 commit/tag）。push、publish、任何部署动作执行前一律要用户明确确认。

@@ -1,9 +1,9 @@
-// tests/mcp-server/trace.test.js
+// tests/state/trace.test.js
 import { test, expect } from 'vitest'
 import { mkdtemp, readFile, appendFile, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
-import { makeTraceTools, TRACE_MAX_BYTES } from '../../mcp-server/tools/trace.mjs'
+import { makeTraceTools, TRACE_MAX_BYTES } from '../../lib/state/tools/trace.mjs'
 
 async function tools() {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-'))

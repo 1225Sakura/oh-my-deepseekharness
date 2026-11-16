@@ -118,4 +118,4 @@ Jira（或其他 tracker）：同理——tracker 供 issue 文本，git 供仓�
 
 ## 状态契约
 
-project-session-manager **不持 omd 模式状态**：无 `state_write`/`state_clear`。唯一的持久产物是它创建的 git worktree/分支和各 worktree 内的 `.omd-psm-session.json` 元数据。破坏性步骤（移除 worktree、删分支）一律需用户明确确认。
+project-session-manager **不持 omd 模式状态**：无 `omd_state_write`/`omd_state_clear`。唯一的持久产物是它创建的 git worktree/分支和各 worktree 内的 `.omd-psm-session.json` 元数据。破坏性步骤（移除 worktree、删分支）一律需用户明确确认。

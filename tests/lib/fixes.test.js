@@ -82,14 +82,16 @@ test('B2: defineTool 失效时 apply 不崩，memoryTools 归 failure，动态�
   expect(reg.contexts[0].text()).toContain('memoryTools')
 })
 
-test('storage 不可用时 memoryTools 归 skipped 且不注册工具', async () => {
+test('storage 不可用时 memoryTools 归 skipped 且记忆工具不注册（状态工具不受影响）', async () => {
   const { ctx, reg } = mockFullCtx()
   delete ctx.storage
   const { probeReport } = await setup(ctx, Config.parse({}), {
     assetsRoot: await makeAssets(), defineTool: (x) => x,
   })
   expect(probeReport.memoryTools.status).toBe('skipped')
-  expect(reg.tools).toHaveLength(0)
+  // 一期 dsh-native：58 个状态面工具进程内直注册，与 storage 无关；仅记忆工具（4 个）缺席
+  expect(reg.tools.filter(t => t.name.startsWith('omd_memory_'))).toHaveLength(0)
+  expect(reg.tools).toHaveLength(58)
 })
 
 // ---------- H1：宿主包不许顶层静态 import（缺席时 import 阶段崩，probe 没机会跑） ----------

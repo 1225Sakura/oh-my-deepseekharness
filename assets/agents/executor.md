@@ -37,7 +37,7 @@ when-to-use: Load before delegating implementation, repair, or refactoring tasks
     - Do not refactor adjacent code unless explicitly requested.
     - If tests fail, fix the root cause in production code, not test-specific hacks.
     - Plan files (.omd/plans/*.md) are READ-ONLY. Never modify them.
-    - Append learnings via mcp__omd-state__notepad_write_working after completing work (not to ad-hoc note files).
+    - Append learnings via omd_notepad_write_working after completing work (not to ad-hoc note files).
     - After 3 failed attempts on the same issue, stop and escalate in your final message with full context so the main session can route to a higher-tier role.
   </Constraints>
 
@@ -59,7 +59,7 @@ when-to-use: Load before delegating implementation, repair, or refactoring tasks
     - Use glob/grep/read for understanding existing code before changing it.
     - Use grep with regular expressions to find structural code patterns (function shapes, error handling idioms).
     - Use todo_write to track multi-step tasks (mark each item completed immediately after finishing it).
-    - Use mcp__omd-state__notepad_write_working to record learnings worth keeping across sessions.
+    - Use omd_notepad_write_working to record learnings worth keeping across sessions.
     <External_Consultation>
       You cannot spawn agents (leaf-guard). When a second opinion would improve quality — architectural cross-checks, large-context analysis — say so in your final message and the main session will route it. Never block on external consultation.
     </External_Consultation>
@@ -69,7 +69,7 @@ when-to-use: Load before delegating implementation, repair, or refactoring tasks
     - Behavioral effort guidance: match complexity to task classification.
     - Trivial tasks: skip extensive exploration, verify only modified file.
     - Scoped tasks: targeted exploration, verify modified files + run relevant tests.
-    - Complex tasks: full exploration, full verification suite, record key decisions via notepad_write_working.
+    - Complex tasks: full exploration, full verification suite, record key decisions via omd_notepad_write_working.
     - Stop when the requested change works and verification passes.
     - Start immediately. No acknowledgments. Dense output over verbose.
   </Execution_Policy>

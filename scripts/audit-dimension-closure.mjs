@@ -26,8 +26,8 @@ const REF_TOP_DECLARED = ['awesome-dsh-plugin', 'awesome-fork', 'oh-my-claudecod
 // 根域自闭合（M-2）：git ls-files 顶层去重 ⊆ 本白名单（实测 15 项）；
 // 显式排除项 = reference/、node_modules/、*.tgz；.omd 特殊规则 = 允许且仅允许恰一条 .omd/plans/upgrade-tracking.md，其余 .omd 路径进 orphans。
 const ROOT_WHITELIST = [
-  '.gitattributes', '.gitignore', 'assets', 'bin', 'cordis.patch.yml', 'docs', 'lib', 'LICENSE',
-  'mcp-server', 'package-lock.json', 'package.json', 'README.md', 'scripts', 'tests', 'vitest.config.js',
+  '.gitattributes', '.gitignore', 'assets', 'bin', 'cordis.patch.yml', 'docs', 'LICENSE',
+  'lib', 'package-lock.json', 'package.json', 'README.md', 'scripts', 'tests', 'vitest.config.js',
 ];
 const OMD_ALLOWED_PATH = '.omd/plans/upgrade-tracking.md';
 
@@ -44,7 +44,7 @@ const MAP = {
   'omd:root/cordis.patch.yml': ['D10'],
   'omd:root/docs': ['D16'],
   'omd:root/lib': ['D10'],
-  'omd:root/mcp-server': ['D11'],
+  'omd:lib/state/': ['D11'],
   'omd:root/package-lock.json': ['D15'],
   'omd:root/package.json': ['D15'],
   'omd:root/scripts': ['D16'],
@@ -80,24 +80,24 @@ const MAP = {
   'omd:lib/team.js': ['D6'],
   'omd:lib/tryget.js': ['D10'],
   'omd:lib/worktree.js': ['D13'],
-  // mcp-server/tools/*.mjs（逐文件规则）
-  'omd:mcp-server/tools/codeintel.mjs': ['D4'],
-  'omd:mcp-server/tools/codeintel-astgrep.mjs': ['D4'],
-  'omd:mcp-server/tools/events.mjs': ['D12'],
-  'omd:mcp-server/tools/graph.mjs': ['D14'],
-  'omd:mcp-server/tools/handoff.mjs': ['D4'],
-  'omd:mcp-server/tools/hud.mjs': ['D7'],
-  'omd:mcp-server/tools/notepad.mjs': ['D4'],
-  'omd:mcp-server/tools/prd.mjs': ['D4'],
-  'omd:mcp-server/tools/state.mjs': ['D11'],
-  'omd:mcp-server/tools/team.mjs': ['D6'],
-  'omd:mcp-server/tools/trace.mjs': ['D4'],
+  // lib/state/tools/*.mjs（逐文件规则）
+  'omd:lib/state/tools/codeintel.mjs': ['D4'],
+  'omd:lib/state/tools/codeintel-astgrep.mjs': ['D4'],
+  'omd:lib/state/tools/events.mjs': ['D12'],
+  'omd:lib/state/tools/graph.mjs': ['D14'],
+  'omd:lib/state/tools/handoff.mjs': ['D4'],
+  'omd:lib/state/tools/hud.mjs': ['D7'],
+  'omd:lib/state/tools/notepad.mjs': ['D4'],
+  'omd:lib/state/tools/prd.mjs': ['D4'],
+  'omd:lib/state/tools/state.mjs': ['D11'],
+  'omd:lib/state/tools/team.mjs': ['D6'],
+  'omd:lib/state/tools/trace.mjs': ['D4'],
   // tests/ 顶层（首级目录级前缀 + 顶层文件逐条）
   'omd:tests/assets/': ['D15'],
   'omd:tests/docs/': ['D15'],
   'omd:tests/fixtures/': ['D15'],
   'omd:tests/lib/': ['D15'],
-  'omd:tests/mcp-server/': ['D15'],
+  'omd:tests/state/': ['D15'],
   'omd:tests/package-peer-range.test.js': ['D15'],
   'omd:tests/smoke.test.js': ['D15'],
   // docs/（逐文件规则；docs/ 下出现首级子目录即 orphan——预期摩擦）
@@ -200,7 +200,7 @@ function gitLsFiles() {
 }
 
 // ── omd 面枚举（基 git ls-files；声明面 = assets/skills/*、assets/agents 双语对、lib/ 顶层、
-//    mcp-server/tools/*.mjs、tests/ 顶层、docs/、scripts/、bin/ + 根域顶层去重）──
+//    lib/state/tools/*.mjs、tests/ 顶层、docs/、scripts/、bin/ + 根域顶层去重）──
 function enumerateOmd() {
   const files = gitLsFiles();
   if (files === null) return { entries: null, orphans: [] };
@@ -230,8 +230,8 @@ function enumerateOmd() {
     const parts = f.split('/');
     entries.push(parts.length === 2 ? 'omd:lib/' + parts[1] : 'omd:lib/' + parts[1] + '/');
   }
-  // mcp-server/tools/*.mjs（逐文件；mcp-server/ 其余路径由根域白名单承载，不进声明面）
-  for (const f of inTree('mcp-server/tools/').filter(f => f.endsWith('.mjs') && f.split('/').length === 3)) entries.push('omd:mcp-server/tools/' + f.split('/')[2]);
+  // lib/state/tools/*.mjs（逐文件；lib/state/lib/ 支撑层由 'omd:lib/state/' 目录级前缀承载）
+  for (const f of inTree('lib/state/tools/').filter(f => f.endsWith('.mjs') && f.split('/').length === 4)) entries.push('omd:lib/state/tools/' + f.split('/')[3]);
   // tests/ 顶层（文件逐条 + 首级目录级条目）
   for (const f of inTree('tests/')) {
     const parts = f.split('/');

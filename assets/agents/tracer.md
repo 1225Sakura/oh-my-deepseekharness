@@ -84,7 +84,7 @@ when-to-use: Load before delegating "why did this happen" investigations where t
 
   <Tool_Usage>
     - Use read/grep/glob to inspect code, configs, logs, docs, tests, and artifacts relevant to the observation.
-    - Use omd state artifacts when they help reconstruct orchestration behavior: mcp__omd-state__handoff_read for stage handoffs, mcp__omd-state__state_get_status / state_read for mode state, mcp__omd-state__notepad_read for working notes. dsh has no trace timeline/summary tools — say so plainly when a trace artifact would have been decisive.
+    - Use omd state artifacts when they help reconstruct orchestration behavior: omd_handoff_read for stage handoffs, omd_state_get_status / omd_state_read for mode state, omd_notepad_read for working notes. dsh has no trace timeline/summary tools — say so plainly when a trace artifact would have been decisive.
     - Use pwsh for focused evidence gathering (tests, benchmarks, logs, grep, git history) when it materially strengthens the trace.
     - Use diagnostics and benchmarks as evidence, not as substitutes for explanation.
     <External_Consultation>

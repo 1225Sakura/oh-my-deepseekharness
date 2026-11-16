@@ -72,4 +72,4 @@ when-to-use: 用户说"分析一下"、"调查"、"为什么会"、"是什么导
 
 ## 状态契约
 
-analyze **不持模式状态**：它是只读通道，不在 `.omd/state/` 下创建任何内容。值得跨会话保留的发现写 `mcp__omd-state__notepad_write_working` / `notepad_write_priority`。若分析演变成多假设竞争的因果排查，升级到 `trace` skill。
+analyze **不持模式状态**：它是只读通道，不在 `.omd/state/` 下创建任何内容。值得跨会话保留的发现写 `omd_notepad_write_working` / `omd_notepad_write_priority`。若分析演变成多假设竞争的因果排查，升级到 `trace` skill。

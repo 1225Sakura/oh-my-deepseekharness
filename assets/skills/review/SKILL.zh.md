@@ -44,7 +44,7 @@ when-to-use: 工作已存在、需要评估——合并前评审、实现通道�
 
 ## 状态契约
 
-review **不持模式状态**。当它作为门禁在外层模式内运行时（autopilot 双评审门、ralph verifier 环节、team-verify），裁决由外层模式记入自己的状态；review 自身不在 `.omd/` 下创建文件，也不做 `state_write`/`state_clear`。
+review **不持模式状态**。当它作为门禁在外层模式内运行时（autopilot 双评审门、ralph verifier 环节、team-verify），裁决由外层模式记入自己的状态；review 自身不在 `.omd/` 下创建文件，也不做 `omd_state_write`/`omd_state_clear`。
 
 ## Merge-readiness 模式（opt-in 双通道门禁）
 
@@ -56,6 +56,6 @@ review **不持模式状态**。当它作为门禁在外层模式内运行时（
 4. **合成矩阵**：architect=BLOCK → REQUEST CHANGES；否则 reviewer=REQUEST CHANGES → REQUEST CHANGES；否则 architect=WATCH → COMMENT；否则遵 reviewer 结论。
 5. **发现纪律**：每条发现必须 `file:line` + 问题描述 + 风险 + 具体修复建议；事实与建议分列。
 6. **报告契约**：最终报告并列两条通道的原始裁决与合成后的最终裁决；architect 的 BLOCK 项置于报告最前、不可埋没；不可用态以「独立评审不可用」作为最终结论，不得记为 APPROVE 或 merge-ready。
-7. 边界：不改变默认建议性与其余门禁——其他显式门禁（autopilot 双评审门、ralph 独立评审层、team-verify 升级）仍按各自模式定义执行；本模式供独立调用的合并门禁使用，不持模式状态、不做 `state_write`/`state_clear`。
+7. 边界：不改变默认建议性与其余门禁——其他显式门禁（autopilot 双评审门、ralph 独立评审层、team-verify 升级）仍按各自模式定义执行；本模式供独立调用的合并门禁使用，不持模式状态、不做 `omd_state_write`/`omd_state_clear`。
 
 （来源：OMX code-review 卡的 omd 适配——门禁矩阵、fail-closed 不可用态与双通道纪律照搬上游；OMX 特有面 `omx state write` CLI、hook-owned `skill-active-state.json` 与 Autopilot `handoff_artifacts.code_review`→`ultraqa` 流转不搬入本 skill：门禁裁决与后续流转由调用方外层模式记入其自身状态。Upstream: reference/oh-my-codex/skills/code-review。本节须同构写入 SKILL.zh.md 与 SKILL.md 两文件。）

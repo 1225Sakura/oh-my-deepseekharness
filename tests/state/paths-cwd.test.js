@@ -1,8 +1,8 @@
-// tests/mcp-server/paths-cwd.test.js
+// tests/state/paths-cwd.test.js
 // 2026-10-29 code-review 立项：mcp-server 工具 cwd 白名单收口（reviewer: runStatePath 仅校验 stateDir）
 import { describe, test, expect } from 'vitest'
-import { assertSafeCwd, omdPaths } from '../../mcp-server/lib/paths.mjs'
-import { makeEventsTools } from '../../mcp-server/tools/events.mjs'
+import { assertSafeCwd, omdPaths } from '../../lib/state/lib/paths.mjs'
+import { makeEventsTools } from '../../lib/state/tools/events.mjs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 

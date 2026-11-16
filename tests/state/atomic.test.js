@@ -1,9 +1,9 @@
-// tests/mcp-server/atomic.test.js
+// tests/state/atomic.test.js
 import { test, expect } from 'vitest'
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { atomicWriteJson, readJson } from '../../mcp-server/lib/atomic.mjs'
+import { atomicWriteJson, readJson } from '../../lib/state/lib/atomic.mjs'
 
 test('atomicWriteJson 写入后可读回等价对象', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'omd-'))

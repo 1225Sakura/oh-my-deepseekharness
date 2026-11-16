@@ -127,4 +127,4 @@ A charting session ends with a captain-signed map and fired research tickets. A 
 
 ## State Contract (状态契约)
 
-Ask-navigator **holds no mode state** — deliberately: no `state_write`/`state_clear`, nothing under `.omd/state/`. The map files under `.omd/wayfinder/<map-slug>/` are the entire durable state; "resume" is just reading the open map. This matches the OMC original's no-daemon/no-mode contract.
+Ask-navigator **holds no mode state** — deliberately: no `omd_state_write`/`omd_state_clear`, nothing under `.omd/state/`. The map files under `.omd/wayfinder/<map-slug>/` are the entire durable state; "resume" is just reading the open map. This matches the OMC original's no-daemon/no-mode contract.

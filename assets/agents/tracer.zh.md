@@ -84,7 +84,7 @@ when-to-use: 委派"为什么会这样"的调查前加载本卡——适用于�
 
   <Tool_Usage>
     - 用 read/grep/glob 检查与观察相关的代码、配置、日志、文档、测试和工件。
-    - 需要重建编排行为时用 omd 状态工件：mcp__omd-state__handoff_read 读阶段交接、mcp__omd-state__state_get_status / state_read 读模式状态、mcp__omd-state__notepad_read 读工作笔记。dsh 没有 trace 时间线/汇总工具——当一份 trace 工件本可以起到决定性作用时，如实说明。
+    - 需要重建编排行为时用 omd 状态工件：omd_handoff_read 读阶段交接、omd_state_get_status / omd_state_read 读模式状态、omd_notepad_read 读工作笔记。dsh 没有 trace 时间线/汇总工具——当一份 trace 工件本可以起到决定性作用时，如实说明。
     - 当能实质强化追踪时，用 pwsh 做聚焦的证据收集（测试、benchmark、日志、grep、git 历史）。
     - 把诊断和 benchmark 当证据用，不当解释的替代品。
     <External_Consultation>

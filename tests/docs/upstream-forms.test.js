@@ -48,20 +48,20 @@ describe('Layer 1：仓内一致性门（恒跑，fresh clone 可分发）', () 
     const j = await runAudit()
     const pkg = JSON.parse(await read('package.json'))
     expect(pkg.description).toContain('49 skills')
-    expect(pkg.description).toContain('58 MCP tools')
+    expect(pkg.description).toContain('58 built-in tools')
     const readme = await read('README.md')
     expect(readme).toMatch(/注册 49 个 skill/)
     expect(readme).toMatch(/提供 58 个/)
     for (const [file, skillsMarker, mcpMarker, sumMarker] of [
-      ['assets/skills/omd-doctor/SKILL.md', '| Skills | **49**', '**58** `mcp__omd-state__*`', '(49/33/3/5/58)'],
-      ['assets/skills/omd-doctor/SKILL.zh.md', '| skill | **49**', '**58** 个 `mcp__omd-state__*`', '（49/33/3/5/58）'],
+      ['assets/skills/omd-doctor/SKILL.md', '| Skills | **49**', '**58** in-process `omd_`-prefixed tools', '(49/33/3/5/58)'],
+      ['assets/skills/omd-doctor/SKILL.zh.md', '| skill | **49**', '**58** 个 `omd_` 前缀进程内工具', '（49/33/3/5/58）'],
     ]) {
       const t = await read(file)
       expect(t, file + ' skills 计数').toContain(skillsMarker)
       expect(t, file + ' MCP 计数').toContain(mcpMarker)
       expect(t, file + ' 汇总行').toContain(sumMarker)
       // 分量分解与脚本实测对齐（含 graph），加总=总数
-      const bd = parseBreakdown(t, 'mcp__omd-state__*')
+      const bd = parseBreakdown(t, '**58**')
       expect(bd, file + ' 括号分解可解析').not.toBeNull()
       for (const [name, count] of Object.entries(j.omd.mcpToolsByFile)) {
         expect(bd[name], file + ' 分解缺 ' + name).toBe(count)

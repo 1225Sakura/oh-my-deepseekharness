@@ -59,4 +59,4 @@ artifact 内含问题、所用角色/视角与顾问的完整答案。artifact �
 
 ## 状态契约
 
-ask **不持模式状态**：`.omd/artifacts/ask/` 下的 artifact 就是全部留痕。没有 `state_write`/`state_clear`；不在 `.omd/state/` 下写任何内容。
+ask **不持模式状态**：`.omd/artifacts/ask/` 下的 artifact 就是全部留痕。没有 `omd_state_write`/`omd_state_clear`；不在 `.omd/state/` 下写任何内容。

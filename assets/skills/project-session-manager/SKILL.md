@@ -118,4 +118,4 @@ Each worktree has its **own `.omd/` state directory** (state is anchored at the 
 
 ## State Contract (状态契约)
 
-project-session-manager **holds no omd mode state**: no `state_write`/`state_clear`. Its only persistent artifacts are git worktrees/branches and the per-worktree `.omd-psm-session.json` metadata files it creates. Destructive steps (worktree removal, branch deletion) always require explicit user confirmation.
+project-session-manager **holds no omd mode state**: no `omd_state_write`/`omd_state_clear`. Its only persistent artifacts are git worktrees/branches and the per-worktree `.omd-psm-session.json` metadata files it creates. Destructive steps (worktree removal, branch deletion) always require explicit user confirmation.

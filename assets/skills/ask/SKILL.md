@@ -60,4 +60,4 @@ The artifact contains the question, the role/perspective used, and the advisor's
 
 ## State Contract (状态契约)
 
-Ask **holds no mode state**: the artifact under `.omd/artifacts/ask/` is the whole trail. No `state_write`/`state_clear`; nothing under `.omd/state/`.
+Ask **holds no mode state**: the artifact under `.omd/artifacts/ask/` is the whole trail. No `omd_state_write`/`omd_state_clear`; nothing under `.omd/state/`.

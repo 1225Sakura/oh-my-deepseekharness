@@ -20,7 +20,7 @@ Stage 1: deep-interview   →  Stage 2: ralplan 共识         →  Stage 3: 独
 - 每个访谈问题用 `ask_user_question`——带上下文选项的可点击 UI。
 - brownfield 探索用 `omd-agent-explore` + `subagent`——先查再问用户；引用它返回的证据。
 - 模糊度评分委派 `omd-agent-analyst`（high 档）子代理——一致性至关重要。
-- `mcp__omd-state__state_write` / `state_read` 管访谈状态；每个载荷都带 `threshold` + `threshold_source`。
+- `omd_state_write` / `omd_state_read` 管访谈状态；每个载荷都带 `threshold` + `threshold_source`。
 - 最终 spec 用 `write` 工具写到 `.omd/specs/deep-interview-<slug>.md`，路径严格如此。
 - challenge 模式是 prompt 注入，不是单独 spawn 子代理。
 - 只有显式执行批准之后才经 `skill` 工具桥接执行模式。

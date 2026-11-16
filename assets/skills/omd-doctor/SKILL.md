@@ -29,7 +29,7 @@ Count what is actually visible in this session and compare with expectations:
 | Role cards | **33** `omd-agent-*` (roster in `tests/assets/agents.test.js` TIERS) | skill catalog entries prefixed `omd-agent-` |
 | Commands | **3** (`/omd-doctor`, `/omd`, `/omd-cancel`) | command list |
 | Plugin tools | **5** (`omd_memory_set/get/list/delete` + `omd_delegate`) | tool list |
-| MCP tools | **58** `mcp__omd-state__*` (state×5, notepad×6, prd×4, handoff×3, events×1, team×18, trace×4, hud×2, codeintel×9, graph×6, codeintel-astgrep×0) — codeintel-astgrep.mjs is the split-out ast-grep implementation module; tool registration stays in codeintel.mjs | tool list prefix count |
+| Built-in tools | **58** in-process `omd_`-prefixed tools (state×5, notepad×6, prd×4, handoff×3, events×1, team×18, trace×4, hud×2, codeintel×9, graph×6, codeintel-astgrep×0) — codeintel-astgrep.mjs is the split-out ast-grep implementation module; tool registration stays in codeintel.mjs | tool list prefix count |
 
 Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / `assets/agents` shipped intact and the loader registered them with `source: 'oh-my-dsh'`; check cordis.patch.yml mount). **When the memory tools (omd_memory_*) are missing**: check that omd's `inject` declaration includes `storage` and that the current profile is base-backed (dsh-base mounts the dsh-storage trio — a non-base profile missing storage is expected degradation) — this is an omd-declaration/profile-layer matter, not a host defect.
 
@@ -42,7 +42,7 @@ Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / 
 
 ### 4. MCP server smoke
 
-- Call `mcp__omd-state__state_get_status` once. A structured response (even "no active modes") → ✅.
+- Call `omd_state_get_status` once. A structured response (even "no active modes") → ✅.
 - Tool missing or call fails → ❌ (fix: check the MCP mount in cordis.patch.yml / the dynamic mount in `apply()`; `failOnStartupError: false` means a dead server fails silently — look for the degradation announcement in the protocol layer; reconnect is the host mcp-client's job).
 
 ### 5. `.omd/` writability + .gitignore
@@ -98,7 +98,7 @@ omd doctor — <date>
 | 1 | Host version vs peerDep (per package.json) | ✅/⚠️/❌ | host=<v> |
 | 2 | Registration counts (49/33/3/5/58) | … | missing: … |
 | 3 | Config model identifiers | … | … |
-| 4 | MCP smoke (state_get_status) | … | … |
+| 4 | MCP smoke (omd_state_get_status) | … | … |
 | 5 | .omd/ writable + .gitignore | … | … |
 | 6 | Probe four-state matrix | … | N not-ok |
 | 7 | Patch layering (--dump-config) | … | … |
@@ -114,4 +114,4 @@ Fixes:
 
 ## State Contract (状态契约)
 
-omd-doctor is read-only diagnostics and **holds no mode state**: no `state_write`/`state_clear`, and the only filesystem touch is the create-then-delete writability probe at `.omd/.doctor-probe`. It never modifies Config, patches, or plugin files.
+omd-doctor is read-only diagnostics and **holds no mode state**: no `omd_state_write`/`omd_state_clear`, and the only filesystem touch is the create-then-delete writability probe at `.omd/.doctor-probe`. It never modifies Config, patches, or plugin files.

@@ -74,4 +74,4 @@ When mismatch diagnosis is hard:
 
 ## State Contract (状态契约)
 
-visual-verdict **holds no omd mode state**: no `state_write`/`state_clear`. Its only persistent artifacts are the verdict JSON files under `.omd/visual-verdict/`. It never edits UI code itself — it judges; the editing loop belongs to the caller (autopilot/ralph/direct work).
+visual-verdict **holds no omd mode state**: no `omd_state_write`/`omd_state_clear`. Its only persistent artifacts are the verdict JSON files under `.omd/visual-verdict/`. It never edits UI code itself — it judges; the editing loop belongs to the caller (autopilot/ralph/direct work).

@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { HUD_ROUTE_PATH, hudSnapshot, makeHudHandler, registerHudRoute } from '../../lib/hud-route.js'
 import { recordRouteEvent } from '../../lib/events.js'
-import { makeStateTools } from '../../mcp-server/tools/state.mjs'
-import { makeNotepadTools } from '../../mcp-server/tools/notepad.mjs'
+import { makeStateTools } from '../../lib/state/tools/state.mjs'
+import { makeNotepadTools } from '../../lib/state/tools/notepad.mjs'
 
 function mockRes() {
   const r = { status: null, headers: null, body: null }

@@ -70,4 +70,4 @@ when-to-use: 设计问题在散文里打转（反复重述仍无法定夺）；�
 
 ## 状态契约
 
-loft **不持模式状态**：无 `state_write`/`state_clear`，`.omd/` 下不写任何东西。工件活在 `loft/<name>` git 分支上；决策活在决策该活的地方（issue 评论、规格段落、ADR）。中断恢复态就是分支本身——早 push，事后重开。
+loft **不持模式状态**：无 `omd_state_write`/`omd_state_clear`，`.omd/` 下不写任何东西。工件活在 `loft/<name>` git 分支上；决策活在决策该活的地方（issue 评论、规格段落、ADR）。中断恢复态就是分支本身——早 push，事后重开。

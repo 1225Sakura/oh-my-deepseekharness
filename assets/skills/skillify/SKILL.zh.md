@@ -68,4 +68,4 @@ when-to-use: 当前会话挖出了一个可重复、来之不易的工作流，�
 
 ## 状态契约
 
-skillify **不持模式状态**。它不做 `state_write`/`state_clear`；交付物是起草的技能文件。如果会话产出的是不构成技能的耐久知识，改走 `remember` 技能的记忆面，不要硬塞进技能里。
+skillify **不持模式状态**。它不做 `omd_state_write`/`omd_state_clear`；交付物是起草的技能文件。如果会话产出的是不构成技能的耐久知识，改走 `remember` 技能的记忆面，不要硬塞进技能里。

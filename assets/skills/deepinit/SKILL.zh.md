@@ -320,4 +320,4 @@ Reusable React components organized by feature and complexity.
 
 ## 状态契约
 
-deepinit **不持模式状态**：无 `state_write`/`state_clear`。交付物就是磁盘上的 AGENTS.md 文件（用户所有，是否 commit 由用户决定）——`.omd/` 下不写任何东西。中断后直接用更新模式重跑；现有文件与 `<!-- MANUAL -->` 区段按上述合并规则保留。
+deepinit **不持模式状态**：无 `omd_state_write`/`omd_state_clear`。交付物就是磁盘上的 AGENTS.md 文件（用户所有，是否 commit 由用户决定）——`.omd/` 下不写任何东西。中断后直接用更新模式重跑；现有文件与 `<!-- MANUAL -->` 区段按上述合并规则保留。

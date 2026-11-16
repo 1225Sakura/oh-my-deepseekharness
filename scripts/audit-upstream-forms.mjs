@@ -96,7 +96,7 @@ function auditOmd() {
   // 本仓面恒可测，不受 reference 缺席影响
   const skillsDirs = listDirs(path.join(ROOT, 'assets', 'skills')) ?? [];
   const agentMd = countFilesRecursive(path.join(ROOT, 'assets', 'agents'), n => n.endsWith('.md'));
-  const toolsDir = path.join(ROOT, 'mcp-server', 'tools');
+  const toolsDir = path.join(ROOT, 'lib', 'state', 'tools');
   const mcpToolsByFile = {};
   let mcpToolsTotal = 0;
   for (const f of readdirSync(toolsDir).filter(n => n.endsWith('.mjs')).sort()) {

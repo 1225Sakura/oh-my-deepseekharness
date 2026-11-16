@@ -91,7 +91,7 @@ If periodic reruns are used:
 
 **Call shape convention**: `cwd` and `sessionId` are required top-level params of every `state_*` call; mode fields nest under the `state` key.
 
-- **Start**: `mcp__omd-state__state_write({ cwd, sessionId, mode: "autoresearch", state: { active: true, started_at: <ISO 8601>, current_phase: "running", mission_slug, mission_dir, evaluator_ref, iteration: 0, max_runtime, deadline } })`. State file: `.omd/state/sessions/{sessionId}/autoresearch-state.json`.
+- **Start**: `omd_state_write({ mode: "autoresearch", state: { active: true, started_at: <ISO 8601>, current_phase: "running", mission_slug, mission_dir, evaluator_ref, iteration: 0, max_runtime, deadline } })`. State file: `.omd/state/sessions/{sessionId}/autoresearch-state.json`.
 - **Transitions**: update `iteration` and the updated timestamp at every round boundary.
-- **Complete / cancel**: `mcp__omd-state__state_clear({ cwd, sessionId, mode: "autoresearch" })`. Everything under `.omd/autoresearch/` and `.omd/logs/autoresearch/` is **preserved** for audit and resume.
+- **Complete / cancel**: `omd_state_clear({ mode: "autoresearch" })`. Everything under `.omd/autoresearch/` and `.omd/logs/autoresearch/` is **preserved** for audit and resume.
 - **MCP server down**: same reads/writes with plain file tools against `.omd/`, announced explicitly.

@@ -62,13 +62,14 @@ test('core 缺 systemPrompt：apply 抛错（§6.1 例外条款，断言语义�
 
 // ---------- storage ----------
 
-test('storage unavailable：apply 不崩，运行时降级公告可见', async () => {
+test('storage unavailable：apply 不崩，运行时降级公告可见（状态工具不受影响）', async () => {
   const { ctx, reg } = mockCtx({ storage: undefined })
   await apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
   // §4 动态 context 的降级公告同步反映
   expect(reg.contexts[0].text()).toContain('storage')
-  // storage 缺席时不注册记忆工具
-  expect(reg.tools).toHaveLength(0)
+  // storage 缺席时不注册记忆工具；58 个状态面工具进程内直注册与 storage 无关（一期 dsh-native）
+  expect(reg.tools.filter(t => t.name.startsWith('omd_memory_'))).toHaveLength(0)
+  expect(reg.tools).toHaveLength(58)
 })
 
 // storage failure 降级（bug 已修复：门控改为 probeReport.storage.status === 'ok'，
@@ -77,7 +78,9 @@ test('storage failure（domain 访问抛错）：apply 不崩，运行时公告�
   const { ctx, reg } = mockCtx({ storage: { get domain() { throw new Error('backend down') } } })
   await apply(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
   expect(reg.contexts[0].text()).toContain('storage')
-  expect(reg.tools).toHaveLength(0)   // failure 态不注册记忆工具
+  // failure 态不注册记忆工具；状态工具与 storage 无关照常注册
+  expect(reg.tools.filter(t => t.name.startsWith('omd_memory_'))).toHaveLength(0)
+  expect(reg.tools).toHaveLength(58)
 })
 
 test('storage timeout：探测超时归 timeout 态，apply 不崩且运行时公告', async () => {
@@ -122,21 +125,22 @@ test('skills 资产齐备：probeReport.skills=ok', async () => {
   expect(probeReport.skills.status).toBe('ok')
 })
 
-test('mcpServer mounted（ok）不进降级公告', async () => {
+test('stateTools ok 不进降级公告', async () => {
   const { ctx, reg } = mockCtx({ storage: undefined })
   const { probeReport } = await setup(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
-  // mock ctx 无 ctx.plugin → failure（见下条测试）；这里构造 mounted 情形直接测渲染
-  probeReport.mcpServer = { status: 'ok' }
+  // mock ctx 有 tools.register → 进程内注册恒成功（旧 mcpServer 挂载形态已废除）
+  probeReport.stateTools = { status: 'ok', tools: 58 }
   const text = reg.contexts[0].text()
-  expect(text).not.toContain('mcpServer')
+  expect(text).not.toContain('stateTools')
 })
 
-// ---------- 附带防线：mock ctx 无 ctx.plugin，MCP 挂载失败须降级为 mcpServer failure 而非崩溃 ----------
-//（与 index.test.js 的隐含行为一致，这里显式断言——import 失败走同一条 catch）
+// ---------- 附带防线：进程内注册失败（如 defineTool 抛错）须降级为 stateTools failure 而非崩溃 ----------
+//（一期 dsh-native：注册面即失败面，无子进程假绿灯形态）
 
-test('MCP server 挂载失败不阻断 apply：probeReport 与运行时公告记录 failure', async () => {
+test('状态工具注册失败不阻断 apply：probeReport 与运行时公告记录 failure', async () => {
   const { ctx, reg } = mockCtx({ storage: undefined })
-  const { probeReport } = await setup(ctx, Config.parse({}), { assetsRoot: await makeAssets(), ...OPTS() })
-  expect(probeReport.mcpServer.status).toBe('failure')
-  expect(reg.contexts[0].text()).toContain('mcpServer')
+  const { probeReport } = await setup(ctx, Config.parse({}), { assetsRoot: await makeAssets(), defineTool: () => { throw new Error('no dsh-tools') } })
+  expect(probeReport.stateTools.status).toBe('failure')
+  expect(probeReport.memoryTools.status).toBe('skipped') // storage 未注入 → 记忆工具走 skipped（与 defineTool 无关）
+  expect(reg.contexts[0].text()).toContain('stateTools')
 })

@@ -87,4 +87,4 @@ when-to-use: 任务依赖当前外部最佳实践、版本感知指引、标准�
 
 ## 状态契约
 
-本技能**不持模式状态**，不在 `.omd/state/` 下创建任何内容。带来源的答案以最后一条消息交付；值得长期保留的最佳实践事实写 `mcp__omd-state__notepad_write_priority` / `notepad_write_working`。
+本技能**不持模式状态**，不在 `.omd/state/` 下创建任何内容。带来源的答案以最后一条消息交付；值得长期保留的最佳实践事实写 `omd_notepad_write_priority` / `omd_notepad_write_working`。

@@ -70,4 +70,4 @@ The captain reacted, the answer sits where the decision lives, the artifact sits
 
 ## State Contract (状态契约)
 
-loft **holds no mode state**: no `state_write`/`state_clear`, nothing under `.omd/`. The artifact lives on its `loft/<name>` git branch; the decision lives wherever the decision lives (issue comment, spec section, ADR). On interruption the branch is the whole resume state — push early, re-open it later.
+loft **holds no mode state**: no `omd_state_write`/`omd_state_clear`, nothing under `.omd/`. The artifact lives on its `loft/<name>` git branch; the decision lives wherever the decision lives (issue comment, spec section, ADR). On interruption the branch is the whole resume state — push early, re-open it later.

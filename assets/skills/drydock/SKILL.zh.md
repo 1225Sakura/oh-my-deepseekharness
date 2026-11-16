@@ -40,7 +40,7 @@ when-to-use: 开一个人类与 agent 共建的仓库；知识只存在于人脑
 
 - `CLAUDE.md` 在吗？`AGENTS.md` 在吗？（规则：任一存在就原地扩展；把缺失的那个建成一行指针指向另一个；**绝不两个都新建**）
 - `GLOSSARY.md`、`docs/adr/`、`docs/standards/`、`docs/business/`、`design-system/`、`.dsh/skills/`、`scripts/`、`.gitattributes`——哪些在、哪些缺？
-- omd 插件装了吗？——只在 omd 会话内值得查（看系统提示词的 omd 协议段和 `mcp__omd-state__*` 工具）；不在就静默跳过（有没有 omd，harness 都能跑）
+- omd 插件装了吗？——只在 omd 会话内值得查（看系统提示词的 omd 协议段和 `omd_state_*` 等 58 个内置工具）；不在就静默跳过（有没有 omd，harness 都能跑）
 
 先报告地图，再动手。
 
@@ -321,7 +321,7 @@ write "this project's specific decision discipline", not generic tutorials.
 - **launch** 在决策敲定时写 GLOSSARY.md 词汇、ADR、docs/business/（paper trail）
 - **launch C5 沉淀 / review** 把反复出现的纠正沉淀进 docs/standards/ 与 CLAUDE.md 原则
 - **任何人**都能往 .dsh/skills/ 加项目技能——门槛是质量门，不是权限
-- **omd notepad**（`mcp__omd-state__notepad_write_priority` / `notepad_write_working`）复利会话知识；被引用两次的东西晋升进 docs/business/
+- **omd notepad**（`omd_notepad_write_priority` / `omd_notepad_write_working`）复利会话知识；被引用两次的东西晋升进 docs/business/
 
 让"先动手"不失对齐的规则：**开工不需要许可；落地必须落进船坞的某个槽位。** 一个改动说不出落哪个槽（或显式声明无槽），就是坏味道。
 
@@ -338,4 +338,4 @@ write "this project's specific decision discipline", not generic tutorials.
 
 ## 状态契约
 
-drydock **不持模式状态**：无 `state_write`/`state_clear`。交付物是用户所有的仓库文件（CLAUDE.md、GLOSSARY.md、docs/、design-system/、.dsh/skills/ 种子）——完全不触碰 `.omd/`；不创建任何运行时状态。`--check` 严格只读。中断后重跑即可：探测幂等，绝不覆盖已有文件。
+drydock **不持模式状态**：无 `omd_state_write`/`omd_state_clear`。交付物是用户所有的仓库文件（CLAUDE.md、GLOSSARY.md、docs/、design-system/、.dsh/skills/ 种子）——完全不触碰 `.omd/`；不创建任何运行时状态。`--check` 严格只读。中断后重跑即可：探测幂等，绝不覆盖已有文件。

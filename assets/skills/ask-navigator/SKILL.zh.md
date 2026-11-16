@@ -127,4 +127,4 @@ ask-navigator 是**领航员**：它接过一项裹在雾里的工作——从�
 
 ## 状态契约
 
-ask-navigator **不持模式状态**——刻意如此：没有 `state_write`/`state_clear`，`.omd/state/` 下没有任何内容。`.omd/wayfinder/<map-slug>/` 下的地图文件就是全部持久状态；"恢复"就是读那张打开的地图。这与 OMC 原版的 no-daemon/no-mode 契约一致。
+ask-navigator **不持模式状态**——刻意如此：没有 `omd_state_write`/`omd_state_clear`，`.omd/state/` 下没有任何内容。`.omd/wayfinder/<map-slug>/` 下的地图文件就是全部持久状态；"恢复"就是读那张打开的地图。这与 OMC 原版的 no-daemon/no-mode 契约一致。

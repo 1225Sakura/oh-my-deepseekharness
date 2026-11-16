@@ -33,8 +33,8 @@ Auto-detects which mode is active and cancels it in dependency order:
 
 ### 2. Detect active modes
 
-- Call `mcp__omd-state__state_list_active` to enumerate `.omd/state/sessions/{sessionId}/…` and find every session with active modes.
-- For each session (or just the current one in default mode), call `mcp__omd-state__state_get_status` to learn which mode is active and its phase.
+- Call `omd_state_list_active` to enumerate `.omd/state/sessions/{sessionId}/…` and find every session with active modes.
+- For each session (or just the current one in default mode), call `omd_state_get_status` to learn which mode is active and its phase.
 - State files are the single source of truth — never infer "a mode is running" from conversation vibes.
 
 ### 3. Cancel per mode
@@ -43,37 +43,37 @@ Auto-detects which mode is active and cancels it in dependency order:
 
 Follow the team shutdown protocol (spec §3.4):
 
-1. Read team state (`state_read({ cwd, sessionId, mode: "team" })`) for the roster of active teammates.
+1. Read team state (`omd_state_read({ mode: "team" })`) for the roster of active teammates.
 2. Send each teammate a shutdown instruction via `send_message`; idle/ready teammates wake on the message.
 3. Wait for confirmations. Because dsh is message-driven (no timer face), confirmation is event-driven: process responses as they arrive at the next model step; do not busy-poll.
 4. `list_agents` to confirm no member is still running; `interrupt_agent` any member that ignores shutdown.
-5. Only after all members are confirmed stopped or interrupted: `state_clear({ cwd, sessionId, mode: "team" })`.
+5. Only after all members are confirmed stopped or interrupted: `omd_state_clear({ mode: "team" })`.
 6. Record unresponsive members in the cancellation report.
 
 #### autopilot active
 
 1. `update_goal(action="pause")` — pauses the goal loop; plans/specs stay on disk for resume (OMC resume semantics).
-2. `state_clear({ cwd, sessionId, mode: "autopilot" })`.
+2. `omd_state_clear({ mode: "autopilot" })`.
 3. Report: "Autopilot cancelled at phase: {phase}. Progress preserved for resume — re-running autopilot continues from the preserved plans."
 
 #### ralph active
 
-1. `state_clear({ cwd, sessionId, mode: "ralph" })`. The ralph tool's foreground loop ends with the current round; `maxRounds` and the PRD stay intact.
+1. `omd_state_clear({ mode: "ralph" })`. The ralph tool's foreground loop ends with the current round; `maxRounds` and the PRD stay intact.
 2. `.omd/prd/` artifacts (prd.json, reconciliation.jsonl, progress.txt) are preserved — a later ralph invocation resumes from them after stale-check.
 
 #### ralplan active
 
-`state_clear({ cwd, sessionId, mode: "ralplan" })`. The consensus plan under `.omd/plans/ralplan-<slug>.md` is preserved.
+`omd_state_clear({ mode: "ralplan" })`. The consensus plan under `.omd/plans/ralplan-<slug>.md` is preserved.
 
 #### autoresearch active
 
 1. If the loop is goal-backed: `get_goal` for goal_id/revision → `update_goal(action="pause")`.
-2. `state_clear({ cwd, sessionId, mode: "autoresearch" })`.
+2. `omd_state_clear({ mode: "autoresearch" })`.
 3. Audit artifacts under `.omd/autoresearch/` and `.omd/logs/autoresearch/` are preserved — resumable later after stale-check.
 
 #### deep-interview active
 
-`state_clear({ cwd, sessionId, mode: "deep-interview" })`. Any spec under `.omd/specs/` is preserved; if no spec was crystallized yet, the interview transcript in state is discarded — note this in the report.
+`omd_state_clear({ mode: "deep-interview" })`. Any spec under `.omd/specs/` is preserved; if no spec was crystallized yet, the interview transcript in state is discarded — note this in the report.
 
 #### No active modes
 
@@ -123,6 +123,6 @@ If the MCP server is unavailable, perform the same detection and clearing with p
 
 ## State Contract (状态契约)
 
-**Call shape convention**: `cwd` (current workspace path) and `sessionId` (current session id) are REQUIRED top-level params of every `state_*` call; `state_list_active`/`state_get_status` take `{ cwd }` only.
+**Call shape convention**: `cwd`/`sessionId` are auto-derived from the current session — do NOT pass them (only pass `cwd` for multi-repo/worktree anchors).
 
-Cancel is the cleanup endpoint of every mode's contract: it reads state (`state_list_active({ cwd })` / `state_get_status({ cwd })` / `state_read({ cwd, sessionId, mode })`), performs the mode-specific graceful stop (goal pause for autopilot, shutdown protocol for team), then `state_clear`s the affected modes. It writes no new mode state itself. Artifact directories under `.omd/` are preserved in all paths.
+Cancel is the cleanup endpoint of every mode's contract: it reads state (`omd_state_list_active({ cwd })` / `omd_state_get_status({ cwd })` / `omd_state_read({ mode })`), performs the mode-specific graceful stop (goal pause for autopilot, shutdown protocol for team), then `omd_state_clear`s the affected modes. It writes no new mode state itself. Artifact directories under `.omd/` are preserved in all paths.

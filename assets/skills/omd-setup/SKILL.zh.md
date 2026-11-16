@@ -78,7 +78,7 @@ Config 写在 **profile 目录的 `cordis.patch.yml`**（Windows 如 `C:\Users\<
 /omd-doctor
 ```
 
-预期全绿：宿主版本落在 peerDep 范围；注册计数（42 个 skill / 33 个 `omd-agent-*` 角色卡 / 3 个命令 / 5 个插件内工具＝`omd_memory_*`×4 + `omd_delegate` / 56 个 `mcp__omd-state__*` 工具）；Config 标识符可解析；MCP 冒烟（`state_get_status` 有响应）；`.omd/` 可写。任何 ❌/⚠️ 行都由 doctor 自带修复建议。
+预期全绿：宿主版本落在 peerDep 范围；注册计数（42 个 skill / 33 个 `omd-agent-*` 角色卡 / 3 个命令 / 5 个插件内工具＝`omd_memory_*`×4 + `omd_delegate` / 58 个 `omd_state_*` 族内置工具）；Config 标识符可解析；工具内冒烟（`omd_state_get_status` 有响应）；`.omd/` 可写。任何 ❌/⚠️ 行都由 doctor 自带修复建议。
 
 记住：doctor 只证明安装与接线健康——**端到端可用性是独立的 E2E 门禁**（autopilot / ralph / team 各真实跑通一次，规格 §6.4）。
 
@@ -97,4 +97,4 @@ dsh plugin --profile <profile> add @sakura12/oh-my-deepseekharness@latest   # �
 
 ## 状态契约
 
-omd-setup 是安装/配置指引，**不持模式状态**：无 `state_write`/`state_clear`。它不改工作区任何东西；仅有的写入发生在 `dsh plugin` CLI 与 profile 的 cordis Config 层，由用户执行（或先经用户确认）。
+omd-setup 是安装/配置指引，**不持模式状态**：无 `omd_state_write`/`omd_state_clear`。它不改工作区任何东西；仅有的写入发生在 `dsh plugin` CLI 与 profile 的 cordis Config 层，由用户执行（或先经用户确认）。

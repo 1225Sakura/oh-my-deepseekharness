@@ -1,4 +1,4 @@
-// tests/mcp-server/codeintel.test.js
+// tests/state/codeintel.test.js
 // v0.4 P2-E 代码智能 MCP 验收：
 // ① ast_grep_search：元变量模式命中 file:line、语言过滤、跳过 node_modules/.omd、maxResults 有界
 // ② ast_grep_replace：dryRun 只出计划不落盘；dryRun=false 应用且 $VAR/$$$VARS 替换正确（逆序编辑不漂移）
@@ -9,7 +9,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { makeCodeIntelTools, substituteRewrite } from '../../mcp-server/tools/codeintel.mjs'
+import { makeCodeIntelTools, substituteRewrite } from '../../lib/state/tools/codeintel.mjs'
 
 const MOCK_LSP = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'mock-lsp.mjs')
 

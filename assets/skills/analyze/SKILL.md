@@ -72,4 +72,4 @@ Restated question, briefly.
 
 ## State Contract (状态契约)
 
-Analyze **holds no mode state**: it is a read-only lane and creates nothing under `.omd/state/`. Findings worth keeping across sessions go to `mcp__omd-state__notepad_write_working` / `notepad_write_priority`. If the analysis turns into a multi-hypothesis causal hunt, escalate to the `trace` skill.
+Analyze **holds no mode state**: it is a read-only lane and creates nothing under `.omd/state/`. Findings worth keeping across sessions go to `omd_notepad_write_working` / `omd_notepad_write_priority`. If the analysis turns into a multi-hypothesis causal hunt, escalate to the `trace` skill.

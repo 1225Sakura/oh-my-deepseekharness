@@ -1,10 +1,10 @@
-// tests/mcp-server/prd.test.js
+// tests/state/prd.test.js
 import { test, expect } from 'vitest'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { makePrdTools } from '../../mcp-server/tools/prd.mjs'
-import { atomicWriteJson } from '../../mcp-server/lib/atomic.mjs'
+import { makePrdTools } from '../../lib/state/tools/prd.mjs'
+import { atomicWriteJson } from '../../lib/state/lib/atomic.mjs'
 
 const samplePrd = {
   topic: 'demo', revision: 1,

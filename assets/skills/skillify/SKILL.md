@@ -69,4 +69,4 @@ Prefer skills that encode decision-making heuristics, constraints, pitfalls, and
 
 ## State Contract (状态契约)
 
-Skillify **holds no mode state**. It performs no `state_write`/`state_clear`; its deliverable is the drafted skill file. If the session produced durable knowledge that is not skill-shaped, route it through the `remember` skill's memory surfaces instead of force-fitting it into a skill.
+Skillify **holds no mode state**. It performs no `omd_state_write`/`omd_state_clear`; its deliverable is the drafted skill file. If the session produced durable knowledge that is not skill-shaped, route it through the `remember` skill's memory surfaces instead of force-fitting it into a skill.

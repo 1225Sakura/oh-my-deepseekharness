@@ -1,12 +1,12 @@
-// tests/mcp-server/team.test.js
-// c5/c6/c8 MCP 工具接线测试（lib/{worktree,runstate,multirepo}.js → mcp-server/tools/team.mjs）
+// tests/state/team.test.js
+// c5/c6/c8 MCP 工具接线测试（lib/{worktree,runstate,multirepo}.js → state/tools/team.mjs）
 import { test, expect } from 'vitest'
 import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
-import { makeTeamTools, registerTeamTools } from '../../mcp-server/tools/team.mjs'
+import { makeTeamTools, registerTeamTools } from '../../lib/state/tools/team.mjs'
 
 async function freshRepo() {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-team-mcp-'))

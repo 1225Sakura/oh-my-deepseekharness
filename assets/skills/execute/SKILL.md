@@ -56,4 +56,4 @@ Before claiming done:
 
 ## State Contract (状态契约)
 
-Execute is a lightweight workflow and **holds no mode state** — no `state_write`/`state_clear` of its own. When invoked inside an enclosing mode (autopilot phase 2, ralph round, team-exec stage), the enclosing mode's state contract governs persistence; execute only maintains its working task list via `todo_write` and leaves durable artifacts (plans, handoffs) under `.omd/` untouched.
+Execute is a lightweight workflow and **holds no mode state** — no `omd_state_write`/`omd_state_clear` of its own. When invoked inside an enclosing mode (autopilot phase 2, ralph round, team-exec stage), the enclosing mode's state contract governs persistence; execute only maintains its working task list via `todo_write` and leaves durable artifacts (plans, handoffs) under `.omd/` untouched.

@@ -1,6 +1,6 @@
-// tests/mcp-server/graph.test.js
+// tests/state/graph.test.js
 // U4 S5 integration（计划 .omd/plans/ralplan-u4-graph-runtime.md §4 integration、
-// §6 验收 1/6/8）：六工具面经 makeGraphTools 直调（仿 tests/mcp-server/hud.test.js
+// §6 验收 1/6/8）：六工具面经 makeGraphTools 直调（仿 tests/state/hud.test.js
 // 模式）。fixture 图 command/agent/gate/join 各一，全部落在 mkdtemp 临时目录
 // （cwd=tmp → runsRoot=tmp/.omd/graph-runs，仓库活 .omd 零触碰）。
 // 覆盖：全链绿（验收 1）/ validate UNSUPPORTED_EDGE 与畸形拒绝（验收 6）/
@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
-import { makeGraphTools, projectAfter, registerGraphTools } from '../../mcp-server/tools/graph.mjs'
+import { makeGraphTools, projectAfter, registerGraphTools } from '../../lib/state/tools/graph.mjs'
 import { JournalCorruptionError } from '../../lib/graph/journal.js'
 import { AGENT_GUARDRAIL_PREFIX } from '../../lib/graph/guardrails.js'
 import { JOURNAL_FILE_NAME } from '../../lib/graph/journal.js'

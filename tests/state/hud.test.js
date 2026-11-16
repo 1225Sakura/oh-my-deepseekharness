@@ -1,12 +1,12 @@
-// tests/mcp-server/hud.test.js
+// tests/state/hud.test.js
 // c4 HUD server 面（v0.4 P2-D）：hud_render / hud_summary 经 MCP 暴露 lib/hud.js 五要素契约
 import { test, expect } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { makeHudTools, registerHudTools } from '../../mcp-server/tools/hud.mjs'
-import { makeStateTools } from '../../mcp-server/tools/state.mjs'
-import { makeNotepadTools } from '../../mcp-server/tools/notepad.mjs'
+import { makeHudTools, registerHudTools } from '../../lib/state/tools/hud.mjs'
+import { makeStateTools } from '../../lib/state/tools/state.mjs'
+import { makeNotepadTools } from '../../lib/state/tools/notepad.mjs'
 
 async function setup() {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hud-'))

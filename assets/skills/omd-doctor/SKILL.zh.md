@@ -29,7 +29,7 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 | 角色卡 | **33** 个 `omd-agent-*`（名册见 `tests/assets/agents.test.js` 的 TIERS） | 技能目录中 `omd-agent-` 前缀条目 |
 | 命令 | **3**（`/omd-doctor`、`/omd`、`/omd-cancel`） | 命令列表 |
 | 插件内工具 | **5**（`omd_memory_set/get/list/delete` + `omd_delegate`） | 工具列表 |
-| MCP 工具 | **58** 个 `mcp__omd-state__*`（state×5、notepad×6、prd×4、handoff×3、events×1、team×18、trace×4、hud×2、codeintel×9、graph×6、codeintel-astgrep×0）——codeintel-astgrep.mjs 是拆出的 ast-grep 实现模块，工具注册仍在 codeintel.mjs | 工具列表前缀计数 |
+| 内置工具 | **58** 个 `omd_` 前缀进程内工具（state×5、notepad×6、prd×4、handoff×3、events×1、team×18、trace×4、hud×2、codeintel×9、graph×6、codeintel-astgrep×0）——codeintel-astgrep.mjs 是拆出的 ast-grep 实现模块，工具注册仍在 codeintel.mjs | 工具列表前缀计数 |
 
 任何缺口 → ❌ 并列出缺失名字（修复：检查 `assets/skills` / `assets/agents` 是否完整随包发布、加载器注册是否带 `source: 'oh-my-dsh'`；检查 cordis.patch.yml 挂载）。**记忆工具（omd_memory_*）缺失时**：检查 omd 的 `inject` 声明是否含 `storage`、当前 profile 是否 base-backed（dsh-base 挂载了 dsh-storage 三件套——非 base profile 缺 storage 属预期降级）——这是 omd 声明/profile 层问题，不是宿主缺陷。
 
@@ -42,7 +42,7 @@ omd 原创技能——`/omd-doctor` 命令背后的诊断大脑（命令只是�
 
 ### 4. MCP server 冒烟
 
-- 调一次 `mcp__omd-state__state_get_status`。拿到结构化响应（哪怕是"无活跃模式"）→ ✅。
+- 调一次 `omd_state_get_status`。拿到结构化响应（哪怕是"无活跃模式"）→ ✅。
 - 工具缺失或调用失败 → ❌（修复：检查 cordis.patch.yml 的 MCP 挂载 / `apply()` 里的动态挂载；`failOnStartupError: false` 意味着死 server 静默失败——看协议层有没有降级公告；重连是宿主 mcp-client 的职责）。
 
 ### 5. `.omd/` 可写性 + .gitignore 状态
@@ -98,7 +98,7 @@ omd doctor — <日期>
 | 1 | 宿主版本 vs peerDep（以 package.json 为准） | ✅/⚠️/❌ | host=<v> |
 | 2 | 注册计数（49/33/3/5/58） | … | 缺失：… |
 | 3 | Config 模型标识符 | … | … |
-| 4 | MCP 冒烟（state_get_status） | … | … |
+| 4 | MCP 冒烟（omd_state_get_status） | … | … |
 | 5 | .omd/ 可写 + .gitignore | … | … |
 | 6 | probe 四态矩阵 | … | N 项非 ok |
 | 7 | patch 分层（--dump-config） | … | … |
@@ -114,4 +114,4 @@ omd doctor — <日期>
 
 ## 状态契约
 
-omd-doctor 是只读诊断，**不持模式状态**：无 `state_write`/`state_clear`，唯一的文件系统触碰是 `.omd/.doctor-probe` 的创建即删可写性探针。它绝不修改 Config、patch 或插件文件。
+omd-doctor 是只读诊断，**不持模式状态**：无 `omd_state_write`/`omd_state_clear`，唯一的文件系统触碰是 `.omd/.doctor-probe` 的创建即删可写性探针。它绝不修改 Config、patch 或插件文件。

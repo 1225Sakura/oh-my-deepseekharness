@@ -140,4 +140,4 @@ frontier 是阻塞项全部完成的 ticket 集合。
 
 ## 状态契约
 
-Launch **不持 omd 模式状态**——它是无状态组合：自己没有 `state_write`/`state_clear`。Phase 4 下若起了 `team` 跑程，该跑程遵循 `team` 技能自己的状态契约。Launch 的持久性是磁盘文件：`.omd/specs/<feature-slug>/`（规格、ticket、decisions-pending.md）、`GLOSSARY.md`、`docs/adr/`、`docs/business/`。中断时保住工件并停下；只能在上一轮 team 跑程关闭后经新的显式调用续跑。
+Launch **不持 omd 模式状态**——它是无状态组合：自己没有 `omd_state_write`/`omd_state_clear`。Phase 4 下若起了 `team` 跑程，该跑程遵循 `team` 技能自己的状态契约。Launch 的持久性是磁盘文件：`.omd/specs/<feature-slug>/`（规格、ticket、decisions-pending.md）、`GLOSSARY.md`、`docs/adr/`、`docs/business/`。中断时保住工件并停下；只能在上一轮 team 跑程关闭后经新的显式调用续跑。

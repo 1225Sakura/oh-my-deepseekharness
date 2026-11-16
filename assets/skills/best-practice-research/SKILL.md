@@ -87,4 +87,4 @@ This skill is terminal and read-only by default. It gathers evidence and produce
 
 ## State Contract (状态契约)
 
-This skill **holds no mode state** and creates nothing under `.omd/state/`. The cited answer is delivered as the final message; durable best-practice facts worth keeping go to `mcp__omd-state__notepad_write_priority` / `notepad_write_working`.
+This skill **holds no mode state** and creates nothing under `.omd/state/`. The cited answer is delivered as the final message; durable best-practice facts worth keeping go to `omd_notepad_write_priority` / `omd_notepad_write_working`.

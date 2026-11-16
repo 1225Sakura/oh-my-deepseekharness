@@ -1,11 +1,11 @@
-// tests/mcp-server/events.test.js
+// tests/state/events.test.js
 // W1-1（生态补全 P0 证明面）：events_read MCP 只读工具——lib/events.js readEvents/aggregateEvents 接线。
 // 写面用 recordRouteEvent 真实落盘（与生产同路径），不 mock 文件形状。
 import { test, expect } from 'vitest'
 import { mkdtemp, rm, appendFile, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { makeEventsTools, registerEventsTools } from '../../mcp-server/tools/events.mjs'
+import { makeEventsTools, registerEventsTools } from '../../lib/state/tools/events.mjs'
 import { recordRouteEvent, eventsPath } from '../../lib/events.js'
 
 async function setup() {

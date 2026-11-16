@@ -453,4 +453,4 @@ when-to-use: 改动 [system A] 与 [system B] 之间的集成时
 
 ## 状态契约
 
-skill **不持模式状态**。它不做 `state_write`/`state_clear`；唯一的副作用是它在 user/project 扫描根下创建、编辑、移动或删除的技能文件。在外层模式内被调用时，模式持久化由外层模式的状态契约管辖。
+skill **不持模式状态**。它不做 `omd_state_write`/`omd_state_clear`；唯一的副作用是它在 user/project 扫描根下创建、编辑、移动或删除的技能文件。在外层模式内被调用时，模式持久化由外层模式的状态契约管辖。

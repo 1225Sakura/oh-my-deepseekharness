@@ -1,7 +1,7 @@
 {
   "name": "@sakura12/oh-my-deepseekharness",
   "version": "0.7.2",
-  "description": "Multi-agent orchestration layer for DeepSeek Harness — 49 skills, 58 MCP tools, graph DAG runtime, team pipeline & HUD (OMC/OMX adaptation)",
+  "description": "Multi-agent orchestration layer for DeepSeek Harness — 49 skills, 58 built-in tools, graph DAG runtime, team pipeline & HUD (OMC/OMX adaptation)",
   "keywords": [
     "deepseek-harness",
     "dsh-plugin",
@@ -35,7 +35,6 @@
   },
   "files": [
     "lib",
-    "mcp-server",
     "assets",
     "bin",
     "cordis.patch.yml",
@@ -101,7 +100,6 @@
     }
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

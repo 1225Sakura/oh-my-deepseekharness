@@ -304,7 +304,7 @@ test('评审#7：非法时间戳入口拒绝；NaN 心跳戳扫描侧上报（�
     const w = await registerWorker({ cwd, runId: 'r1', worker: { role: 'x' } })
     await expect(heartbeatWorker({ cwd, runId: 'r1', workerId: w.workerId, at: 'bogus' })).rejects.toThrow('不是可解析时间戳')
     // 手工注入 NaN 心跳戳（绕过入口校验的损坏数据）→ 扫描上报 warnings
-    const { atomicWriteJson } = await import('../../mcp-server/lib/atomic.mjs')
+    const { atomicWriteJson } = await import('../../lib/state/lib/atomic.mjs')
     const reg = await readRegistry(cwd, 'r1')
     reg.workers[w.workerId].lastHeartbeatAt = 'garbage'
     await atomicWriteJson(join(cwd, '.omd', 'team', 'r1', 'registry.json'), reg)

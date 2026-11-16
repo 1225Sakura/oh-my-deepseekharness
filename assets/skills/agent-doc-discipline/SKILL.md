@@ -43,4 +43,4 @@ Before reporting a document change done, confirm:
 
 ## State Contract (状态契约)
 
-Agent-doc-discipline **holds no mode state**. It is a writing-time discipline: no `state_write`/`state_clear`, no files under `.omd/`. Its deliverable is the edited document itself.
+Agent-doc-discipline **holds no mode state**. It is a writing-time discipline: no `omd_state_write`/`omd_state_clear`, no files under `.omd/`. Its deliverable is the edited document itself.

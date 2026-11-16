@@ -74,4 +74,4 @@ Deterministic hook-based auto-capture remains a phase-2 item (depends on the hos
 
 ## State Contract (状态契约)
 
-wiki **holds no omd mode state**: no `state_write`/`state_clear`. Its entire state is the `.omd/wiki/` content it maintains. For short-lived working notes prefer the notepad MCP tools (`mcp__omd-state__notepad_*`); the wiki is for knowledge meant to compound.
+wiki **holds no omd mode state**: no `omd_state_write`/`omd_state_clear`. Its entire state is the `.omd/wiki/` content it maintains. For short-lived working notes prefer the notepad MCP tools (`omd_notepad_*`); the wiki is for knowledge meant to compound.

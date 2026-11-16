@@ -80,4 +80,4 @@ Complete only when design docs/assets/components/screenshots were inspected or n
 
 ## State Contract
 
-This skill **holds no mode state**: `DESIGN.md` itself is the durable artifact, living in the repo root rather than under `.omd/`. Cross-session design decisions worth keeping outside the repo go to `mcp__omd-state__notepad_write_priority` / `notepad_write_working`.
+This skill **holds no mode state**: `DESIGN.md` itself is the durable artifact, living in the repo root rather than under `.omd/`. Cross-session design decisions worth keeping outside the repo go to `omd_notepad_write_priority` / `omd_notepad_write_working`.

@@ -56,4 +56,4 @@ when-to-use: 工作已理解、任务就是把它做出来——已有批准的�
 
 ## 状态契约
 
-execute 是轻量工作流，**不持模式状态**——自己没有 `state_write`/`state_clear`。当被外层模式调用时（autopilot phase 2、ralph 轮次、team-exec 阶段），持久化由外层模式的状态契约管辖；execute 只用 `todo_write` 维护工作清单，不触碰 `.omd/` 下的持久产物（plans、handoffs）。
+execute 是轻量工作流，**不持模式状态**——自己没有 `omd_state_write`/`omd_state_clear`。当被外层模式调用时（autopilot phase 2、ralph 轮次、team-exec 阶段），持久化由外层模式的状态契约管辖；execute 只用 `todo_write` 维护工作清单，不触碰 `.omd/` 下的持久产物（plans、handoffs）。

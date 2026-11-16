@@ -1,9 +1,9 @@
-// tests/mcp-server/notepad.test.js
+// tests/state/notepad.test.js
 import { test, expect } from 'vitest'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { makeNotepadTools } from '../../mcp-server/tools/notepad.mjs'
+import { makeNotepadTools } from '../../lib/state/tools/notepad.mjs'
 
 async function tools() {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-'))

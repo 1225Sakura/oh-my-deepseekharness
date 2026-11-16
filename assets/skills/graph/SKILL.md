@@ -67,11 +67,11 @@ Normative for the future runtime, recorded here so descriptors stay forward-comp
 }
 ```
 
-Edge kinds: `fixed` and `fan_out`/`join` pairs run today; `conditional` and `back_edge` are rejected at the entry with `UNSUPPORTED_EDGE` fail-fast (unsupported — say so, don't guess routes). The authoritative Zod schema is ported to `lib/graph/schema.js` — `graph_validate` performs strict validation and malformed descriptors fail fast.
+Edge kinds: `fixed` and `fan_out`/`join` pairs run today; `conditional` and `back_edge` are rejected at the entry with `UNSUPPORTED_EDGE` fail-fast (unsupported — say so, don't guess routes). The authoritative Zod schema is ported to `lib/graph/schema.js` — `omd_graph_validate` performs strict validation and malformed descriptors fail fast.
 
 ## Capability Boundary & Semantics (read before authoring)
 
-- **Edge support**: `fixed` edges and `fan_out`/`join` pairs run today. `conditional` and `back_edge` routes are **unsupported in the phase-1 runtime**: entries (graph_validate/graph_run) fail fast with `UNSUPPORTED_EDGE` (exit 1, listing the offending edges) — say so instead of guessing routes. Likewise `effect_policy.policy='reconcile'` is **unsupported in phase 1** (upstream contract requires a custom executor; omd has none) — rejected at entry with `RECONCILE_REQUIRES_CUSTOM_EXECUTOR` (exit 1); do not use it in descriptors.
+- **Edge support**: `fixed` edges and `fan_out`/`join` pairs run today. `conditional` and `back_edge` routes are **unsupported in the phase-1 runtime**: entries (omd_graph_validate/omd_graph_run) fail fast with `UNSUPPORTED_EDGE` (exit 1, listing the offending edges) — say so instead of guessing routes. Likewise `effect_policy.policy='reconcile'` is **unsupported in phase 1** (upstream contract requires a custom executor; omd has none) — rejected at entry with `RECONCILE_REQUIRES_CUSTOM_EXECUTOR` (exit 1); do not use it in descriptors.
 - **Crash-recovery guarantee is at-least-once** for command nodes: a crash between an external side effect and its journal append re-executes that node on resume. For `idempotent` commands, expose the resolved key to the command as the `GRAPH_IDEMPOTENCY_KEY` environment value and record it for downstream dedupe. Exactly-once for external side effects is out of scope.
 - **Command trust boundary**: command nodes are arbitrary shell lines run via `pwsh` with real process authority in the current working directory. Only run descriptors you wrote or trust. Commands are not filesystem/process sandboxed.
 - **Agent authority boundary**: built-in agent nodes are read-only by convention — in omd this is prompt-level discipline (dsh `subagent` has no tool-restriction parameter), so state it in the node's `instructions` and prefer read-only role cards. Treat `.omd/graph-runs/<run_id>/descriptor.json` as executable content.
@@ -100,12 +100,12 @@ Rules:
 
 The deterministic runtime core lives in `lib/graph/` (schema validation / descriptor sealing / flat OCC journal / pure-function scheduler / owner fence / runner loop), **shared by two entries**: the MCP six tools (`omd-state` server) and the background script `node bin/graph-runner.mjs --descriptor <draft.json> --runs-root <dir> [--takeover] [--stale-grace-ms <ms>] [--cwd <dir>]` (process exit code = exit_code; last stdout line `GRAPH_RUN_RESULT <json>`).
 
-- **graph_validate** `{cwd, descriptor}`: self-check the descriptor before running — strict schema + structural validation + `UNSUPPORTED_EDGE` fail-fast; returns the `descriptor_hash` that would be sealed.
-- **graph_run** `{cwd, descriptor, takeover?, stale_grace_ms?}`: seals and advances synchronously to the first waiting point (gate_waiting / agent_pending / terminal) before returning; always returns `{exit_code, terminal_status, status, waiting, projection, ...}`. Re-entering the same `run_id`: live fence → `19`; dead owner past the stale grace → `takeover:true` explicit takeover.
-- **graph_status** `{cwd, run_id}`: `projectGraph` projection (ready/waiting/blocked/done/failed/max_seq) + fence observation (`stalled`).
-- **graph_resume** `{cwd, run_id, takeover?, stale_grace_ms?}`: the only resume-driver entry — rehydrates from the run directory's `descriptor.json` snapshot and advances; `takeover:true` is the explicit takeover for stalled runs (writes `fence_acquired` on success).
-- **graph_node_result** `{cwd, run_id, node_id, attempt, exit_code, output_ref?, output?}`: the only commit port for agent nodes; must match the latest `agent_pending` (same attempt, no committed yet) — idempotent for identical payloads, rejects conflicting ones.
-- **graph_gate_resolve** `{cwd, run_id, node_id, decision: approved|denied, output_summary?}`: the only adjudication port for human-approval nodes; must match that gate's latest `gate_waiting` (misaligned / already-resolved / terminal runs are rejected); `denied` is a first-class outcome (the run ends as gate_denied).
+- **omd_graph_validate** `{cwd, descriptor}`: self-check the descriptor before running — strict schema + structural validation + `UNSUPPORTED_EDGE` fail-fast; returns the `descriptor_hash` that would be sealed.
+- **omd_graph_run** `{cwd, descriptor, takeover?, stale_grace_ms?}`: seals and advances synchronously to the first waiting point (gate_waiting / agent_pending / terminal) before returning; always returns `{exit_code, terminal_status, status, waiting, projection, ...}`. Re-entering the same `run_id`: live fence → `19`; dead owner past the stale grace → `takeover:true` explicit takeover.
+- **omd_graph_status** `{cwd, run_id}`: `projectGraph` projection (ready/waiting/blocked/done/failed/max_seq) + fence observation (`stalled`).
+- **omd_graph_resume** `{cwd, run_id, takeover?, stale_grace_ms?}`: the only resume-driver entry — rehydrates from the run directory's `descriptor.json` snapshot and advances; `takeover:true` is the explicit takeover for stalled runs (writes `fence_acquired` on success).
+- **omd_graph_node_result** `{cwd, run_id, node_id, attempt, exit_code, output_ref?, output?}`: the only commit port for agent nodes; must match the latest `agent_pending` (same attempt, no committed yet) — idempotent for identical payloads, rejects conflicting ones.
+- **omd_graph_gate_resolve** `{cwd, run_id, node_id, decision: approved|denied, output_summary?}`: the only adjudication port for human-approval nodes; must match that gate's latest `gate_waiting` (misaligned / already-resolved / terminal runs are rejected); `denied` is a first-class outcome (the run ends as gate_denied).
 
 ### Journal vocabulary registration (additions beyond the 7 frozen types above — binding for the runtime and hand-written journals alike)
 
@@ -114,7 +114,7 @@ The deterministic runtime core lives in `lib/graph/` (schema validation / descri
 {"seq":N,"ts":"...","type":"fence_acquired","epoch":2,"owner_pid":12345}
 ```
 
-- `agent_pending`: an agent node waiting for model-driven completion (`{node_id, attempt}`; the watchdog marks `node_failed{retryable}` past `timeout_ms`); commit via `graph_node_result` → `node_committed`.
+- `agent_pending`: an agent node waiting for model-driven completion (`{node_id, attempt}`; the watchdog marks `node_failed{retryable}` past `timeout_ms`); commit via `omd_graph_node_result` → `node_committed`.
 - `fence_acquired`: audit line for fence acquisition on resume/takeover (`{epoch, owner_pid}`; not written on a fresh run's first start). Fence metadata itself never enters the journal.
 
 ### Fence sidecar layout (inside the run directory, none of it in the journal)
@@ -129,8 +129,8 @@ For agent nodes with `effect_policy=side_effect_free`, the runtime force-prepend
 
 ### Authority-face honest declaration (prompt-level convention, not a security boundary)
 
-`graph_gate_resolve` and `graph_node_result` **trust the MCP caller** with no proof of user presence — the gate is a workflow construct, not a security boundary (the model already holds pwsh; bypassing it costs nothing). Mitigation: decisions/commits must match the latest pending record (misaligned ones fail closed). A single graph_run/resume call runs unbounded until the first waiting point; client timeouts/disconnects do not affect run progress — poll with graph_status.
+`omd_graph_gate_resolve` and `omd_graph_node_result` **trust the MCP caller** with no proof of user presence — the gate is a workflow construct, not a security boundary (the model already holds pwsh; bypassing it costs nothing). Mitigation: decisions/commits must match the latest pending record (misaligned ones fail closed). A single omd_graph_run/resume call runs unbounded until the first waiting point; client timeouts/disconnects do not affect run progress — poll with omd_graph_status.
 
 ## State Contract (状态契约)
 
-Graph **holds no mode state**: the journal and snapshots under `.omd/graph-runs/<run_id>/` ARE the state, written with plain file tools. No `state_write`/`state_clear` cycle. Resume means: read the journal, skip committed nodes, continue. A graph that needs interactive approvals must run in a session where `ask_user_question` is available — otherwise it fails closed at the gate.
+Graph **holds no mode state**: the journal and snapshots under `.omd/graph-runs/<run_id>/` ARE the state, written with plain file tools. No `omd_state_write`/`omd_state_clear` cycle. Resume means: read the journal, skip committed nodes, continue. A graph that needs interactive approvals must run in a session where `ask_user_question` is available — otherwise it fails closed at the gate.

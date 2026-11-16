@@ -1,6 +1,6 @@
-// tests/mcp-server/paths.test.js
+// tests/state/paths.test.js
 import { test, expect } from 'vitest'
-import { omdPaths } from '../../mcp-server/lib/paths.mjs'
+import { omdPaths } from '../../lib/state/lib/paths.mjs'
 
 test('按 stateDir + sessionId 生成全部标准路径', () => {
   const p = omdPaths({ cwd: '/work/proj', stateDir: '.omd', sessionId: 's-1' })

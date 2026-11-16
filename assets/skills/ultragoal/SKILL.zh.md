@@ -51,7 +51,7 @@ create_goal(objective: "<聚合目标>", max_goal_rounds: <上限，默认 10>)
 
 ### 3. Checkpoint
 
-story 带证据完成时，在 `plan.md` 里打勾并追加 checkpoint 事件。证据是强制的——没证据不打勾（与 `prd_check` 同一契约）。
+story 带证据完成时，在 `plan.md` 里打勾并追加 checkpoint 事件。证据是强制的——没证据不打勾（与 `omd_prd_check` 同一契约）。
 
 ### 4. 最终质量门禁（宣告工程完成之前）
 
@@ -80,4 +80,4 @@ story 带证据完成时，在 `plan.md` 里打勾并追加 checkpoint 事件。
 
 ## 状态契约
 
-ultragoal **不持 omd 模式状态**（无 `state_write`/`state_clear`——它不是执行模式；omd 关键词路由不激活它）。它的持久化住在两处：dsh goal（会话级，经 `create_goal`/`get_goal`/`update_goal` 管理——`update_goal` 之前永远先 `get_goal` 抄精确 id/revision）与仓库内持久产物 `.omd/ultragoal/plans/<planId>/{plan.md,ledger.md}`。
+ultragoal **不持 omd 模式状态**（无 `omd_state_write`/`omd_state_clear`——它不是执行模式；omd 关键词路由不激活它）。它的持久化住在两处：dsh goal（会话级，经 `create_goal`/`get_goal`/`update_goal` 管理——`update_goal` 之前永远先 `get_goal` 抄精确 id/revision）与仓库内持久产物 `.omd/ultragoal/plans/<planId>/{plan.md,ledger.md}`。

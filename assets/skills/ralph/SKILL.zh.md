@@ -18,7 +18,7 @@ ralph 是构建在 dsh 原生 `ralph` 工具之上的 PRD 驱动持久循环：�
 
 ## Step 1 — PRD 准备（调用 ralph 工具之前）
 
-1. **先读状态**：`mcp__omd-state__state_read({ cwd, sessionId, mode: "ralph" })` + `state_list_active({ cwd })`。另一模式 active 则拒绝；发现 stale 的 ralph PRD 则走下方 stale 协议。
+1. **先读状态**：`omd_state_read({ mode: "ralph" })` + `omd_state_list_active({ cwd })`。另一模式 active 则拒绝；发现 stale 的 ralph PRD 则走下方 stale 协议。
 2. **创建/精炼结构化 PRD**（下称 prd.json），位置 `.omd/prd/<topic>.json`，从模板 `assets/templates/prd-template.json` 起步。PRD 是结构化 JSON，不是 markdown 勾选清单。每条 story 字段：
    - `passes: boolean` —— 完成声明；只准在有证据时置位。
    - `acceptanceCriteria: [{ id, text, revision }]` —— 具体、可验证，每条对应一个可执行检查。**禁止泛化条目**（"implementation is complete" 之类）：启动循环前必须把脚手架条目改写成任务专属的验收标准。
@@ -38,13 +38,13 @@ ralph(objective = "<PRD 路径> + 完成判据 + 证据契约", maxRounds = <上
 - objective 文本必须指示每一轮：
   1. 读 PRD 与 `progress.txt`；取优先级最高且 `passes: false` 的 story。
   2. 实现它（需要时经 `subagent` 委派 `omd-agent-executor`；独立工作背景并行）。
-  3. **证据契约**：运行该 story 的验证命令，把**原始输出**写进本轮交接报告。没跑过检查就不得置 `passes: true`——无 evidence 的 `prd_check` 调用会被工具拒绝。
-  4. 通过 `mcp__omd-state__prd_check` 标记完成（结构化 PRD 操作——优先于手改 JSON）。
+  3. **证据契约**：运行该 story 的验证命令，把**原始输出**写进本轮交接报告。没跑过检查就不得置 `passes: true`——无 evidence 的 `omd_prd_check` 调用会被工具拒绝。
+  4. 通过 `omd_prd_check` 标记完成（结构化 PRD 操作——优先于手改 JSON）。
   5. 追加 `.omd/prd/progress.txt`：实现了什么、改了哪些文件、留给后续轮次的经验与代码模式。
 
 ## 验收标准修订
 
-当实测证明某条 criterion 在经验上为假，**不得**静默删除或弱化它。走 `mcp__omd-state__prd_amend` 修订：
+当实测证明某条 criterion 在经验上为假，**不得**静默删除或弱化它。走 `omd_prd_amend` 修订：
 
 - 原 criterion 逐字保留进 `criterionAmendments[]`，附 `kind`（`replaced` | `superseded`）、`reason`、有界 `evidence`；`authority` 可选（默认 `user`）；时间戳由工具自动记录（`at` 字段）。
 - 缺 evidence/reason 的修订无效——PRD 读取时 **fail closed**。台账自相矛盾（原文仍 active、或同一原文被修订两次）同样使 PRD 无效。
@@ -87,10 +87,10 @@ dsh 没有 session-end hook。完成清理前必须显式沉淀一次：耐久�
 
 ## 状态契约
 
-**调用形状约定**：`cwd`（当前工作区路径）与 `sessionId`（当前会话 id）是每个 `state_*` 调用的**必填顶层参数**；模式字段嵌套在 `state` 键下。
+**调用形状约定**：`cwd`/`sessionId` 已从当前会话自动派生——无需传（仅多仓/worktree 锚显式传 `cwd`）；模式字段嵌套在 `state` 键下。
 
-- **开始**：`state_write({ cwd, sessionId, mode: "ralph", state: { active: true, started_at: <ISO 8601>, current_phase: "execution", prompt_echo: <压缩 ≤1200 字符>, max_rounds: <上限>, prd_path: ".omd/prd/<topic>.json" } })`。状态文件：`.omd/state/sessions/{sessionId}/ralph-state.json`。
+- **开始**：`omd_state_write({ mode: "ralph", state: { active: true, started_at: <ISO 8601>, current_phase: "execution", prompt_echo: <压缩 ≤1200 字符>, max_rounds: <上限>, prd_path: ".omd/prd/<topic>.json" } })`。状态文件：`.omd/state/sessions/{sessionId}/ralph-state.json`。
 - **阶段转换**：每个轮次边界、每次阶段变化都更新 `state` 内的 iteration/进度字段。
-- **完成/取消**：`state_clear({ cwd, sessionId, mode: "ralph" })`。`.omd/prd/` 下的一切（PRD JSON、progress.txt、reconciliation.jsonl）**保留**，供审计与恢复。
+- **完成/取消**：`omd_state_clear({ mode: "ralph" })`。`.omd/prd/` 下的一切（PRD JSON、progress.txt、reconciliation.jsonl）**保留**，供审计与恢复。
 - **异常退出**：状态与 PRD 留在盘上；stale（>2h）状态只报告不自动续。
 - **MCP server 挂了**：用普通文件工具对 `.omd/` 做同样的读写，并显式说明。

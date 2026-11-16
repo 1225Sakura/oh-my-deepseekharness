@@ -320,4 +320,4 @@ When running on an existing codebase with AGENTS.md files:
 
 ## State Contract (状态契约)
 
-deepinit **holds no mode state**: no `state_write`/`state_clear`. Its deliverables are the AGENTS.md files on disk (user-owned, committed at the user's discretion) — nothing is written under `.omd/`. On interruption, re-run in update mode; existing files and `<!-- MANUAL -->` sections are preserved by the merge rules above.
+deepinit **holds no mode state**: no `omd_state_write`/`omd_state_clear`. Its deliverables are the AGENTS.md files on disk (user-owned, committed at the user's discretion) — nothing is written under `.omd/`. On interruption, re-run in update mode; existing files and `<!-- MANUAL -->` sections are preserved by the merge rules above.

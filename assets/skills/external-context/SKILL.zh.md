@@ -86,4 +86,4 @@ subagent(description="Facet: <facet 名>", run_in_background=true, prompt="<omd-
 
 ## 状态契约
 
-external-context **不持模式状态**：一次性的 fan-out 加综合，不在 `.omd/state/` 下写任何内容。值得跨会话保留的发现，显式写 `mcp__omd-state__notepad_write_working` / `notepad_write_priority`。
+external-context **不持模式状态**：一次性的 fan-out 加综合，不在 `.omd/state/` 下写任何内容。值得跨会话保留的发现，显式写 `omd_notepad_write_working` / `omd_notepad_write_priority`。

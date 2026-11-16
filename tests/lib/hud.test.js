@@ -6,8 +6,8 @@ import {
   HUD_FIELDS, HUD_CONTRACT_VERSION, MODE_LABELS, PRESETS, HUD_DEFAULT_PRESET, TIER,
   summarize, diffSummary, renderCard, buildHudView, createSummaryReader, createPollingHud,
 } from '../../lib/hud.js'
-import { makeStateTools } from '../../mcp-server/tools/state.mjs'
-import { makeNotepadTools } from '../../mcp-server/tools/notepad.mjs'
+import { makeStateTools } from '../../lib/state/tools/state.mjs'
+import { makeNotepadTools } from '../../lib/state/tools/notepad.mjs'
 
 // ---------- summarize：五要素映射（契约） ----------
 

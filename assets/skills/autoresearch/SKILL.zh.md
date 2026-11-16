@@ -91,7 +91,7 @@ OMC 借助 Claude Code 原生 cron 做周期性 mission 重跑。**dsh 没有原
 
 **调用形态约定**：每次 `state_*` 调用都必须把 `cwd` 与 `sessionId` 作为顶层参数；模式字段嵌在 `state` 键下。
 
-- **启动**：`mcp__omd-state__state_write({ cwd, sessionId, mode: "autoresearch", state: { active: true, started_at: <ISO 8601>, current_phase: "running", mission_slug, mission_dir, evaluator_ref, iteration: 0, max_runtime, deadline } })`。状态文件：`.omd/state/sessions/{sessionId}/autoresearch-state.json`。
+- **启动**：`omd_state_write({ mode: "autoresearch", state: { active: true, started_at: <ISO 8601>, current_phase: "running", mission_slug, mission_dir, evaluator_ref, iteration: 0, max_runtime, deadline } })`。状态文件：`.omd/state/sessions/{sessionId}/autoresearch-state.json`。
 - **转换**：每个轮次边界更新 `iteration` 与 updated 时间戳。
-- **完成/取消**：`mcp__omd-state__state_clear({ cwd, sessionId, mode: "autoresearch" })`。`.omd/autoresearch/` 与 `.omd/logs/autoresearch/` 下的全部内容**保留**，供审计与恢复。
+- **完成/取消**：`omd_state_clear({ mode: "autoresearch" })`。`.omd/autoresearch/` 与 `.omd/logs/autoresearch/` 下的全部内容**保留**，供审计与恢复。
 - **MCP server 不可用**：用普通文件工具对 `.omd/` 做同样的读写，并显式公告降级。

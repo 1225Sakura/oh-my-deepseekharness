@@ -86,4 +86,4 @@ Present synthesized results in this format:
 
 ## State Contract (状态契约)
 
-External-context **holds no mode state**: one-shot fan-out plus synthesis; nothing is written under `.omd/state/`. If a finding is worth keeping across sessions, write it to `mcp__omd-state__notepad_write_working` / `notepad_write_priority` explicitly.
+External-context **holds no mode state**: one-shot fan-out plus synthesis; nothing is written under `.omd/state/`. If a finding is worth keeping across sessions, write it to `omd_notepad_write_working` / `omd_notepad_write_priority` explicitly.

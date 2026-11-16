@@ -74,4 +74,4 @@ when-to-use: 任务带视觉保真要求（布局、间距、字体排印、组�
 
 ## 状态契约
 
-visual-verdict **不持 omd 模式状态**：无 `state_write`/`state_clear`。唯一的持久产物是 `.omd/visual-verdict/` 下的裁决 JSON 文件。它自己绝不改 UI 代码——它只裁决；编辑循环属于调用方（autopilot/ralph/直接干活）。
+visual-verdict **不持 omd 模式状态**：无 `omd_state_write`/`omd_state_clear`。唯一的持久产物是 `.omd/visual-verdict/` 下的裁决 JSON 文件。它自己绝不改 UI 代码——它只裁决；编辑循环属于调用方（autopilot/ralph/直接干活）。

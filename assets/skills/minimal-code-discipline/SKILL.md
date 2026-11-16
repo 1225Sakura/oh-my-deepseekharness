@@ -60,4 +60,4 @@ Before reporting completion, confirm:
 
 ## State Contract (状态契约)
 
-Minimal-code-discipline **holds no mode state**. It is a writing-time discipline, not an execution mode: no `state_write`/`state_clear`, no files under `.omd/`. When applied inside an enclosing mode (autopilot, ralph, team), persistence belongs to that mode's state contract.
+Minimal-code-discipline **holds no mode state**. It is a writing-time discipline, not an execution mode: no `omd_state_write`/`omd_state_clear`, no files under `.omd/`. When applied inside an enclosing mode (autopilot, ralph, team), persistence belongs to that mode's state contract.

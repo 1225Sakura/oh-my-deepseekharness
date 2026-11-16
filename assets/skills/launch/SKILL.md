@@ -140,4 +140,4 @@ All tickets terminal with evidence, verify clean on the whole change, paper trai
 
 ## State Contract (状态契约)
 
-Launch **holds no omd mode state** — it is a stateless composition: no `state_write`/`state_clear` of its own. If a `team` run is spawned under Phase 4, that run follows the `team` skill's own state contract. Launch's durability is files on disk: `.omd/specs/<feature-slug>/` (spec, tickets, decisions-pending.md), `GLOSSARY.md`, `docs/adr/`, `docs/business/`. On interruption, preserve artifacts and stop; resume only via a new explicit invocation after the previous team run is closed.
+Launch **holds no omd mode state** — it is a stateless composition: no `omd_state_write`/`omd_state_clear` of its own. If a `team` run is spawned under Phase 4, that run follows the `team` skill's own state contract. Launch's durability is files on disk: `.omd/specs/<feature-slug>/` (spec, tickets, decisions-pending.md), `GLOSSARY.md`, `docs/adr/`, `docs/business/`. On interruption, preserve artifacts and stop; resume only via a new explicit invocation after the previous team run is closed.

@@ -146,4 +146,4 @@ Use these as review prompts, not absolute bans. Keep intentional brand, accessib
 
 ## State Contract (状态契约)
 
-Ai-slop-cleaner **holds no mode state**. It performs no `state_write`/`state_clear` and creates no files under `.omd/`; its deliverables are the cleanup plan, the edited files, and the evidence-dense report. When invoked inside an enclosing mode (ralph post-review pass, team-fix stage), persistence belongs to that mode's state contract.
+Ai-slop-cleaner **holds no mode state**. It performs no `omd_state_write`/`omd_state_clear` and creates no files under `.omd/`; its deliverables are the cleanup plan, the edited files, and the evidence-dense report. When invoked inside an enclosing mode (ralph post-review pass, team-fix stage), persistence belongs to that mode's state contract.

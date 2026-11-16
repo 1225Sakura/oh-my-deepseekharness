@@ -80,4 +80,4 @@ Loading、empty、error、success、disabled，适用时含 offline/弱网。
 
 ## 状态契约
 
-本技能**不持模式状态**：`DESIGN.md` 本身就是持久产物，放在仓库根目录而非 `.omd/` 下。值得保留在仓库之外的跨会话设计决策写 `mcp__omd-state__notepad_write_priority` / `notepad_write_working`。
+本技能**不持模式状态**：`DESIGN.md` 本身就是持久产物，放在仓库根目录而非 `.omd/` 下。值得保留在仓库之外的跨会话设计决策写 `omd_notepad_write_priority` / `omd_notepad_write_working`。

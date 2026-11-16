@@ -29,7 +29,7 @@ description: self-improve Setup 阶段的参考细节——仅在初始化新改
     git -C {repo_path} checkout {target_branch}
     ```
     `{goal_slug}` 由目标描述派生（小写下划线）。分支已存在则跳过创建。把 `goal_slug` 持久化进 agent-settings.json。
-12. **模式互斥**：调用 `mcp__omd-state__state_list_active({ cwd })`。若有任何 omd 模式活跃（autopilot、ralph、team、ralplan、deep-interview），拒绝启动——omd 模式互斥。
-13. 按状态契约写初始状态：`state_write`，`mode: "self-improve"`，`active: true`，`iteration: 0`，`started_at`。
+12. **模式互斥**：调用 `omd_state_list_active({ cwd })`。若有任何 omd 模式活跃（autopilot、ralph、team、ralplan、deep-interview），拒绝启动——omd 模式互斥。
+13. 按状态契约写初始状态：`omd_state_write`，`mode: "self-improve"`，`active: true`，`iteration: 0`，`started_at`。
 
 ---

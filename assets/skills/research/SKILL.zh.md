@@ -44,4 +44,4 @@ when-to-use: 下一步取决于某个尚未知晓的事实——代码库事实�
 
 ## 状态契约
 
-research **不持模式状态**。findings 以最后一条消息（作为 subagent 时）或会话摘要交付；值得长期保留的事实写 `mcp__omd-state__notepad_write_priority` / `notepad_write_working`。research 自身不在 `.omd/state/` 下创建任何文件。
+research **不持模式状态**。findings 以最后一条消息（作为 subagent 时）或会话摘要交付；值得长期保留的事实写 `omd_notepad_write_priority` / `omd_notepad_write_working`。research 自身不在 `.omd/state/` 下创建任何文件。

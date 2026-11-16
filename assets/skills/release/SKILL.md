@@ -104,4 +104,4 @@ Report success with evidence, or flag failures precisely.
 
 ## State Contract (状态契约)
 
-release **holds no omd mode state**: no `state_write`/`state_clear`. Its only persistent artifact is the `.omd/RELEASE_RULE.md` cache (plus the release commit/tag it creates on user confirmation). Pushes, publishes, and any deployment always require explicit user confirmation before execution.
+release **holds no omd mode state**: no `omd_state_write`/`omd_state_clear`. Its only persistent artifact is the `.omd/RELEASE_RULE.md` cache (plus the release commit/tag it creates on user confirmation). Pushes, publishes, and any deployment always require explicit user confirmation before execution.

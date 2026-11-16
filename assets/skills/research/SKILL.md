@@ -44,4 +44,4 @@ Replace assumptions with evidence, and say plainly what remains uncertain.
 
 ## State Contract (状态契约)
 
-Research **holds no mode state**. Findings are delivered as the final message (when running as a subagent) or the session summary; durable facts worth keeping go to `mcp__omd-state__notepad_write_priority` / `notepad_write_working`. Research itself creates no files under `.omd/state/`.
+Research **holds no mode state**. Findings are delivered as the final message (when running as a subagent) or the session summary; durable facts worth keeping go to `omd_notepad_write_priority` / `omd_notepad_write_working`. Research itself creates no files under `.omd/state/`.
