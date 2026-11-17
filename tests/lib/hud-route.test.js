@@ -285,9 +285,9 @@ test('S5 alerts：全体队员终态 → alerts 空且 tier 不提升', async ()
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
-// ---------- 2026-10-26 第二轮 S4：alerts 扩展（out-mail 老化 + graph stalled） ----------
+// ---------- 2026-10-26 第二轮 S4：alerts 扩展（out-mail 老化） ----------
 
-test('S4 out-mail 老化：领队信件超 staleAfterMs 未 ack → 告警行；graph 停滞 run → 告警行', async () => {
+test('S4 out-mail 老化：领队信件超 staleAfterMs 未 ack → 告警行', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
     // team run：registry + out-mail（老 ts 未 ack）
@@ -298,38 +298,13 @@ test('S4 out-mail 老化：领队信件超 staleAfterMs 未 ack → 告警行；
     await mkdir(mailDir, { recursive: true })
     await writeFile(join(mailDir, 'w-1.jsonl'),
       JSON.stringify({ seq: 1, ts: '2020-01-01T00:00:00.000Z', direction: 'out', from: 'leader', workerId: 'w-1', type: 'assign', text: '请处理 X', ack: false }) + '\n', 'utf8')
-    // graph run：合法九字段 descriptor 快照（hash 实算）+ journal（agent_pending 且 mtime 古老）
-    const { computeDescriptorHash } = await import('../../lib/graph/descriptor.js')
-    const desc = {
-      descriptor_version: 1, run_id: 'g-1', revision_id: 'rev-1', goal: 'g',
-      nodes: [{ id: 'n1', kind: 'agent', title: 'A', timeout_ms: 60000, max_attempts: 1, effect_policy: { policy: 'side_effect_free' }, instructions: 'do' }],
-      edges: [], entry_node_ids: ['n1'], concurrency_limit: 1, terminal_verification_node_id: 'n1',
-    }
-    const gHash = computeDescriptorHash(desc)
-    const gr = join(cwd, '.omd', 'graph-runs', 'g-1')
-    await mkdir(gr, { recursive: true })
-    await writeFile(join(gr, 'descriptor.json'), JSON.stringify({ ...desc, descriptor_hash: gHash }), 'utf8') // 封印态快照含 descriptor_hash（parseSealedGraphDescriptor 要求）
-    await writeFile(join(gr, 'journal.jsonl'), [
-      JSON.stringify({ seq: 1, ts: '2020-01-01T00:00:00.000Z', type: 'run_started', run_id: 'g-1', descriptor_hash: gHash }),
-      JSON.stringify({ seq: 2, ts: '2020-01-01T00:00:01.000Z', type: 'agent_pending', node_id: 'n1', attempt: 1 }),
-    ].join('\n') + '\n', 'utf8')
-    const old = new Date('2020-01-01T00:00:00.000Z')
-    await utimes(join(gr, 'journal.jsonl'), old, old)
 
     const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.alerts.some(a => a.includes('领队信件未应答'))).toBe(true)
-    expect(snap.alerts.some(a => a.includes('[graph]') && a.includes('g-1'))).toBe(true)
     expect(snap.detail.tier).toBe('warn')
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
-test('S4 graph 目录缺席/新鲜 run → 无 graph 告警', async () => {
-  const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
-  try {
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
-    expect(snap.alerts.filter(a => a.includes('[graph]'))).toEqual([])
-  } finally { await rm(cwd, { recursive: true, force: true }) }
-})
 
 test('W4-1 mirror fallback read: when state is missing, hudSnapshot derives from run-state mirror', async () => {
   const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises')

@@ -10,7 +10,7 @@ const EXPECTED = [
   // M1：3 模式 + 7 辅助 + omd-doctor（原创）
   'autopilot', 'ralph', 'team', 'deep-interview', 'ralplan', 'plan', 'execute', 'verify', 'review', 'cancel', 'omd-doctor',
   // M2 S1 分析研究类
-  'debug', 'research', 'autoresearch', 'external-context', 'trace', 'graph', 'ask', 'ask-navigator',
+  'debug', 'research', 'autoresearch', 'external-context', 'trace', 'ask', 'ask-navigator',
   // M2 S2 质量与记忆类
   'ai-slop-cleaner', 'minimal-code-discipline', 'agent-doc-discipline', 'self-improve', 'skillify', 'skill', 'remember',
   // M2 S3 基础设施类
@@ -26,7 +26,7 @@ const EXPECTED = [
   'architecture-survey', 'diagram', 'minimal-prose-discipline', 'session-flow', 'refit',
 ]
 
-test('49 个 skill 目录 × 双语文件齐全', async () => {
+test('48 个 skill 目录 × 双语文件齐全', async () => {
   const dirs = await readdir(SKILLS)
   for (const s of EXPECTED) {
     expect(dirs).toContain(s)

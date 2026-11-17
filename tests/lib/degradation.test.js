@@ -69,7 +69,7 @@ test('storage unavailable：apply 不崩，运行时降级公告可见（状态�
   expect(reg.contexts[0].text()).toContain('storage')
   // storage 缺席时不注册记忆工具；二期②起 state/hud 依赖面（7 个）一并缺席，其余 51 个照常
   expect(reg.tools.filter(t => t.name.startsWith('omd_memory_'))).toHaveLength(0)
-  expect(reg.tools).toHaveLength(51)
+  expect(reg.tools).toHaveLength(45)
 })
 
 // storage failure 降级（bug 已修复：门控改为 probeReport.storage.status === 'ok'，
@@ -80,7 +80,7 @@ test('storage failure（domain 访问抛错）：apply 不崩，运行时公告�
   expect(reg.contexts[0].text()).toContain('storage')
   // failure 态不注册记忆工具；storage 访问抛错 → 域打不开 → state/hud 依赖面一并缺席（51 个照常）
   expect(reg.tools.filter(t => t.name.startsWith('omd_memory_'))).toHaveLength(0)
-  expect(reg.tools).toHaveLength(51)
+  expect(reg.tools).toHaveLength(45)
 })
 
 test('storage timeout：探测超时归 timeout 态，apply 不崩且运行时公告', async () => {

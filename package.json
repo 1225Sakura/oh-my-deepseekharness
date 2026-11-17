@@ -1,7 +1,7 @@
 {
   "name": "@sakura12/oh-my-deepseekharness",
   "version": "0.7.2",
-  "description": "Multi-agent orchestration layer for DeepSeek Harness — 49 skills, 58 built-in tools, graph DAG runtime, team pipeline & HUD (OMC/OMX adaptation)",
+  "description": "Multi-agent orchestration layer for DeepSeek Harness — 48 skills, 52 built-in tools, graph DAG runtime, team pipeline & HUD (OMC/OMX adaptation)",
   "keywords": [
     "deepseek-harness",
     "dsh-plugin",
@@ -37,14 +37,11 @@
   "files": [
     "lib",
     "assets",
-    "bin",
+    null,
     "cordis.patch.yml",
     "README.md",
     "LICENSE"
   ],
-  "bin": {
-    "omd-graph-runner": "bin/graph-runner.mjs"
-  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

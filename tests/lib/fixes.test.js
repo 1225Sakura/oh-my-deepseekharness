@@ -92,7 +92,7 @@ test('storage 不可用时 memoryTools 归 skipped 且记忆工具不注册（�
   // 一期 dsh-native：58 个状态面工具进程内直注册，与 storage 无关；仅记忆工具（4 个）缺席
   expect(reg.tools.filter(t => t.name.startsWith('omd_memory_'))).toHaveLength(0)
   // 二期②：storage 缺席 → state/hud 依赖面（7 个）一并缺席，其余 51 个照常
-  expect(reg.tools).toHaveLength(51)
+  expect(reg.tools).toHaveLength(45)
 })
 
 // ---------- H1：宿主包不许顶层静态 import（缺席时 import 阶段崩，probe 没机会跑） ----------

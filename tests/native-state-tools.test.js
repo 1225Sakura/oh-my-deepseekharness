@@ -30,19 +30,19 @@ function mockCtx() {
 
 const FULL_TABLE = { get() {}, put: async () => {}, delete: async () => {}, keys: () => [] }
 
-test('collectSpecs 捕获 58 个工具规格（与 omd-doctor 计数契约一致）', () => {
+test('collectSpecs 捕获 52 个工具规格（与 omd-doctor 计数契约一致）', () => {
   const { specs, failures } = collectSpecs({ ...buildEnv({}), table: FULL_TABLE })
-  expect(specs.length).toBe(58)
+  expect(specs.length).toBe(52)
   expect(failures).toHaveLength(0)
   const names = specs.map(s => s.name)
-  for (const required of ['state_write', 'state_get_status', 'notepad_write_priority', 'team_begin', 'trace_begin', 'hud_render', 'graph_run', 'ast_grep_search'])
+  for (const required of ['state_write', 'state_get_status', 'notepad_write_priority', 'team_begin', 'trace_begin', 'hud_render', 'ast_grep_search'])
     expect(names).toContain(required)
   expect(names.every(n => !n.startsWith('omd_'))).toBe(true) // 绑定层保持裸名，前缀在适配器加
 })
 
 test('collectSpecs 模块级容错：env.table 缺席 → state/hud 两模块进 failures，其余照常', () => {
   const { specs, failures } = collectSpecs(buildEnv({}))
-  expect(specs.length).toBe(51) // 58 - state×5 - hud×2
+  expect(specs.length).toBe(45) // 58 - state×5 - hud×2
   expect(failures).toHaveLength(2)
   expect(specs.every(s => !s.name.startsWith('state_') && !s.name.startsWith('hud_'))).toBe(true)
 })
@@ -61,14 +61,14 @@ test('shapeToParameters：sessionId 剔除、cwd 降级可选、required 收缩�
   expect(jsonKeys).toContain('state')
 })
 
-test('registerStateTools 注册 58 个 omd_ 前缀工具且 execute 自动派生会话锚（写进域表）', async () => {
+test('registerStateTools 注册 52 个 omd_ 前缀工具且 execute 自动派生会话锚（写进域表）', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'omd-native-'))
   try {
     const { ctx, registered, table } = mockCtx()
     const { count, tools, status } = await registerStateTools(ctx, identityDefineTool, { config: { stateDir: '.omd' } })
-    expect(count).toBe(58)
+    expect(count).toBe(52)
     expect(status).toBe('ok')
-    expect(registered.length).toBe(58)
+    expect(registered.length).toBe(52)
     expect(tools).toContain('omd_state_write')
     expect(registered.every(t => t.name.startsWith('omd_'))).toBe(true)
 
@@ -136,7 +136,7 @@ test('storage 缺席 → state/hud 依赖面 skipped、其余注册、status=ski
   const ctx = { tools: { register: d => registered.push(d) } } // 无 storage
   const r = await registerStateTools(ctx, identityDefineTool, { config: {} })
   expect(r.status).toBe('skipped')
-  expect(r.count).toBe(51)
+  expect(r.count).toBe(45)
   expect(r.table).toBeNull()
   expect(registered.every(t => t.name !== 'omd_state_write' && t.name !== 'omd_hud_render')).toBe(true)
   expect(r.detail).toContain('storageDomain 域未接入')
