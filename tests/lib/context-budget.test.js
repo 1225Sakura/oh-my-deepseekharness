@@ -61,9 +61,9 @@ test('门禁：角色卡不进模型目录（A2 契约，条目数=技能数）'
   expect(registered.some(e => e.name.startsWith('omd-agent-'))).toBe(false)
 })
 
-test('门禁：静态协议 ≤5120 字节（阶段一后 4938，预留 creep 空间）', () => {
+test('门禁：静态协议 ≤5120 字节（三期瘦身后 2368，路由表/守卫/互斥/状态契约最小面在位）', () => {
   const text = renderProtocol({ config: Config.parse({}) })
   const bytes = Buffer.byteLength(text, 'utf8')
   expect(bytes).toBeLessThanOrEqual(5120)
-  expect(bytes).toBeGreaterThanOrEqual(4000) // 防止把协议误删到失去路由职责
+  expect(bytes).toBeGreaterThanOrEqual(2000) // 防止把协议误删到失去路由职责
 })

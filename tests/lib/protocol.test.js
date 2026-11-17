@@ -1,4 +1,5 @@
 // tests/lib/protocol.test.js
+import { readFileSync } from 'node:fs'
 import { test, expect } from 'vitest'
 import { KEYWORD_REGISTRY, RETIRED_KEYWORDS } from '../../lib/keywords.js'
 import { renderProtocol } from '../../lib/protocol.js'
@@ -60,7 +61,7 @@ test('renderProtocol 保留关键词、硬约束与委派，移除角色表、pr
   const roles = [{ name: 'omd-agent-explore', tier: 'low' }, { name: 'omd-agent-planner', tier: 'high' }]
   const text = renderProtocol({ config, probeReport: probe, roles })
   for (const s of ['cancelomd', '什么是', '引号内', '回显块', '多关键词命中', 'team 无关键词触发',
-    'leaf-guard', 'state_write', '互斥', '只能在主会话直接启动', '机械隐藏编排工具', '前台阻塞主会话', 'omd_delegate'])
+    'leaf-guard', 'state_write', '互斥', '只能在主会话直接启动', '机械强制', '前台阻塞主会话', 'omd_delegate'])
     expect(text).toContain(s)
   expect(text).toMatch(/^\| \d+ \| ralph \| ralph \| explicit \|$/m)
   for (const s of ['## 模型路由表', '## 能力矩阵', '| core |', 'omd-agent-explore | low',
@@ -80,18 +81,18 @@ test('MCP smoke 从 ok 变 failure 时静态协议前缀逐字节稳定', () => 
   expect(Buffer.byteLength(after, 'utf8')).toBeLessThanOrEqual(7 * 1024)
 })
 
-test('S8-C1/C2：协议路由表注记 omd_delegate 硬路由语义（档位钳制+不可用 id 显式报错）', () => {
+test('S8-C1/C2：协议路由表注记 omd_delegate 硬路由语义（细节已下沉工具描述）', () => {
   const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
   expect(text).toContain('omd_delegate')
-  expect(text).toContain('不静默继承')
+  expect(text).toContain('硬路由')
 })
 
-test('renderProtocol 是同步函数且完整渲染遵守 4–7KiB 总字节预算', () => {
+test('renderProtocol 是同步函数且完整渲染遵守 2–7KiB 总字节预算（三期瘦身下限同步收缩）', () => {
   const roles = Array.from({ length: 33 }, (_, i) => ({ name: `omd-agent-${i}`, tier: 'high' }))
   const probeReport = { core: { status: 'failure', detail: 'x'.repeat(1000) } }
   const text = renderProtocol({ config: Config.parse({}), probeReport, roles })
   expect(typeof text).toBe('string')
-  expect(Buffer.byteLength(text, 'utf8')).toBeGreaterThanOrEqual(4 * 1024)
+  expect(Buffer.byteLength(text, 'utf8')).toBeGreaterThanOrEqual(2 * 1024)
   expect(Buffer.byteLength(text, 'utf8')).toBeLessThanOrEqual(7 * 1024)
 })
 
@@ -128,17 +129,15 @@ test('终审修复 #4：状态契约含 get_goal 前置指引', () => {
   expect(text).toMatch(/update_goal.*get_goal|get_goal.*update_goal/s)
 })
 
-test('c3 自适应路由段：4 特征+表钳制+1:1 日志+fallback 语义入协议（会话默认档跟随 Config）', () => {
+test('三期瘦身：c3 路由细节已下沉 omd_delegate 工具描述，协议不再承载（防回归膨胀）', () => {
   const text = renderProtocol({ config: Config.parse({}), probeReport: {}, roles: [] })
-  expect(text).toContain('c3 自适应路由')
-  expect(text).toContain('taskType=routine/standard/critical')
-  expect(text).toContain('表上限权威')
-  expect(text).toContain('禁止运行中重路由')
-  expect(text).toContain('[routing] dispatch=<id>')
-  expect(text).toContain('fallback 审计记入权威 run-state')
-  expect(text).toContain('会话默认档 medium')
-  const custom = renderProtocol({ config: Config.parse({ routing: { defaultTier: 'low' } }), probeReport: {}, roles: [] })
-  expect(custom).toContain('会话默认档 low')
+  for (const s of ['taskType=routine/standard/critical', '表上限权威', '禁止运行中重路由',
+    '[routing] dispatch=<id>', 'fallback 审计记入权威 run-state', '会话默认档 medium'])
+    expect(text).not.toContain(s)
+  // 硬路由语义本体在工具描述里单源存活（协议只留指针）
+  const delegateSrc = readFileSync(new URL('../../lib/delegate.js', import.meta.url), 'utf8')
+  for (const s of ['表上限', '档位', '不可解析 id'])
+    expect(delegateSrc).toContain(s)
 })
 
 test('c2 关键词 hook 段：原生拦截点+预写状态+MAGIC KEYWORD 激活块+未命中直通入协议', () => {
