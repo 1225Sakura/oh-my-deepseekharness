@@ -323,7 +323,9 @@
 | `omd:lib/runstate.js` | D13 |
 | `omd:lib/runtime.js` | D10 |
 | `omd:lib/skills.js` | D2 |
+| `omd:lib/state-domain.js` | D11 |
 | `omd:lib/state-tools.js` | D11 |
+| omd:lib/state-domain.js | D11 |
 | omd:lib/state-tools.js | D11 |
 | `omd:lib/team.js` | D6 |
 | `omd:lib/tryget.js` | D10 |

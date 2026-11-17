@@ -61,10 +61,10 @@ test('M3: 两次 apply（cordis 重放）各自重新探测，不吃陈旧缓存
   // 若第二次 apply 吃了陈旧 probe 缓存，总数会是 3 而不是 4。
   const first = mockFullCtx(counter)
   await apply(first.ctx, Config.parse({}), { assetsRoot, defineTool: (x) => x })
-  expect(counter.accesses).toBe(2)
+  expect(counter.accesses).toBe(3)
   const second = mockFullCtx(counter)
   await apply(second.ctx, Config.parse({}), { assetsRoot, defineTool: (x) => x })
-  expect(counter.accesses).toBe(4)   // 缓存被 apply 入口重置，第二次重新探测
+  expect(counter.accesses).toBe(6)   // 缓存被 apply 入口重置，第二次重新探测
 })
 
 // ---------- B2：defineTool/记忆工具注册失效 → 降级而非崩溃 ----------
@@ -91,7 +91,8 @@ test('storage 不可用时 memoryTools 归 skipped 且记忆工具不注册（�
   expect(probeReport.memoryTools.status).toBe('skipped')
   // 一期 dsh-native：58 个状态面工具进程内直注册，与 storage 无关；仅记忆工具（4 个）缺席
   expect(reg.tools.filter(t => t.name.startsWith('omd_memory_'))).toHaveLength(0)
-  expect(reg.tools).toHaveLength(58)
+  // 二期②：storage 缺席 → state/hud 依赖面（7 个）一并缺席，其余 51 个照常
+  expect(reg.tools).toHaveLength(51)
 })
 
 // ---------- H1：宿主包不许顶层静态 import（缺席时 import 阶段崩，probe 没机会跑） ----------

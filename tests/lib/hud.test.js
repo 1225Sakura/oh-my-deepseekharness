@@ -6,6 +6,7 @@ import {
   HUD_FIELDS, HUD_CONTRACT_VERSION, MODE_LABELS, PRESETS, HUD_DEFAULT_PRESET, TIER,
   summarize, diffSummary, renderCard, buildHudView, createSummaryReader, createPollingHud,
 } from '../../lib/hud.js'
+const MOCK_TABLE = (() => { const m = new Map(); return { get: k => m.get(k), put: async (k, v) => { m.set(k, v) }, delete: async k => m.delete(k), keys: () => [...m.keys()] } })()
 import { makeStateTools } from '../../lib/state/tools/state.mjs'
 import { makeNotepadTools } from '../../lib/state/tools/notepad.mjs'
 
@@ -179,7 +180,7 @@ test('S7 常量锁定：MODE_LABELS 五模式中文 label；PRESETS 序与默认
 // ---------- 数据源装配：只接 state_get_status + notepad_stats 两个现成读面 ----------
 
 function makeEnv() {
-  return { stateTools: makeStateTools({ stateDir: '.omd' }), notepadTools: makeNotepadTools({ stateDir: '.omd' }) }
+  return { stateTools: makeStateTools({ stateDir: '.omd', table: MOCK_TABLE }), notepadTools: makeNotepadTools({ stateDir: '.omd', table: MOCK_TABLE }) }
 }
 
 test('createSummaryReader：只消费 getStatus+stats 两读面；缺读面/缺工作区显式报错', async () => {

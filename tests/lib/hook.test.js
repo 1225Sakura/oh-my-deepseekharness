@@ -4,6 +4,10 @@
 // C3 未命中 prompt 零成本直通（无状态写入、无注入）
 // 监听器契约：每路径恰一次 next()、自身绝不抛错（写失败/会话锚缺失直通）
 import { test, expect } from 'vitest'
+import { stateKey } from '../../lib/state-domain.js'
+import { projectKey } from '../../lib/memory.js'
+const TABLE = (() => { const m = new Map(); return { get: k => m.get(k), put: async (k, v) => { m.set(k, v) }, delete: async k => m.delete(k), keys: () => [...m.keys()] } })()
+const noStateWrites = cwd => expect(TABLE.keys().filter(k => k.startsWith(projectKey(cwd)))).toHaveLength(0)
 import { join } from 'node:path'
 import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -130,9 +134,9 @@ test('writeModeState → readBackViaStateRead：state_read 实现读回与写入
     const now = new Date('2026-09-22T12:30:00.000Z')
     const entry = { target: 'ralph', trigger: 'ralph', intent: 'explicit' }
     const state = buildArmedState({ entry, promptText: '用 ralph 做 Y', now })
-    const file = await writeModeState({ cwd, stateDir: '.omd', sessionId: 'sess-RB1', mode: 'ralph', state, now })
-    expect(file).toBe(join(cwd, '.omd', 'state', 'sessions', 'sess-RB1', 'ralph-state.json').replaceAll('\\', '/'))
-    const back = await readBackViaStateRead({ cwd, stateDir: '.omd', sessionId: 'sess-RB1', mode: 'ralph' })
+    const file = await writeModeState({ stateTable: TABLE, cwd, sessionId: 'sess-RB1', mode: 'ralph', state, now })
+expect(file).toBe(stateKey(cwd, 'ralph', 'sess-RB1'))
+    const back = await readBackViaStateRead({ stateTable: TABLE, cwd, sessionId: 'sess-RB1', mode: 'ralph' })
     expect(back).toEqual({
       ...state,
       _meta: { mode: 'ralph', sessionId: 'sess-RB1', updatedAt: '2026-09-22T12:30:00.000Z', updatedBy: 'sess-RB1' },
@@ -142,7 +146,7 @@ test('writeModeState → readBackViaStateRead：state_read 实现读回与写入
 
 test('writeModeState：非法 sessionId 被 SAFE_ID 前置拒绝（G6 域安全）', async () => {
   await expect(writeModeState({
-    cwd: 'C:/tmp', stateDir: '.omd', sessionId: '../escape', mode: 'ralph',
+    stateTable: TABLE, cwd: 'C:/tmp', sessionId: '../escape', mode: 'ralph',
     state: buildArmedState({ entry: { target: 'ralph', trigger: 'ralph', intent: 'explicit' } }),
   })).rejects.toThrow(/unsafe sessionId/)
 })
@@ -165,7 +169,7 @@ const userMsg = (text) => ({ source: { kind: 'user' }, content: [{ type: 'text',
 test('监听器：未命中 → 恰一次 next() 直通，零状态写零注入（C3）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     let nextCalls = 0
     const downstream = { kind: 'enter', messages: [userMsg('普通任务')] }
@@ -175,13 +179,13 @@ test('监听器：未命中 → 恰一次 next() 直通，零状态写零注入�
     )
     expect(nextCalls).toBe(1)
     expect(out).toBe(downstream)
-    await expect(stat(join(cwd, '.omd'))).rejects.toThrow()  // 零状态写
+    noStateWrites(cwd)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
 test('监听器：空 messages → 直通（inbox.claim 消耗语义，后续 step 不重触发）', async () => {
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   let nextCalls = 0
   const downstream = { kind: 'enter', messages: [] }
   const out = await captured['agent/pre-step'](
@@ -195,7 +199,7 @@ test('监听器：空 messages → 直通（inbox.claim 消耗语义，后续 st
 test('监听器：命中 → 模式状态落盘 + 下游注入 [MAGIC KEYWORD] 激活块（C2 正例）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured, infos } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const downstream = { kind: 'enter', messages: [userMsg('cancelomd')] }
     const out = await captured['agent/pre-step'](
@@ -203,7 +207,7 @@ test('监听器：命中 → 模式状态落盘 + 下游注入 [MAGIC KEYWORD] �
       async () => ({ ...downstream }),
     )
     // 状态落盘且经 state_read 实现读回一致
-    const back = await readBackViaStateRead({ cwd, stateDir: '.omd', sessionId: 'sess-HIT1', mode: 'cancel' })
+    const back = await readBackViaStateRead({ stateTable: TABLE, cwd, sessionId: 'sess-HIT1', mode: 'cancel' })
     expect(back.active).toBe(true)
     expect(back._meta).toMatchObject({ mode: 'cancel', sessionId: 'sess-HIT1', updatedBy: 'sess-HIT1' })
     // 注入块：恰追加一条，含路由指引与 expectUpdatedAt 续写锚
@@ -219,7 +223,7 @@ test('监听器：命中 → 模式状态落盘 + 下游注入 [MAGIC KEYWORD] �
 
 test('监听器：会话锚缺失 → warn 直通，无状态写无注入', async () => {
   const { ctx, captured, warns } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   const downstream = { kind: 'enter', messages: [] }
   const out = await captured['agent/pre-step'](
     { agent: undefined, messages: [userMsg('ralph: 做事')] },
@@ -232,7 +236,7 @@ test('监听器：会话锚缺失 → warn 直通，无状态写无注入', asyn
 test('监听器：状态写失败（非法 sessionId）→ warn 直通不抛错，下游原样', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured, warns } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const downstream = { kind: 'enter', messages: [] }
     const out = await captured['agent/pre-step'](
@@ -247,14 +251,14 @@ test('监听器：状态写失败（非法 sessionId）→ warn 直通不抛错�
 test('监听器：命中但下游 reject → 状态已落盘、不注入（诚实留痕）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const out = await captured['agent/pre-step'](
       { agent: { session: { header: { id: 'sess-REJ', cwd } } }, messages: [userMsg('ralph: 做事')] },
       async () => ({ kind: 'reject' }),
     )
     expect(out).toEqual({ kind: 'reject' })
-    const back = await readBackViaStateRead({ cwd, stateDir: '.omd', sessionId: 'sess-REJ', mode: 'ralph' })
+    const back = await readBackViaStateRead({ stateTable: TABLE, cwd, sessionId: 'sess-REJ', mode: 'ralph' })
     expect(back.active).toBe(true)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
@@ -278,7 +282,7 @@ test('renderActivationNotice：确定性模板（模式/触发词/sessionId/expe
 test('监听器：裸词/解释性提及 → 直通无状态写（B1 语义收窄）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const downstream = { kind: 'enter', messages: [userMsg('什么是 ralph 模式？')] }
     const out = await captured['agent/pre-step'](
@@ -286,14 +290,14 @@ test('监听器：裸词/解释性提及 → 直通无状态写（B1 语义收�
       async () => downstream,
     )
     expect(out).toBe(downstream)
-    await expect(stat(join(cwd, '.omd'))).rejects.toThrow() // 零状态写
+    noStateWrites(cwd)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
 test('监听器：assistant 来源不参与检测（B1 来源过滤）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const downstream = { kind: 'enter', messages: [] }
     const out = await captured['agent/pre-step'](
@@ -301,14 +305,14 @@ test('监听器：assistant 来源不参与检测（B1 来源过滤）', async (
       async () => downstream,
     )
     expect(out).toBe(downstream)
-    await expect(stat(join(cwd, '.omd'))).rejects.toThrow() // 零状态写
+    noStateWrites(cwd)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
 test('监听器：review 命中 → 只注入行内指引块，不写模式状态（note 纪律）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const downstream = { kind: 'enter', messages: [userMsg('帮我做个 code review')] }
     const out = await captured['agent/pre-step'](
@@ -318,14 +322,14 @@ test('监听器：review 命中 → 只注入行内指引块，不写模式状�
     expect(out.messages.length).toBe(downstream.messages.length + 1)
     const injected = out.messages.at(-1)
     expect(injected.content[0].text).toContain('未激活任何模式状态')
-    await expect(stat(join(cwd, '.omd', 'state', 'sessions', 'sess-REV'))).rejects.toThrow() // 零模式状态
+    noStateWrites(cwd)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
 test('监听器：tool 来源文本块不参与检测（B1 复审：role 过滤挡不住 tool 形态的双保险钉）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const downstream = { kind: 'enter', messages: [] }
     const out = await captured['agent/pre-step'](
@@ -333,28 +337,28 @@ test('监听器：tool 来源文本块不参与检测（B1 复审：role 过滤�
       async () => downstream,
     )
     expect(out).toBe(downstream)
-    await expect(stat(join(cwd, '.omd'))).rejects.toThrow() // 零状态写
+    noStateWrites(cwd)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
 test('监听器：同会话同名模式已 active → 跳过重置与注入（B1 防盲覆写）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const now = new Date('2026-09-22T12:00:00.000Z')
     await writeModeState({
-      cwd, stateDir: '.omd', sessionId: 'sess-DUP', mode: 'cancel',
+      stateTable: TABLE, cwd, sessionId: 'sess-DUP', mode: 'cancel',
       state: { active: true, started_at: now.toISOString(), current_phase: 'running', prompt_echo: '运行中勿动', keyword_route: { target: 'cancel', trigger: 'cancelomd', source: 'other' } }, now,
     })
-    const before = await readBackViaStateRead({ cwd, stateDir: '.omd', sessionId: 'sess-DUP', mode: 'cancel' })
+    const before = await readBackViaStateRead({ stateTable: TABLE, cwd, sessionId: 'sess-DUP', mode: 'cancel' })
     const downstream = { kind: 'enter', messages: [userMsg('cancelomd')] }
     const out = await captured['agent/pre-step'](
       { agent: { session: { header: { id: 'sess-DUP', cwd } } }, messages: [userMsg('cancelomd')] },
       async () => ({ ...downstream }),
     )
     expect(out.messages.length).toBe(downstream.messages.length) // 零注入
-    const after = await readBackViaStateRead({ cwd, stateDir: '.omd', sessionId: 'sess-DUP', mode: 'cancel' })
+    const after = await readBackViaStateRead({ stateTable: TABLE, cwd, sessionId: 'sess-DUP', mode: 'cancel' })
     expect(after).toEqual(before) // 状态零重置
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
@@ -366,7 +370,7 @@ test('监听器：同会话同名模式已 active → 跳过重置与注入（B1
 test('回归 v4：注入消息 source 为 producer-owned 对象形态（四拒绝分支全过）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     const downstream = { kind: 'enter', messages: [userMsg('ralph: 拉起循环')] }
     const out = await captured['agent/pre-step'](
@@ -387,7 +391,7 @@ test('回归 v4：注入消息 source 为 producer-owned 对象形态（四拒�
 test('回归 v4 扫描面：子代理回报（producer kind 消息）含触发词 → 零状态写零注入', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' }, stateTable: TABLE })
   try {
     // 模拟子代理回报消息：role='user' 但 source.kind 为 producer kind（非人类输入）
     const reportMsg = { role: 'user', source: { kind: 'subagent-settled' }, content: [{ type: 'text', text: 'A8 裁决证据：keywords.js cancel 条目(cancelomd/stopomd, 独占优先)' }] }
@@ -399,18 +403,19 @@ test('回归 v4 扫描面：子代理回报（producer kind 消息）含触发�
     )
     expect(nextCalls).toBe(1)
     expect(out).toBe(downstream)          // 恰一次 next() 原样直通
-    await expect(stat(join(cwd, '.omd'))).rejects.toThrow()  // 零状态写（不误预写 cancel）
+    noStateWrites(cwd)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
-// ---- C3 注册期预检（2026-10-29 p2-fixes）：绝对 stateDir 显式告警 + 确定性直通（静默失效 → 可诊断降级）----
-test('C3 注册期预检：绝对 stateDir → 注册期恰一次显式告警，命中路径确定性直通（零 per-hit 刷屏、零预写）', async () => {
+
+// ---- C3 注册期预检（二期②改造）：域表缺席显式告警 + 确定性直通（静默失效 → 可诊断降级）----
+test('C3 注册期预检：stateTable 缺席 → 注册期恰一次显式告警，命中路径确定性直通（零 per-hit 刷屏、零预写）', async () => {
   const cwd = await tmpWorkdir()
   const { ctx, captured, warns } = fakeCtx()
-  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: join(cwd, 'abs-state') } })
+  await registerKeywordHook(ctx, { createUserMessage: fakeCreateUserMessage, config: { stateDir: '.omd' } }) // 无 stateTable
   try {
     expect(warns).toHaveLength(1) // 注册期恰一次
-    expect(warns[0]).toContain('stateDir')
+    expect(warns[0]).toContain('storageDomain 域未接入')
     expect(warns[0]).toContain('确定性直通')
     const downstream = { kind: 'enter', messages: [userMsg('cancelomd')] }
     let nextCalls = 0
@@ -423,7 +428,5 @@ test('C3 注册期预检：绝对 stateDir → 注册期恰一次显式告警，
     expect(out.messages.length).toBe(downstream.messages.length)
     // per-hit 降噪：命中后无新增告警刷屏
     expect(warns).toHaveLength(1)
-    // 零预写（mode-state/keyword 面停用，不产孤儿态）
-    await expect(stat(join(cwd, 'abs-state'))).rejects.toThrow()
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })

@@ -6,11 +6,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeHudTools, registerHudTools } from '../../lib/state/tools/hud.mjs'
 import { makeStateTools } from '../../lib/state/tools/state.mjs'
+const MOCK_TABLE = (() => { const m = new Map(); return { get: k => m.get(k), put: async (k, v) => { m.set(k, v) }, delete: async k => m.delete(k), keys: () => [...m.keys()] } })()
 import { makeNotepadTools } from '../../lib/state/tools/notepad.mjs'
 
 async function setup() {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hud-'))
-  const env = { stateDir: '.omd' }
+  const env = { stateDir: '.omd', table: MOCK_TABLE }
   return { cwd, hud: makeHudTools(env), state: makeStateTools(env), notepad: makeNotepadTools(env) }
 }
 
@@ -56,7 +57,7 @@ test('活跃模式 + notepad 条目 → 五要素正确派生', async () => {
 
 test('hud_render description（AC6）：中文措辞、至多 8 行、不提 detail/modeCatalog', () => {
   const calls = []
-  registerHudTools({ registerTool: (name, def) => calls.push({ name, def }) }, { stateDir: '.omd' })
+  registerHudTools({ registerTool: (name, def) => calls.push({ name, def }) }, { stateDir: '.omd', table: MOCK_TABLE })
   const render = calls.find(c => c.name === 'hud_render')
   expect(render).toBeTruthy()
   expect(render.def.description).toContain('至多 8 行')

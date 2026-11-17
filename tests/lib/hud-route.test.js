@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { HUD_ROUTE_PATH, hudSnapshot, makeHudHandler, registerHudRoute } from '../../lib/hud-route.js'
 import { recordRouteEvent } from '../../lib/events.js'
+const MOCK_TABLE = (() => { const m = new Map(); return { get: k => m.get(k), put: async (k, v) => { m.set(k, v) }, delete: async k => m.delete(k), keys: () => [...m.keys()] } })()
 import { makeStateTools } from '../../lib/state/tools/state.mjs'
 import { makeNotepadTools } from '../../lib/state/tools/notepad.mjs'
 
@@ -19,13 +20,13 @@ function mockRes() {
 test('hudSnapshot：真实 .omd 状态 → 五要素摘要 + 至多 8 行卡 + detail/modeCatalog/preset', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
-    const env = { stateDir: '.omd' }
+    const env = { stateDir: '.omd', table: MOCK_TABLE }
     await makeStateTools(env).write({
       cwd, sessionId: 's1', mode: 'autopilot',
       state: { active: true, current_phase: 'execution', iteration: 2, active_agents: ['a1'] },
     })
     await makeNotepadTools(env).writeWorking({ cwd, text: 'w1' })
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.ok).toBe(true)
     expect(snap.summary).toMatchObject({ mode: 'autopilot', round: 2, agents: 1 })
     expect(snap.summary.todo).toMatchObject({ working: 1 })
@@ -46,7 +47,7 @@ test('hudSnapshot：真实 .omd 状态 → 五要素摘要 + 至多 8 行卡 + d
 test('hudSnapshot preset（AC11/S8）：缺省 focused；非法回退 focused；合法透传', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
-    expect((await hudSnapshot({ cwd, stateDir: '.omd' })).preset).toBe('focused')
+    expect((await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })).preset).toBe('focused')
     expect((await hudSnapshot({ cwd, stateDir: '.omd', config: { hudPreset: 'no-such' } })).preset).toBe('focused')
     expect((await hudSnapshot({ cwd, stateDir: '.omd', config: { hudPreset: 'full' } })).preset).toBe('full')
     expect((await hudSnapshot({ cwd, stateDir: '.omd', config: { hudPreset: 'minimal' } })).preset).toBe('minimal')
@@ -97,7 +98,7 @@ async function writeRegistryFixture(cwd, runId, workers, mtimeIso) {
 test('AC-6 空态/坏 registry：无 team 目录与 events → workers 空包 + toolCalls 空聚合；单 run 坏 JSON 跳过该 run 不 500', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
-    const s0 = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const s0 = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(s0.ok).toBe(true)
     expect(s0.workers).toEqual({ list: [], truncated: false, filteredRuns: 0, filteredWorkers: 0 })
     expect(s0.toolCalls).toEqual({ total: 0, byTier: { low: 0, medium: 0, high: 0, explicit: 0 }, fallbackCount: 0 })
@@ -109,7 +110,7 @@ test('AC-6 空态/坏 registry：无 team 目录与 events → workers 空包 + 
     await writeRegistryFixture(cwd, 'run-good', {
       'w-1': { workerId: 'w-1', runId: 'run-good', role: 'omd-agent-executor', status: 'running', stale: false, spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:05:00.000Z' },
     }, '2026-01-02T00:00:00.000Z')
-    const s1 = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const s1 = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(s1.ok).toBe(true)
     expect(s1.workers.truncated).toBe(false)
     expect(s1.workers.list).toHaveLength(1)
@@ -129,7 +130,7 @@ test('AC-7 workers 聚合形状：{list,truncated,filteredRuns,filteredWorkers} 
       'w-mid': { workerId: 'w-mid', role: 'r2', status: 'running', stale: false, spawnedAt: '2026-01-02T00:00:00.000Z', lastHeartbeatAt: '2026-01-02T00:01:00.000Z' },
       'w-new': { workerId: 'w-new', role: 'r3', status: 'blocked', stale: false, spawnedAt: '2026-01-03T00:00:00.000Z', lastHeartbeatAt: '2026-01-03T00:01:00.000Z' },
     }, '2026-01-02T01:00:00.000Z')
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.workers.truncated).toBe(false)
     expect(snap.workers.filteredWorkers).toBe(1) // w-old（done）被过滤
     // 呈现序=spawnedAt 新者优先（跨 run 全局排序，非按 run 分块）
@@ -156,7 +157,7 @@ test('R4 workers 僵尸过滤：终态 phase 的 run 整组跳过（filteredRuns
     await writeRegistryFixture(cwd, 'run-live', {
       'w-live': { workerId: 'w-live', role: 'r', status: 'running', spawnedAt: '2026-01-02T00:00:00.000Z', lastHeartbeatAt: '2026-01-02T00:00:00.000Z' },
     }, '2026-01-02T00:00:00.000Z')
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.workers.filteredRuns).toBe(1)
     expect(snap.workers.list.map(w => w.workerId)).toEqual(['w-live'])
   } finally { await rm(cwd, { recursive: true, force: true }) }
@@ -171,18 +172,18 @@ test('R3 PRD 进度 join：主模式 prd_path → detail.prd {done,total,current
         { id: 'S1', passes: true }, { id: 'S2', passes: true }, { id: 'S3', passes: false }, { id: 'S4', passes: false },
       ],
     }), 'utf8')
-    await makeStateTools({ stateDir: '.omd' }).write({
+    await makeStateTools({ stateDir: '.omd', table: MOCK_TABLE }).write({
       cwd, sessionId: 's1', mode: 'ralph',
       state: { active: true, iteration: 1, prd_path: '.omd/prd/t.json', prompt_echo: '修复全部 backlog' },
     })
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.detail.prd).toEqual({ path: '.omd/prd/t.json', done: 2, total: 4, current: 'S3' })
     expect(snap.card).toContain('进度: story 2/4 通过（当前: S3）')
     expect(snap.card.split('\n')[0]).toBe('[omd] 修复全部 backlog') // 任务句首行
     // prd_path 缺席 → detail.prd 不存在，不炸
     const cwd2 = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
-    await makeStateTools({ stateDir: '.omd' }).write({ cwd: cwd2, sessionId: 's1', mode: 'ralph', state: { active: true } })
-    const snap2 = await hudSnapshot({ cwd: cwd2, stateDir: '.omd' })
+    await makeStateTools({ stateDir: '.omd', table: MOCK_TABLE }).write({ cwd: cwd2, sessionId: 's1', mode: 'ralph', state: { active: true } })
+    const snap2 = await hudSnapshot({ cwd: cwd2, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap2.detail.prd).toBeUndefined()
     await rm(cwd2, { recursive: true, force: true })
   } finally { await rm(cwd, { recursive: true, force: true }) }
@@ -202,7 +203,7 @@ test('AC-7 截断 + OQ-3 双排序边界：总数 >50 → 收满 50 提前退出
     await writeRegistryFixture(cwd, 'run-old', {
       'w-bleed': { workerId: 'w-bleed', role: 'r', status: 'running', stale: false, spawnedAt: '2026-06-01T00:00:00.000Z', lastHeartbeatAt: '2026-06-01T00:00:00.000Z' },
     }, '2026-01-01T00:00:00.000Z')
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.workers.truncated).toBe(true)
     expect(snap.workers.list).toHaveLength(50)
     // OQ-3：截断边界由扫描序（run mtime 新者优先）决定——w-bleed spawnedAt 最新仍被截断，
@@ -216,18 +217,18 @@ test('AC-10 fallback>0 → detail.tier 提升 warn（原判定 ok）；danger �
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
     // 基线：无事件 → deriveTier 原判定 ok
-    expect((await hudSnapshot({ cwd, stateDir: '.omd' })).detail.tier).toBe('ok')
+    expect((await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })).detail.tier).toBe('ok')
     // route+fallback 1:1 同点落盘（delegate.js 语义）→ fallbackCount=1 → warn
     await recordRouteEvent({ cwd, stateDir: '.omd', decision: { dispatchId: 'd-1', role: 'off-table-role', fallback: true, tier: 'medium' }, kind: 'route' })
     await recordRouteEvent({ cwd, stateDir: '.omd', decision: { dispatchId: 'd-1', role: 'off-table-role', fallback: true, tier: 'medium' }, kind: 'fallback' })
-    const s1 = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const s1 = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(s1.toolCalls).toEqual({ total: 1, byTier: { low: 0, medium: 1, high: 0, explicit: 0 }, fallbackCount: 1 })
     expect(s1.detail.tier).toBe('warn')
     // danger 不降级：failed 模式在场 → 仍 danger（提升逻辑只升不降）
-    await makeStateTools({ stateDir: '.omd' }).write({
+    await makeStateTools({ stateDir: '.omd', table: MOCK_TABLE }).write({
       cwd, sessionId: 's1', mode: 'team', state: { active: true, state: 'failed', current_phase: 'exec' },
     })
-    expect((await hudSnapshot({ cwd, stateDir: '.omd' })).detail.tier).toBe('danger')
+    expect((await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })).detail.tier).toBe('danger')
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
@@ -264,7 +265,7 @@ test('S5 alerts：stale 队员 → alerts 非空且 tier 提升 warn；告警含
       'w-old': { workerId: 'w-old', role: 'omd-agent-executor', status: 'running', spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:00:00.000Z' },
       'w-done': { workerId: 'w-done', role: 'omd-agent-verifier', status: 'done', spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:00:00.000Z' },
     }, '2026-01-02T00:00:00.000Z')
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.alerts.length).toBe(1) // 终态队员不报 stale
     expect(snap.alerts[0]).toContain('stale 队员')
     expect(snap.alerts[0]).toContain('w-old')
@@ -278,7 +279,7 @@ test('S5 alerts：全体队员终态 → alerts 空且 tier 不提升', async ()
     await writeRegistryFixture(cwd, 'run-done', {
       'w-1': { workerId: 'w-1', role: 'omd-agent-executor', status: 'done', spawnedAt: '2026-01-01T00:00:00.000Z', lastHeartbeatAt: '2026-01-01T00:00:00.000Z' },
     }, '2026-01-02T00:00:00.000Z')
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.alerts).toEqual([])
     expect(snap.detail.tier).toBe('ok')
   } finally { await rm(cwd, { recursive: true, force: true }) }
@@ -315,7 +316,7 @@ test('S4 out-mail 老化：领队信件超 staleAfterMs 未 ack → 告警行；
     const old = new Date('2020-01-01T00:00:00.000Z')
     await utimes(join(gr, 'journal.jsonl'), old, old)
 
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.alerts.some(a => a.includes('领队信件未应答'))).toBe(true)
     expect(snap.alerts.some(a => a.includes('[graph]') && a.includes('g-1'))).toBe(true)
     expect(snap.detail.tier).toBe('warn')
@@ -325,7 +326,7 @@ test('S4 out-mail 老化：领队信件超 staleAfterMs 未 ack → 告警行；
 test('S4 graph 目录缺席/新鲜 run → 无 graph 告警', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'omd-hudr-'))
   try {
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.alerts.filter(a => a.includes('[graph]'))).toEqual([])
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
@@ -358,7 +359,7 @@ test('hudSnapshot：无 state 有新鲜 mirror → 五要素补值（含 mode）
       active_agents: ['w-1', 'w-2'], todo: { working: 2, priority: 0, manual: 0 },
       version: 3, updatedAt: new Date().toISOString(),
     }), 'utf8')
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.summary.mode).toBe('team')         // 无 state 时 mode 随新鲜镜像（运行时边界写入，可信）
     expect(snap.summary.round).toBe(4)
     expect(snap.summary.story).toBe('US-7')
@@ -375,7 +376,7 @@ test('hudSnapshot idle 页：有 events → detail.recent 尾部 ≤5（at+kind�
   try {
     await recordRouteEvent({ cwd, decision: { dispatchId: 'd-1' }, kind: 'route', at: '2026-10-29T05:01:00.000Z' })
     await recordRouteEvent({ cwd, decision: { dispatchId: 'd-2' }, kind: 'fallback', at: '2026-10-29T05:02:00.000Z' })
-    const snap = await hudSnapshot({ cwd, stateDir: '.omd' })
+    const snap = await hudSnapshot({ cwd, stateDir: '.omd', stateTable: MOCK_TABLE })
     expect(snap.summary.mode).toBe('idle')
     expect(Array.isArray(snap.detail.recent)).toBe(true)
     expect(snap.detail.recent).toHaveLength(2)
