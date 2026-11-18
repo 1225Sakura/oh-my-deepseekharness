@@ -1,163 +1,43 @@
 ---
 name: team
-description: 仅限显式调用的多代理流水线——队长编排加载角色卡的 subagent 队员，走五阶段流水线，阶段间强制写交接文档
-when-to-use: **仅限显式调用**（"用 team 做…"、"/team …"）。无关键词触发——普通文本里的 "team" 一词不得激活本 skill；队员会话内整个关键词路由表失效。用于可拆解任务的并行多代理执行。**v0.4 起有领队运行时**（lib/team.js）：阶段状态机（`omd_team_phase_transition`）、队员 UUID 生命周期（`omd_team_register_worker`/`omd_team_worker_update`/`omd_team_registry`）、mailbox（`team_mail_*`）、heartbeat 扫描（`omd_team_heartbeat_scan`）、merge 计划（`omd_team_merge_plan`）全部经 MCP 工具面可用。实际 spawn 仍由队长经 `subagent`/`omd_delegate` 完成（运行时管生命周期与协调数据面，不替队长做派发决策）；无 tmux pane 守护（dsh 无承载面，🚫）。
+description: 仅限显式调用的多代理流水线——队长在宿主原生 agentTeams 面（spawn_teammate / send_message / team_task_*）编排加载角色卡的队员，走五阶段流水线，阶段间强制写交接文档
+when-to-use: **仅限显式调用**（"用 team 做…"、"/team …"）。无关键词触发——普通文本里的 "team" 一词不得激活本 skill；队员会话内整个关键词路由表失效。用于可拆解任务的并行多代理执行。**dsh-native 改造后运行时就是宿主**：durable 队员（`spawn_teammate`）、消息总线（`send_message`/inbox）、共享任务板（`team_task_*`）、等待（`wait_agent`）、打断（`interrupt_agent`）全部宿主原生——omd 只贡献五阶段纪律、交接文档与角色卡路由，不再自建运行时（🚫 自建 mailbox/worktree registry 已退役）。
 ---
 
 # team
 
-<Purpose>
-主会话（队长）拆解任务、背景 spawn 加载角色卡的 subagent 队员，驱动他们走完五阶段流水线，阶段之间强制写交接文档。本文档是按 dsh 对 OMC team skill 的重写：队员是 `subagent` spawn，协调靠 `send_message` + `list_agents`；这里没有 tmux、没有外部 CLI worker、没有共享 SQLite——OMC 的这些承载面被刻意舍弃。
-</Purpose>
+## 定位（dsh-native 二期③）
 
-<Hard_Constraints>
-- **显式调用 only，无关键词触发。**（OMC v5 刻意移除关键词触发：worker 提示词里的 "team" 字样会引发无限繁殖。）队员会话内关键词路由整体失效——worker prompt 是委派任务文本，永远不是模式触发器。
-- **MVP 模式互斥**：team active 时不得启动 autopilot/ralph，反之亦然。启动前先读状态。
-- **队长编排，队员执行。** 队员永远是叶子（见 Worker 协议）。
-</Hard_Constraints>
+team 的运行时就是宿主：`spawn_teammate`（创建 durable 队员）、`send_message`（消息总线，双向）、`team_task_create/get/list/update`（共享任务板，CAS 修订）、`wait_agent`（等待变更）、`interrupt_agent`（打断）、`list_agents`（名册）。omd 只贡献三样东西：
 
-## 流水线
+1. **五阶段纪律**（本文件的流程骨架）
+2. **阶段交接文档**（`omd_handoff_write`/`omd_handoff_read`，五段固定格式）
+3. **角色卡路由**（`omd-agent-*` 走 `omd_delegate` 或宿主 `subagent` 的 provider/model 硬路由）
 
-```
-team-plan → team-prd → team-exec → team-verify → team-fix（有界循环）→ complete | failed | cancelled
-```
+## 模式生命周期（互斥约束不变）
 
-### 阶段角色路由
+- **开始**：关键词 hook 预写态携 expectUpdatedAt，接管续写同一 token；`omd_state_write({ mode: "team", state: { active: true, started_at, current_phase: "team-plan", prompt_echo: <压缩 ≤1200 字符>, team_name: <slug> } })`；先 `omd_state_list_active()` 确认无其它活跃模式。
+- **完成**：全队收尾确认后 `omd_state_clear({ mode: "team" })`。
+- **取消**（`/omd-cancel` 或用户说停）：尽力通知全队（`send_message` + `interrupt_agent`），然后 `omd_state_clear({ mode: "team" })`。`.omd/handoffs/` 与 `.omd/plans/` 永不删除。
 
-| 阶段 | 必配角色 | 升级规则 |
-|---|---|---|
-| team-plan | `omd-agent-explore`（low）+ `omd-agent-planner`（high） | — |
-| team-prd | `omd-agent-analyst`（high） | 仅当范围与验收标准已经明确时可跳过——该决定记进 handoff |
-| team-exec | `omd-agent-executor`（medium），并行 worker | — |
-| team-verify | `omd-agent-verifier`（medium）——**必跑** | **改动 >20 文件或安全敏感变更：加 `omd-agent-code-reviewer`（high）** |
-| team-fix | `omd-agent-executor`（medium） | — |
-
-**team-fix 界限**：`max_fix_loops = 3`。循环为 exec → verify → fix → exec …；超过 3 轮 fix 即转 terminal `failed` 并附证据——绝不允许无限循环。**该界限由阶段状态机强制**（`omd_team_phase_transition` 在 fix→exec 超限时显式拒绝，只剩 failed/cancelled 可走）。
-
-### 运行时工具面（v0.4+，lib/team.js 经 MCP 暴露）
-
-| 工具 | 用途 | 调用时机 |
-|---|---|---|
-| `omd_team_phase_transition({ cwd, runId, to, note? })` | 阶段迁移（状态机校验，非法显式拒绝） | 每次阶段变化必调（与 handoff 同临界点） |
-| `omd_team_phase_status({ cwd, runId })` | 读阶段状态（phase/fixLoops/history） | resume 时先读 |
-| `omd_team_register_worker({ cwd, runId, worker })` | 登记队员生命周期（workerId 自动生成 `w-<uuid8>`；runId 即 owner-epoch） | **每次 spawn 队员后立即落账**（dispatchId/agentId 一并登记） |
-| `omd_team_worker_update({ cwd, runId, workerId, patch })` | 状态迁移（dispatched→running→blocked/done/failed；终态不可复活） | 队员状态变化时 |
-| `omd_team_worker_heartbeat({ cwd, runId, workerId })` | 队员心跳（复位 stale） | 队员每次汇报时由队长代打 |
-| `omd_team_mail_send / omd_team_mail_read / omd_team_mail_ack` | mailbox：in=队员→队长（progress/blocker/done/question），out=队长→队员（nudge/assign/answer） | 阻塞/提问必落信；队长处置后 ack |
-| `omd_team_heartbeat_scan({ cwd, runId })` | stale 检测 + 未 ack blocker/question 汇总（**绝不自动杀**） | 队长每次活跃时必跑（Watchdog 的确定性形态） |
-| `omd_team_merge_plan({ cwd, runId })` | 树∩主仓冲突候选 + 建议合并序（只出计划，执行归队长/executor） | team-verify 通过后、拆树合并前 |
-
-数据落点：`.omd/team/<runId>/{phase.json, registry.json, mailbox/{in,out}/<workerId>.jsonl}`——append-only/原子写，崩溃后 resume 先读它们再读 handoff。
-
-### 阶段交接 handoff（强制）
-
-只活在队长对话里的上下文，在压缩或重启后会丢失。因此**每个完成的阶段必须在下一阶段 spawn 之前写 `.omd/handoffs/<stage>.md`**（经 `omd_handoff_write`；MCP 挂了用普通文件工具）：
-
-```markdown
-# Handoff: <stage>
-
-## Decided
-本阶段定下的关键决策
-## Rejected
-考虑过但被否决的方案及原因
-## Risks
-下一阶段必须知道的风险
-## Files
-关键新建/修改文件
-## Remaining
-留给下一阶段的事项
-```
-
-（与 `omd_handoff_write` 工具的产出格式一致：一级标题 + 五个独立小节；五段必填，单段超 20 行会被截断并警告。）
-
-规则：
-
-1. 上限 10–20 行——只记决策与理由，不抄完整规格（那些放交付物文件里）。
-2. **队长在 spawn 下一阶段之前必读全部既往 handoff**，并把内容注入队员的 spawn prompt，保证队员带完整上下文开工。
-3. handoff 逐阶段累积（verify 阶段可读 plan + prd + exec 的全部历史），取消后保留供 resume。
-
-## 队长工作流
-
-1. **team-plan**：背景并行 spawn `explore`（代码库/上下文扫描）与 `planner`（任务拆解）——**spawn 后立刻 `omd_team_register_worker` 落账**。拆成文件级边界的任务，相互独立或依赖关系明确，每个任务带 subject + 详细 description + 验证命令。写 handoff，`omd_team_phase_transition` 转下一阶段。
-2. **team-prd**：范围模糊时由 `analyst` 提炼验收标准与边界。写 handoff。
-3. **team-exec**：用 `subagent` spawn executor 队员（默认即背景——独立队员全部并行 spawn，绝不串行等待），**每个队员 spawn 后立刻 `omd_team_register_worker`**（role/tier/phase/dispatchId 落账）。每个队员 prompt = 角色卡内容 + Worker 协议（逐字注入）+ 其任务分配 + 全部既往 handoff + 其 workerId（汇报信件要用）。分配表记进队长自己的 `todo_write`。
-4. **监控**：队员结果以结算通知的形式送达——**yield，不轮询**。每次活跃必跑 `omd_team_heartbeat_scan`（见 Watchdog）；对运行中/空闲的队员用 `send_message` 转向；队员汇报后代打 `omd_team_worker_heartbeat`。
-5. **team-verify**：verifier 必跑；按升级规则加 code-reviewer。评审对照验收标准、以新鲜命令证据为准。写 handoff。verify 通过后、拆树合并前跑 `omd_team_merge_plan` 出合并计划。
-6. **team-fix**：上限 3 轮（阶段状态机强制）；带着评审发现 spawn 修复 executor；回到 team-exec/team-verify。
-7. **终态**：complete | failed | cancelled（`omd_team_phase_transition` 落终态）→ 关闭协议 → 状态契约清理。
-
-## Worker 协议（逐字注入每个队员 prompt）
+## 五阶段流水线
 
 ```
-你是队员 "<worker-N>"，向队长汇报。六个步骤：
-
-1. CLAIM —— 任务分配随本 prompt 或队长后续消息到达；
-   确认收到，并镜像进自己的 todo_write（in_progress）。
-2. WORK —— 用自己的工具直接执行。
-3. COMPLETE —— 只有手握验证证据才准把 todo 标 completed。
-4. REPORT —— 你的最后一条 assistant 消息就是交付物：
-   完整的结构化结果（改动内容、证据、验证命令原始输出）。
-   禁止 "done" 式空洞收尾。
-5. NEXT —— 队长发了后续任务就回到第 1 步；否则明确报告待命。
-6. SHUTDOWN —— 收到队长 shutdown 指令后确认并停止。
-
-阻塞任务：依赖未完成就跳过该任务并向队长报告 blocked——
-不许做一半，更不许标 completed。
-
-== LEAF-GUARD（绝对禁令） ==
-- 禁止再 spawn 孙代理（禁用 subagent / subagent_fork）。
-- 禁用编排工具：workflow、ralph、create_goal / update_goal。
-- 禁止激活任何执行模式——你的会话里关键词路由是失效的。
-- 你是叶子执行者。违反即任务失败。
+team-plan → team-prd → team-exec → team-verify → team-fix(≤3) → complete/failed/cancelled
 ```
 
-## Watchdog（heartbeat 扫描驱动版）
+每阶段完成、下一阶段 spawn 之前，**必须** `omd_handoff_write({ stage, sections })` 写交接（五段固定格式）——只活在队长对话里的上下文，压缩/重启后会丢失。
 
-v0.4 起有两层心跳（对齐 OMC 墙钟阈值的 dsh 改写，如实注明边界）：
+- **team-plan**：拆解目标 → 队员角色选型（`omd-agent-*` 目录）→ `team_task_create` 落任务板（`write_scopes` 标注各任务的文件写入边界，`blocked_by` 标依赖）。
+- **team-prd**：需求层面收敛为可验收标准（可写 `.omd/plans/team-<slug>.md`）。
+- **team-exec**：`spawn_teammate`（角色卡全文进 prompt，或 `omd_delegate` 硬路由）并行派发；队员结果经 `send_message` 回报或共享任务完成。大改动可先用宿主 `worktrees` 工具建隔离工作树。
+- **team-verify**：`omd-agent-verifier`/`qa-tester` 角色独立复核；裁决用 `userQuestions` 问用户（有唯一答案或高代价错误时归人类）。
+- **team-fix（≤3）**：verify 不过 → 定向修复重验；3 轮封顶 → failed。
 
-- **插件侧周期检测**（Config `team.heartbeatIntervalMs`，默认 60s，0=关闭）：后台定时扫描 `.omd/team/*/registry.json`，stale 队员与未处置信件写宿主日志呈面——**只检测不催促**（插件无法替模型发言，催促是你的活）。
-- **队长侧按需扫描**：你每次活跃时（队员报告送达、阶段转换）必跑 `omd_team_heartbeat_scan({ cwd, runId })`——这是 Watchdog 的确定性形态：
-  - `stale` 队员（超 `staleAfterMs` 无心跳，绝不自动杀）→ `send_message` 询问状态；下次活跃仍无回应 → 先用 `interrupt_agent` 停掉卡死队员，`omd_team_worker_update` 标 failed，重分配其任务，必要时补 spawn 替补（替补走 `omd_team_register_worker` 新 workerId）。
-  - `outstanding`（未 ack 的 blocker/question）→ 逐条处置后 `omd_team_mail_ack`。
-  - 同时用 `list_agents` 盘点：谁在 running / idle / ready，与 registry 对账（registry 是权威生命周期台账）。
-- 连续失败 **2+** 任务的队员 → 停止给它分配新工作。
-- 等待 = yield 并结束当前轮——队员完成会把你唤醒。禁止忙轮询，禁止 sleep 循环。
+## 协作纪律
 
-## 关闭协议（有序、阻塞）
-
-1. 核实全部任务已到终态（completed 带证据，或 failed 带记录原因）。
-2. 经 `send_message` 向每个活跃队员发 shutdown 指令。
-3. 等每个队员的确认（以其最后一条消息 / 结算通知形式到达）。
-4. 全部确认或判死之后，才准 `omd_state_clear({ mode: "team" })`。
-5. 向用户报告总结。
-
-关闭流程未走完之前，绝不清 team 状态。
-
-## 协调纪律
-
-- 默认背景 spawn；绝不为了等一个队员而推迟 spawn 下一个独立队员。
-- 用 `send_message` 转向；绝不为了传递指导而重新 spawn 队员。
-- 等待时 yield；不写轮询循环。
-- 不重复委派已在跑的任务；不把已委派的工作再委派一遍。
-- **同质任务扇出 ~5+ → 改用 `workflow` 工具**：写 JS 编排脚本，其 `agent()` 调用接受显式 `provider`/`model`——这是唯一模型路由**硬生效**的委派路径。参数照当前生效路由表填（角色 → 档位 → 模型，来自插件 Config）。注意：普通 `subagent` spawn 继承主会话模型，角色卡上的档位在这条路径只是建议（软路由，如实说明）。
-
-## 接管 / 恢复 / 取消
-
-- **孤儿接管**：`omd_team_begin` 启动前经 `omd_team_scan_orphans({ cwd })` 扫描，发现 run-state 非终态且无活跃会话时，只列出孤儿并提示人工处置，绝不自动删树或自动续跑。接管既有 run 前先读 team 状态、`omd_team_phase_status`、`omd_team_registry` 与全部 handoff，确认无活跃队长；已分配任务不重复 spawn。
-- **Resume**：从最后一个非终态阶段恢复；卡死队员按 Watchdog 规则先 `interrupt_agent`、标 failed，再重分配任务并用新 workerId 登记替补。
-- **取消**（`/omd-cancel` 或用户说停）：尽力走完关闭协议，再调 `omd_team_cancel({ cwd, runId, expectUpdatedAt })`；它先列树内相对 HEAD 的差异文件供用户处置（只提示不阻塞），再以 `reason=cancelled` 完成同样的两阶段拆除，最后 `omd_state_clear`。handoffs 与 plans 保留。终态：`complete`、`failed`、`cancelled`。
-
-## 降级
-
-`subagent` 不可用 → 队长自己顺序执行各阶段，并公告"单代理模式"；此时模型路由整体失效。`workflow` 不可用 → 无论任务多少都留在背景 `subagent` 扇出。
-
-## 状态契约
-
-**调用形状约定**：`cwd`/`sessionId` 已从当前会话自动派生——无需传（仅多仓/worktree 锚显式传 `cwd`）；模式字段嵌套在 `state` 键下。
-
-- **开始**：先调 `omd_team_begin({ cwd, runId, stateDir })`；它先扫描孤儿，再从当前 HEAD 以 detached 方式建 `<stateDir>/worktrees/{run-id}`（每运行一树，目录 gitignored），返回孤儿列表与新 runId + head。再 `omd_state_write({ mode: "team", state: { active: true, started_at: <ISO 8601>, current_phase: "team-plan", prompt_echo: <压缩 ≤1200 字符>, team_name: <slug>, fix_loop_count: 0, max_fix_loops: 3 } })`。状态文件：`.omd/state/sessions/{sessionId}/team-state.json`。
-- **阶段转换**：每次阶段变化都做三件事：①`omd_team_phase_transition({ cwd, runId, to, note })`——阶段状态机是权威（fix 循环上限由它强制）；②`omd_state_write` 更新 `state.current_phase`（`team-plan|team-prd|team-exec|team-verify|team-fix|complete|failed|cancelled`）与阶段历史；③`omd_team_write_mirror({ cwd, stateDir, patch: { mode: 'team', round, current_story, active_agents, todo }, expectUpdatedAt })`。c6 权威文件是主仓 `<cwd>/<stateDir>/state/run-state.json`，镜像为五要素 + `version` + `updatedAt` 七字段；只有队长可写，队员只读，`active_agents` 与 registry 对账。`omd_team_begin`/`omd_team_dispose` 和每次阶段转换都写镜像；CAS 冲突重读最新值后重试 ≤3 次，预算耗尽才覆盖写并记 warning，每次写 `version + 1`。
-- **完成**：先关闭流程（通知全部队员、等待确认），再 `omd_team_dispose({ cwd, runId, reason: 'verified', expectUpdatedAt })`。c5 拆除必须先 CAS 写 `disposed` 终态、再删树；终态时间戳早于删树时间，CAS 不成功就不删。最后 `omd_state_clear({ mode: "team" })`。`.omd/handoffs/` 与 `.omd/plans/` 永不删除。
-- **树内状态（c8）**：运行树内的 OMD 状态写用 `omd_team_write_tree_state({ cwd, rel, data, stateDir })`；仅运行树内可用，树外调用会报错。首次写在树内懒建 `<stateDir>/`，不向父仓状态树写入；命名空间不向父级 `.omd`/`.omd-workspace` marker 上升解析。run-state 权威仍在主仓，树内只读参考；拆树后树内状态残渣随树丢弃。纯多仓且非运行树的场景不要套用本工具。
-- **异常退出**：状态与 handoffs 留在盘上供 resume；>2h 未更新的状态视为 stale——只报告不自动续。
-- **MCP server 挂了**：用普通文件工具对 `.omd/` 做同样的读写，并显式说明。
+- 队员是**叶子执行者**：不编排、不再派发（宿主/插件机械限制已就位）。
+- 派发前恰一次静态评估档位（见 `omd_delegate` 工具描述）；表外角色落会话默认档。
+- 任务板是唯一权威：认领用 `team_task_update` CAS（携 `expected_revision`）；完成必须附证据。
+- 队员回报统一走 `send_message`（progress/blocker/done/question 四类）；队长用 `wait_agent` 收变、`send_message` 处置。
+- 终态前：全队员确认或判死（`interrupt_agent`）；`team_task_list` 清板（完成的 complete、废弃的 delete）。

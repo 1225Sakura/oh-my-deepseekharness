@@ -1,6 +1,6 @@
 # oh-my-dsh (omd)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 429 passed](https://img.shields.io/badge/tests-429%20passed-brightgreen)](./tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE) [![Node.js >=22.19.0](https://img.shields.io/badge/node-%3E%3E22.19.0-brightgreen)](https://nodejs.org/) [![Tests: 394 passed](https://img.shields.io/badge/tests-394%20passed-brightgreen)](./tests)
 
 **DeepSeek Harness 的多智能体编排层** —— OMC / OMX 编排理念的 dsh 宿主适配实现。
 Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), adapted from:
@@ -8,7 +8,7 @@ Multi-agent orchestration layer for [DeepSeek Harness](https://github.com/deepse
 - [oh-my-claudecode (OMC)](https://github.com/Yeachan-Heo/oh-my-claudecode) — Claude Code 编排层
 - [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) — Codex 编排层
 
-omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 48 个 skill 目录 + 33 个 `omd-agent-*` 角色卡（64 个双语文件，会话技能目录共 80 条）与 3 个斜杠命令、提供 52 个进程内注册的状态/记忆/协调/代码智能工具（`ctx.tools.register` 直注册，无子进程；cwd/sessionId 自动从会话锚派生）。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team 由 `lib/team.js` 领队运行时驱动（阶段状态机 + 队员 UUID 生命周期 + mailbox + heartbeat + merge 计划，无 tmux——dsh 无承载面）。
+omd 以单个 dsh 插件交付：注入编排协议到系统提示词、注册 48 个 skill 目录 + 33 个 `omd-agent-*` 角色卡（64 个双语文件，会话技能目录共 80 条）与 3 个斜杠命令、提供 34 个进程内注册的状态/记忆/协调/代码智能工具（`ctx.tools.register` 直注册，无子进程；cwd/sessionId 自动从会话锚派生）。三种执行模式（autopilot / ralph / team）：autopilot 与 ralph 由 dsh 原生 `goal` / `ralph` 工具驱动前台循环；team 由宿主原生 `agentTeams` 面承载（`spawn_teammate`/`send_message`/`team_task_*`/`wait_agent`），omd 只贡献五阶段纪律与交接文档（lib/team.js 领队运行时已退役）。
 
 ---
 
@@ -69,7 +69,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 | 执行模式 | **3** 种：autopilot（goal 循环）/ ralph（PRD 迭代）/ team（五阶段流水线 + 领队运行时），模式互斥 + 触发守卫防误触发 |
 | 角色 | **33** 个委派角色卡（`omd-agent-*`：OMC 19 + OMX 移植 14——api-reviewer / style-reviewer / performance-reviewer / quality-reviewer / quality-strategist / build-fixer / dependency-expert / information-architect / vision / product-analyst / product-manager / ux-researcher / researcher / explore-harness），各带档位（low 5 / medium 17 / high 11）与职责资产 |
 | Skills | **49** 个（中英双语资产）：3 执行模式 + 规划 + 质量 + 研究 + 记忆 + 基础设施与元 + OMX 移植 4（analyze / best-practice-research / design / performance-goal） |
-| 内置工具 | **52** 个（进程内 `ctx.tools.register` 直注册，`omd_` 前缀，无子进程）：`omd_state_*`×5 / `omd_notepad_*`×6 / `omd_prd_*`×4 / `omd_handoff_*`×3 / `omd_team_*`×18（c5/c6/c8 + 领队运行时 + `omd_team_cancel` 取消路径） / `omd_events_*`×1/ `omd_trace_*`×4 / `omd_hud_*`×2 / 代码智能×9（`omd_ast_grep_*`×2 + `omd_lsp_*`×7）；`cwd`/`sessionId` 由 `exec.agent` 会话锚自动派生（cwd 可显式覆盖用于多仓/worktree）。graph DAG 运行时已退役——声明式编排直接用宿主 workflow 工具 |
+| 内置工具 | **34** 个（进程内 `ctx.tools.register` 直注册，`omd_` 前缀，无子进程）：`omd_state_*`×5 / `omd_notepad_*`×6 / `omd_prd_*`×4 / `omd_handoff_*`×3 / `omd_events_*`×1/ `omd_trace_*`×4 / `omd_hud_*`×2 / 代码智能×9（`omd_ast_grep_*`×2 + `omd_lsp_*`×7）；`cwd`/`sessionId` 由 `exec.agent` 会话锚自动派生（cwd 可显式覆盖用于多仓/worktree）。graph DAG 运行时已退役——声明式编排直接用宿主 workflow 工具 |
 | Team 运行时 | `lib/team.js`：阶段状态机（team-plan→prd→exec→verify→fix(≤3，状态机强制)→终态）/ 队员 registry（workerId=UUID，runId=owner-epoch，终态不可复活）/ mailbox（in=队员→队长 progress/blocker/done/question，out=队长→队员 nudge/assign/answer）/ heartbeat（`team_heartbeat_scan` 按需扫描 + 插件侧周期检测定时器——检测+呈面，催促归队长模型，绝不自动杀）/ merge 计划（树∩主仓冲突候选 + 建议序，执行归模型） |
 | HUD | 三层承载：web GUI 右侧边栏 `omd-hud` 面板（client half，`lib/client.js`，自适应轮询五要素卡：活跃 5s，空转退避至 ≤30s；full preset 另渲染「队员」「工具调用」两区）/ 数据路由 `GET /oh-my-dsh/hud.json`（loopback 私有面另聚合 team registry 为 `workers`、聚合 `.omd/state/events.jsonl` 派发事件总线为 `toolCalls`）/ 工具面 `omd_hud_render` `omd_hud_summary`（CLI 会话同款摘要） |
 | 代码智能 | `omd_ast_grep_search` / `omd_ast_grep_replace`（结构化语法检索/重写，$VAR/$$$VARS 元变量，dryRun 默认不落盘）；`omd_lsp_start/stop/status/document_symbols/references/definition/diagnostics`（Config `codeIntel.lspServers` 注册表驱动，单实例/崩溃重启 ≤2/随插件卸载回收） |
@@ -178,7 +178,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 - 启动时能力探测与注册结果汇总渲染进系统提示词的能力矩阵（其中 core/storage 两项由 probe.js 实测探测；skills/stateTools/delegate/keywordHook/teamHeartbeat/hudRoute/codeIntel/memoryTools/commands 九项为 apply 注册结果的追加记录——「注册成功」不等于「探测通过」），降级时协议指导模型走文件直读兜底：
   - 核心 inject 服务（tools/skills/systemPrompt/commands）缺失 → 插件启动即报错（唯一硬依赖）；
   - `storage` 缺失 → 记忆工具不注册；
-  - 状态工具注册失败（probe 记 `stateTools: failure`）→ `omd_state_*`/`omd_notepad_*`/`omd_prd_*`/`omd_handoff_*`/`omd_team_*`/`omd_trace_*`/`omd_hud_*` 不可用，协议降级为直接读写 `.omd/` 文件；
+  - 状态工具注册失败（probe 记 `stateTools: failure`）→ `omd_state_*`/`omd_notepad_*`/`omd_prd_*`/`omd_handoff_*`/`omd_trace_*`/`omd_hud_*` 不可用，协议降级为直接读写 `.omd/` 文件；
   - `@ast-grep/napi` 缺失 → `ast_grep_*` 显式报错（probe 记 `codeIntel: unavailable`），LSP 不受影响；
   - `webServer` 缺席（CLI 会话）→ HUD 数据路由不注册（probe 记 `hudRoute: skipped`，`omd_hud_render` 同款可用）；
   - 运行 `/omd-doctor` 可随时查看当前降级状态。
@@ -188,7 +188,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 ## 开发 / Development
 
 ```bash
-npm test            # vitest 全量（48 files / 429 tests）
+npm test            # vitest 全量（45 files / 394 tests）
 npm run test:watch
 ```
 

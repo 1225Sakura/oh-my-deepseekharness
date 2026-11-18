@@ -34,33 +34,33 @@ function parseBreakdown(text, marker) {
 }
 
 describe('Layer 1：仓内一致性门（恒跑，fresh clone 可分发）', () => {
-  test('L1a omd 侧三面计数 == 48/33/52，分量加总自洽（graph 运行时已退役）', async () => {
+  test('L1a omd 侧三面计数 == 48/33/34，分量加总自洽（graph/team 运行时已退役）', async () => {
     const j = await runAudit()
     expect(j.omd.assets.skillsDirs).toBe(48)
     expect(j.omd.assets.agentRoles).toBe(33)
-    expect(j.omd.mcpToolsTotal).toBe(52)
+    expect(j.omd.mcpToolsTotal).toBe(34)
     const byFile = j.omd.mcpToolsByFile
-    expect(Object.values(byFile).reduce((a, b) => a + b, 0)).toBe(52)
+    expect(Object.values(byFile).reduce((a, b) => a + b, 0)).toBe(34)
   })
 
   test('L1b package.json / README / omd-doctor 双语计数 == 实测', async () => {
     const j = await runAudit()
     const pkg = JSON.parse(await read('package.json'))
     expect(pkg.description).toContain('48 skills')
-    expect(pkg.description).toContain('52 built-in tools')
+    expect(pkg.description).toContain('34 built-in tools')
     const readme = await read('README.md')
     expect(readme).toMatch(/注册 48 个 skill/)
-    expect(readme).toMatch(/提供 52 个/)
+    expect(readme).toMatch(/提供 34 个/)
     for (const [file, skillsMarker, mcpMarker, sumMarker] of [
-      ['assets/skills/omd-doctor/SKILL.md', '| Skills | **48**', '**52** in-process `omd_`-prefixed tools', '(48/33/3/5/52)'],
-      ['assets/skills/omd-doctor/SKILL.zh.md', '| skill | **48**', '**52** 个 `omd_` 前缀进程内工具', '（48/33/3/5/52）'],
+      ['assets/skills/omd-doctor/SKILL.md', '| Skills | **48**', '**34** in-process `omd_`-prefixed tools', '(48/33/3/5/34)'],
+      ['assets/skills/omd-doctor/SKILL.zh.md', '| skill | **48**', '**34** 个 `omd_` 前缀进程内工具', '（48/33/3/5/34）'],
     ]) {
       const t = await read(file)
       expect(t, file + ' skills 计数').toContain(skillsMarker)
       expect(t, file + ' MCP 计数').toContain(mcpMarker)
       expect(t, file + ' 汇总行').toContain(sumMarker)
       // 分量分解与脚本实测对齐，加总=总数
-      const bd = parseBreakdown(t, '**52**')
+      const bd = parseBreakdown(t, '**34**')
       expect(bd, file + ' 括号分解可解析').not.toBeNull()
       for (const [name, count] of Object.entries(j.omd.mcpToolsByFile)) {
         expect(bd[name], file + ' 分解缺 ' + name).toBe(count)

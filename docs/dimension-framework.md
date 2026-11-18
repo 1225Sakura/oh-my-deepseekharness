@@ -307,7 +307,6 @@
 | `omd:lib/delegate.js` | D12 |
 | `omd:lib/events.js` | D12 |
 | `omd:lib/graph/` | D14 |
-| `omd:lib/heartbeat.js` | D6 |
 | `omd:lib/hook.js` | D5 |
 | `omd:lib/hud-route.js` | D7 |
 | `omd:lib/hud.js` | D7 |
@@ -327,7 +326,6 @@
 | `omd:lib/state-tools.js` | D11 |
 | omd:lib/state-domain.js | D11 |
 | omd:lib/state-tools.js | D11 |
-| `omd:lib/team.js` | D6 |
 | `omd:lib/tryget.js` | D10 |
 | `omd:lib/worktree.js` | D13 |
 | `omd:lib/state/tools/codeintel.mjs` | D4 |
@@ -339,7 +337,6 @@
 | `omd:lib/state/tools/notepad.mjs` | D4 |
 | `omd:lib/state/tools/prd.mjs` | D4 |
 | `omd:lib/state/tools/state.mjs` | D11 |
-| `omd:lib/state/tools/team.mjs` | D6 |
 | `omd:lib/state/tools/trace.mjs` | D4 |
 | `omd:tests/assets/` | D15 |
 | `omd:tests/docs/` | D15 |

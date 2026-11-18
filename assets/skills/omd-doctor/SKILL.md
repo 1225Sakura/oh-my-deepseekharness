@@ -29,7 +29,7 @@ Count what is actually visible in this session and compare with expectations:
 | Role cards | **33** `omd-agent-*` (roster in `tests/assets/agents.test.js` TIERS) | skill catalog entries prefixed `omd-agent-` |
 | Commands | **3** (`/omd-doctor`, `/omd`, `/omd-cancel`) | command list |
 | Plugin tools | **5** (`omd_memory_set/get/list/delete` + `omd_delegate`) | tool list |
-| Built-in tools | **52** in-process `omd_`-prefixed tools (state×5, notepad×6, prd×4, handoff×3, events×1, team×18, trace×4, hud×2, codeintel×9, codeintel-astgrep×0) — codeintel-astgrep.mjs is the split-out ast-grep implementation module; tool registration stays in codeintel.mjs | tool list prefix count |
+| Built-in tools | **34** in-process `omd_`-prefixed tools (state×5, notepad×6, prd×4, handoff×3, events×1, trace×4, hud×2, codeintel×9, codeintel-astgrep×0) — codeintel-astgrep.mjs is the split-out ast-grep implementation module; tool registration stays in codeintel.mjs | tool list prefix count |
 
 Any shortfall → ❌ with the missing names (fix: check that `assets/skills` / `assets/agents` shipped intact and the loader registered them with `source: 'oh-my-dsh'`; check cordis.patch.yml mount). **When the memory tools (omd_memory_*) are missing**: check that omd's `inject` declaration includes `storage` and that the current profile is base-backed (dsh-base mounts the dsh-storage trio — a non-base profile missing storage is expected degradation) — this is an omd-declaration/profile-layer matter, not a host defect.
 
@@ -96,7 +96,7 @@ omd doctor — <date>
 | # | Check | Status | Detail |
 |---|-------|--------|--------|
 | 1 | Host version vs peerDep (per package.json) | ✅/⚠️/❌ | host=<v> |
-| 2 | Registration counts (48/33/3/5/52) | … | missing: … |
+| 2 | Registration counts (48/33/3/5/34) | … | missing: … |
 | 3 | Config model identifiers | … | … |
 | 4 | MCP smoke (omd_state_get_status) | … | … |
 | 5 | .omd/ writable + .gitignore | … | … |

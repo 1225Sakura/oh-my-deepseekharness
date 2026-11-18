@@ -1,7 +1,7 @@
 {
   "name": "@sakura12/oh-my-deepseekharness",
   "version": "0.7.2",
-  "description": "Multi-agent orchestration layer for DeepSeek Harness — 48 skills, 52 built-in tools, graph DAG runtime, team pipeline & HUD (OMC/OMX adaptation)",
+  "description": "Multi-agent orchestration layer for DeepSeek Harness — 48 skills, 34 built-in tools, graph DAG runtime, team pipeline & HUD (OMC/OMX adaptation)",
   "keywords": [
     "deepseek-harness",
     "dsh-plugin",

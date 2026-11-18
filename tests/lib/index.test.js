@@ -40,7 +40,7 @@ test('插件导出符合 cordis 约定', () => {
   expect(typeof Config.parse).toBe('function')
 })
 
-test('apply 全量注册：1 section + 1 context + 40 skill + 19 角色 + 3 命令 + 4 记忆工具 + 52 状态工具', async () => {
+test('apply 全量注册：1 section + 1 context + 40 skill + 19 角色 + 3 命令 + 4 记忆工具 + 34 状态工具', async () => {
   const { ctx, reg } = mockCtx()
   const assetsRoot = await mkdtemp(join(tmpdir(), 'omd-'))
   await mkdir(join(assetsRoot, 'skills', 'x'), { recursive: true })
@@ -53,7 +53,7 @@ test('apply 全量注册：1 section + 1 context + 40 skill + 19 角色 + 3 命�
   expect(reg.contexts).toHaveLength(1)
   expect(reg.skills).toHaveLength(1)   // A2 契约：角色卡退出模型目录，仅技能注册（fixture 规模；真实 assets 是 49 技能+33 角色卡不注册）
   expect(reg.commands).toHaveLength(3)
-  expect(reg.tools).toHaveLength(56)   // 一期 dsh-native：52 状态面 + 4 记忆面
+  expect(reg.tools).toHaveLength(38)   // 二期③：34 状态面 + 4 记忆面
   // §7-2 核验：dsh-system-prompt 的 section/context 均强制有限 order；text 必须同步求值
   expect(Number.isFinite(reg.sections[0].order)).toBe(true)
   expect(Number.isFinite(reg.contexts[0].order)).toBe(true)
@@ -65,7 +65,7 @@ test('apply 全量注册：1 section + 1 context + 40 skill + 19 角色 + 3 命�
 
 // M1.1 核心回归：storage 探测 ok 时记忆工具真实注册（修复前 inject 缺 storage →
 // cordis 访问抛错 → 误判 unavailable → 记忆工具永远不注册）
-test('storage ok → probeReport.storage=ok 且 4 个记忆工具真实注册（52 状态工具同场）', async () => {
+test('storage ok → probeReport.storage=ok 且 4 个记忆工具真实注册（34 状态工具同场）', async () => {
   const { ctx, reg } = mockCtx()
   const assetsRoot = await mkdtemp(join(tmpdir(), 'omd-'))
   await mkdir(join(assetsRoot, 'skills', 'x'), { recursive: true })
@@ -77,7 +77,7 @@ test('storage ok → probeReport.storage=ok 且 4 个记忆工具真实注册（
   expect(probeReport.stateTools.status).toBe('ok')
   expect(reg.tools.filter(t => t.name.startsWith('omd_memory_')).map(t => t.name).sort())
     .toEqual(['omd_memory_delete', 'omd_memory_get', 'omd_memory_list', 'omd_memory_set'])
-  expect(reg.tools.filter(t => !t.name.startsWith('omd_memory_'))).toHaveLength(52)
+  expect(reg.tools.filter(t => !t.name.startsWith('omd_memory_'))).toHaveLength(34)
   // hooksBridge unavailable 不进降级公告（二期前置项）
   expect(reg.contexts[0].text()).not.toContain('hooksBridge')
 })

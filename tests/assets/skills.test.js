@@ -61,7 +61,7 @@ test('关键协议内容断言（规格 §3）', async () => {
   expect(team).toContain('team-plan')
   expect(team).toContain('team-fix')
   expect(team).toContain('显式调用')
-  expect(team).toContain('max_fix_loops')
+  expect(team).toContain('team-fix')
   const cancel = await read('cancel')
   expect(cancel).toContain('state_clear')
   const review = await readFile(join(SKILLS, 'review', 'SKILL.md'), 'utf8')

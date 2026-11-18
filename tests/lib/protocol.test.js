@@ -149,7 +149,7 @@ test('c2 关键词 hook 段：原生拦截点+预写状态+MAGIC KEYWORD 激活�
   expect(text).toContain('expectUpdatedAt=<注入块 updatedAt>')
 })
 
-test('team 技能承载 c5/c6/c8 与孤儿接管规则，双语正文均可独立执行', async () => {
+test('team 技能承载宿主工作法与五阶段纪律，双语正文均可独立执行', async () => {
   const { readFile } = await import('node:fs/promises')
   const { join, dirname } = await import('node:path')
   const { fileURLToPath } = await import('node:url')
@@ -157,19 +157,18 @@ test('team 技能承载 c5/c6/c8 与孤儿接管规则，双语正文均可独�
   const zh = await readFile(join(root, 'assets/skills/team/SKILL.zh.md'), 'utf8')
   const en = await readFile(join(root, 'assets/skills/team/SKILL.md'), 'utf8')
   for (const doc of [zh, en]) {
-    for (const tool of ['team_begin', 'team_scan_orphans', 'team_dispose', 'team_cancel',
-      'team_write_mirror', 'team_write_tree_state', 'team_phase_status', 'team_registry'])
+    for (const tool of ['spawn_teammate', 'send_message', 'team_task_create', 'team_task_update',
+      'wait_agent', 'interrupt_agent', 'omd_handoff_write', 'omd_state_write', 'omd_state_clear'])
       expect(doc).toContain(tool)
     expect(doc).toContain('expectUpdatedAt')
-    expect(doc).toMatch(/orphan|孤儿/i)
-    expect(doc).toMatch(/never auto-delete|绝不自动删树/)
-    expect(doc).toMatch(/two-phase|两阶段/)
-    expect(doc).toMatch(/CAS/)
-    expect(doc).toMatch(/retry ≤3|重试 ≤3/)
-    expect(doc).toMatch(/parent.*marker|父级.*marker/)
+    expect(doc).toMatch(/五阶段|five-stage/)
+    expect(doc).toMatch(/team-plan/)
+    expect(doc).toMatch(/team-fix/)
+    expect(doc).toContain('叶子执行者')
+    expect(doc).toContain('互斥')
   }
-  expect(zh).toContain('孤儿接管')
-  expect(zh).toContain('确认无活跃队长')
-  expect(en).toContain('Orphan takeover')
-  expect(en).toContain('confirm no active lead')
+  expect(zh).toContain('运行时就是宿主')
+  expect(zh).toContain('交接文档')
+  expect(en).toContain('the runtime IS the host')
+  expect(en).toContain('handoff docs')
 })

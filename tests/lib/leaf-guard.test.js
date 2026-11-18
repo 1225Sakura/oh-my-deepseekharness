@@ -28,7 +28,7 @@ test('leaf 作用域（delegationDepth>0）→ agent.ctx.tools.restrict 挂 deny
   listeners['agent/created']({ agent })
   expect(restrictions).toHaveLength(1)
   expect(restrictions[0].deny).toContain('omd_delegate')
-  expect(restrictions[0].deny).toContain('omd_team_begin')
+  expect(restrictions[0].deny.every(d => !d.startsWith('omd_team_'))).toBe(true)
   // 队员作业面必须保留可见
   expect(restrictions[0].deny).not.toContain('omd_team_worker_update')
   expect(restrictions[0].deny).not.toContain('omd_team_mail_send')
