@@ -23,7 +23,7 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness        # or th
 What happens on install:
 
 - `cordis.patch.yml` (shipped in the bundle) **inserts the `oh-my-dsh` plugin** into the profile composition — the protocol section, bilingual skills/role cards, `/omd-doctor` `/omd` `/omd-cancel` commands, and `omd_memory_*` tools are registered by `lib/index.js`.
-- The bundled MCP server (`omd-state`, 56 tools: state×5, notepad×6, prd×4, handoff×3, team×17, trace×4, hud×2, graph×6, code-intel×9) is **mounted dynamically at runtime** via `ctx.plugin()` inside `apply()` — a static patch cannot express package-internal absolute paths (spec §7-1). `failOnStartupError: false` means a broken MCP mount degrades (protocol announces it) instead of crashing the host.
+- The 34 state/memory/trace/hud/code-intel tools (`omd_state_*`, `omd_notepad_*`, `omd_prd_*`, `omd_handoff_*`, `omd_trace_*`, `omd_hud_*`, `omd_ast_grep_*`, `omd_lsp_*`) are registered **in-process** via `ctx.tools.register` inside `apply()` — no subprocess, no MCP transport; `cwd`/`sessionId` auto-derive from the session anchor. Orchestration runtimes (team coordination, declarative DAG) ride the host-native `agentTeams` / `workflowEngine`.
 
 After adding, **restart or reload the profile** (`dsh web` / the target profile) so the plugin tree reloads, then open a fresh session.
 

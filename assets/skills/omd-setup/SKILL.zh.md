@@ -23,7 +23,7 @@ dsh plugin --profile <profile> add /path/to/oh-my-deepseekharness        # 换�
 安装时发生了什么：
 
 - 包内自带的 `cordis.patch.yml` 把 **`oh-my-dsh` 插件插入** profile 组合——协议段、双语 skill/角色卡、`/omd-doctor` `/omd` `/omd-cancel` 命令、`omd_memory_*` 工具都由 `lib/index.js` 注册。
-- 内置 MCP server（`omd-state`，56 个工具：state×5、notepad×6、prd×4、handoff×3、team×17、trace×4、hud×2、graph×6、代码智能×9）在运行时经 `apply()` 里的 `ctx.plugin()` **动态挂载**——静态 patch 表达不了包内绝对路径（规格 §7-1）。`failOnStartupError: false` 意味着 MCP 挂载坏了会降级（协议层播报）而不是炸掉宿主。
+- 34 个状态/记忆/追踪/HUD/代码智能工具（`omd_state_*`、`omd_notepad_*`、`omd_prd_*`、`omd_handoff_*`、`omd_trace_*`、`omd_hud_*`、`omd_ast_grep_*`、`omd_lsp_*`）在 `apply()` 里经 `ctx.tools.register` **进程内直注册**——无子进程、无 MCP 传输；`cwd`/`sessionId` 从会话锚自动派生。编排运行时（team 协作、声明式 DAG）由宿主原生 `agentTeams` / `workflowEngine` 承载。
 
 装完后**重启或重载 profile**（`dsh web` / 目标 profile）让插件树重载，再开新会话。
 

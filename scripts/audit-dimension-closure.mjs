@@ -109,6 +109,7 @@ const MAP = {
   'omd:docs/soft-alias-assessment.md': ['D16'],
   'omd:docs/plugin-review-logs-hud-2026-10-29.md': ['D16'],
   'omd:docs/dsh-017-adapt-audit.md': ['D16'],
+  'omd:docs/awesome-entry.md': ['D16'],
   'omd:docs/feature-parity-audit.md': ['D16'],
   'omd:docs/upstream-form-omc.md': ['D16'],
   'omd:docs/upstream-form-omx.md': ['D16'],
