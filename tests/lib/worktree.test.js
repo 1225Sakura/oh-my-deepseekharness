@@ -1,308 +1,75 @@
 // tests/lib/worktree.test.js
-// c5 team worktree 隔离验收（台账 m3-advance S5，R18 表逐行落槽）：
-// C1 断言①：run 启动 → .omd/worktrees/{run-id} 存在（gitignored，从当前 HEAD git worktree add）
-// C2 断言②：verify 通过 → run-state 先写 disposed 终态（CAS 成功）→ 树删除后目录消失（终态时间戳 < 删树时间）
-// C3 断言③：取消 → 删前列树内与 HEAD 差异文件（只提示不阻塞）；孤儿扫描只提示绝不自动删
-// G6：全部落 OS 临时夹具仓，零触碰日常 .omd。
+// 二期③：team 领队运行时退役后，本文件只钉 run-state 原语层语义（lib/worktree.js 余部）。
 import { test, expect } from 'vitest'
-import { join } from 'node:path'
-import { mkdtemp, rm, writeFile, readFile, stat } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import {
-  TERMINAL_STATES, worktreesPath, runStatePath, ensureGitignored,
-  beginTeamRun, listTreeDiff, disposeRunWorktree, cancelTeamRun, scanOrphans,
-  casWriteRunState, monotonicIsoNow,
-} from '../../lib/worktree.js'
-import { readJson } from '../../lib/state/lib/atomic.mjs'
+import { join } from 'node:path'
+import { runStatePath, monotonicIsoNow, withCrossProcessFileLock, withRunStateLock, casWriteRunState } from '../../lib/worktree.js'
+import { atomicWriteJson } from '../../lib/state/lib/atomic.mjs'
 
-/** 临时 git 夹具仓（单提交 HEAD）；g 现场执行 git 命令。 */
-async function makeFixtureRepo() {
-  const dir = await mkdtemp(join(tmpdir(), 'omd-c5-'))
-  const g = (...args) => execFileSync('git', args.flat(), { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
-  g(['init', '-q'])
-  g(['config', 'user.email', 'omd-test@example.com'])
-  g(['config', 'user.name', 'omd-test'])
-  g(['config', 'commit.gpgsign', 'false'])
-  await writeFile(join(dir, 'README.md'), '# fixture\n', 'utf8')
-  g(['add', '.'])
-  g(['commit', '-q', '-m', 'init'])
-  return { dir, g }
+async function fixtureRepo() {
+  const dir = await mkdtemp(join(tmpdir(), 'omd-wt-'))
+  return { dir }
 }
 
-test('TERMINAL_STATES 仅 disposed（spec out-of-scope：不含新终态）', () => {
-  expect(TERMINAL_STATES).toEqual(['disposed'])
+test('casWriteRunState 缺 run-state → 显式报错（审计面未初始化）', async () => {
+  const { dir } = await fixtureRepo()
+  await expect(casWriteRunState({ cwd: dir, mutate: s => s }))
+    .rejects.toThrow(/run-state\.json 不存在/)
 })
 
-test('非法 runId（路径分隔/空/非法字符）在写入任何状态前抛错', async () => {
-  const { dir } = await makeFixtureRepo()
+test('casWriteRunState CAS 往返：seed 后 mutate + version 递增 + expectUpdatedAt 冲突', async () => {
+  const { dir } = await fixtureRepo()
   try {
-    for (const bad of ['../evil', 'a/b', '', 'run id', 'x.y']) {
-      await expect(beginTeamRun({ cwd: dir, runId: bad })).rejects.toThrow(/runId/)
-    }
-    expect(existsSync(worktreesPath(dir))).toBe(false) // 未发生任何建树
-    expect(existsSync(runStatePath(dir))).toBe(false)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
-
-// ---- C1 断言①：run 启动 → .omd/worktrees/{run-id} 存在（gitignored，从当前 HEAD 建） ----
-test('C1 run 启动建树：目录存在、gitignored、树 HEAD == 主仓 HEAD、run-state 记 active', async () => {
-  const { dir, g } = await makeFixtureRepo()
-  try {
-    const head = g(['rev-parse', 'HEAD'])
-    const r = await beginTeamRun({ cwd: dir, runId: 'run-c1' })
-    const tree = join(dir, '.omd', 'worktrees', 'run-c1')
-    expect(r.path).toBe(tree)
-    expect(existsSync(tree)).toBe(true) // 断言①：目录存在
-    expect(g(['check-ignore', '-q', '.omd/worktrees/run-c1'])).toBe('') // gitignored（exit 0 即忽略）
-    expect(g(['-C', tree, 'rev-parse', 'HEAD'])).toBe(head) // 从当前 HEAD 建
-    const state = await readJson(runStatePath(dir))
-    expect(state).toMatchObject({ runId: 'run-c1', status: 'active', version: 1 })
-    expect(typeof state.createdAt).toBe('string')
-    expect(existsSync(runStatePath(dir))).toBe(true)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
-
-test('ensureGitignored：未忽略仓恰追加一行且幂等；整仓忽略 .omd/ 的仓库零追加', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    const first = await ensureGitignored(dir)
-    expect(first.appended).toBe(true)
-    const content1 = await readFile(join(dir, '.gitignore'), 'utf8')
-    expect(content1).toContain('.omd/worktrees/')
-    expect(content1.split('\n').filter(l => l.trim() === '.omd/worktrees/').length).toBe(1) // 规则行恰一条
-    const second = await ensureGitignored(dir)
-    expect(second.appended).toBe(false) // 幂等：已忽略不再追加
-    expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe(content1)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-  const { dir: dir2 } = await makeFixtureRepo()
-  try {
-    await writeFile(join(dir2, '.gitignore'), '.omd/\n', 'utf8')
-    const r = await ensureGitignored(dir2)
-    expect(r.appended).toBe(false) // 整仓忽略 .omd/ → check-ignore 已命中，零改动
-  } finally {
-    await rm(dir2, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11 同上
-
-// ---- C2 断言②：CAS 写 disposed → 删树（时序：终态先于删树；CAS 不成功绝不删树） ----
-test('C2 两阶段拆除：disposed 先落 run-state（CAS 成功）→ 树消失；终态时间戳 < 删树时间', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    await beginTeamRun({ cwd: dir, runId: 'run-c2' })
-    const tree = join(dir, '.omd', 'worktrees', 'run-c2')
-    const before = await readJson(runStatePath(dir))
-    const r = await disposeRunWorktree({ cwd: dir, runId: 'run-c2', expectUpdatedAt: before.updatedAt })
-    expect(existsSync(tree)).toBe(false) // 断言②：树删除后目录消失
-    const state = await readJson(runStatePath(dir))
-    expect(state.status).toBe('disposed') // 终态落 run-state
-    expect(state.disposedReason).toBe('verified')
-    expect(state.version).toBe(before.version + 1)
-    // 时序断言：disposedAt ≤ run-state mtime ≤ removedAt（终态时间戳 < 删树时间）
-    const mtimeMs = (await stat(runStatePath(dir))).mtimeMs
-    expect(Date.parse(state.disposedAt)).toBeLessThanOrEqual(mtimeMs)
-    expect(Date.parse(r.disposedAt)).toBeLessThanOrEqual(Date.parse(r.writeDoneAt))
-    expect(Date.parse(r.writeDoneAt)).toBeLessThanOrEqual(Date.parse(r.removedAt))
-    expect(r.removed).toBe(true)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
-
-test('C2 负例：stale expectUpdatedAt → CAS 冲突抛错且树原样保留（CAS 不成功绝不删树）', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    await beginTeamRun({ cwd: dir, runId: 'run-c2x' })
-    const tree = join(dir, '.omd', 'worktrees', 'run-c2x')
-    const stateFile = runStatePath(dir)
-    await expect(disposeRunWorktree({ cwd: dir, runId: 'run-c2x', expectUpdatedAt: '2000-01-01T00:00:00.000Z' }))
+    const seed = { runId: 'audit-seed', version: 0, updatedAt: '2026-01-01T00:00:00.000Z', fallbackCount: 0 }
+    await atomicWriteJson(runStatePath(dir, '.omd'), seed)
+    const next = await casWriteRunState({ cwd: dir, expectUpdatedAt: seed.updatedAt, mutate: s => ({ ...s, fallbackCount: s.fallbackCount + 1 }) })
+    expect(next.version).toBe(1)
+    expect(next.fallbackCount).toBe(1)
+    await expect(casWriteRunState({ cwd: dir, expectUpdatedAt: seed.updatedAt, mutate: s => s }))
       .rejects.toThrow(/conflict/)
-    expect(existsSync(tree)).toBe(true) // 删树被 CAS 门禁挡下
-    expect((await readJson(stateFile)).status).toBe('active') // 终态也未写入
-    // 持正确 expectUpdatedAt 重试 → 成功拆除
-    const cur = await readJson(stateFile)
-    const r = await disposeRunWorktree({ cwd: dir, runId: 'run-c2x', expectUpdatedAt: cur.updatedAt })
-    expect(r.removed).toBe(true)
-    expect(existsSync(tree)).toBe(false)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
+  } finally { await rm(dir, { recursive: true, force: true }) }
+})
 
-// ---- C3 断言③：取消列差异只提示不阻塞；孤儿扫描只提示绝不自动删 ----
-test('C3 取消：删树前列出树内与 HEAD 差异（tracked 修改 ∪ untracked），差异非空也继续拆除', async () => {
-  const { dir } = await makeFixtureRepo()
+test('IC-23 monotonicIsoNow：同毫秒严格 +1ms；非法 prev 按现状', () => {
+  expect(monotonicIsoNow('not-a-date')).toMatch(/^\d{4}-/)
+  const pinned = '2026-10-15T00:00:00.000Z'
+  const bumped = monotonicIsoNow(pinned)
+  expect(Date.parse(bumped)).toBeGreaterThan(Date.parse(pinned))
+  const bumped2 = monotonicIsoNow(bumped)
+  expect(Date.parse(bumped2)).toBeGreaterThan(Date.parse(bumped))
+})
+
+test('withRunStateLock：run-state 临界区串行（并发请求临界区成对不交错）', async () => {
+  const { dir } = await fixtureRepo()
   try {
-    const { path: tree } = await beginTeamRun({ cwd: dir, runId: 'run-c3' })
-    await writeFile(join(tree, 'README.md'), '# modified in tree\n', 'utf8')
-    await writeFile(join(tree, 'scratch.txt'), 'untracked\n', 'utf8')
-    const diffs = await listTreeDiff({ cwd: dir, runId: 'run-c3' })
-    expect(diffs).toEqual(['README.md', 'scratch.txt']) // tracked 修改 ∪ untracked，排序
-    const lines = []
-    const r = await cancelTeamRun({ cwd: dir, runId: 'run-c3', log: l => lines.push(l) })
-    expect(r.diffs).toEqual(['README.md', 'scratch.txt'])
-    expect(r.promptLines.join('\n')).toContain('只提示不阻塞')
-    expect(lines.join('\n')).toContain('README.md') // 提示面收到差异清单
-    expect(r.state.disposedReason).toBe('cancelled')
-    expect(r.removed).toBe(true) // 只提示不阻塞：差异非空也完成拆除
-    expect(existsSync(tree)).toBe(false)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
+    const log = []
+    await Promise.all([
+      withRunStateLock(dir, '.omd', async () => { log.push('a-start'); await new Promise(r => setTimeout(r, 20)); log.push('a-end') }),
+      withRunStateLock(dir, '.omd', async () => { log.push('b-start'); await new Promise(r => setTimeout(r, 20)); log.push('b-end') }),
+    ])
+    // 串行语义：临界区成对出现且不交错（先后序不钉死——排队取决于事件循环时序）
+    const joined = log.join(',')
+    expect(joined).toMatch(/^(a-start,a-end,b-start,b-end|b-start,b-end,a-start,a-end)$/)
+  } finally { await rm(dir, { recursive: true, force: true }) }
+})
 
-test('C3 孤儿扫描：崩溃遗留（非终态无活跃会话）→ 报告且绝不自动删；活跃会话/终态不报', async () => {
-  const { dir } = await makeFixtureRepo()
+test('withCrossProcessFileLock：stale 锁（mtime > 60s）被接管', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'omd-lock-'))
   try {
-    const { path: treeA } = await beginTeamRun({ cwd: dir, runId: 'run-crash' })
-    // 模拟崩溃：不 dispose，直接进入下一次队长 run 启动扫描
-    const live = await scanOrphans({ cwd: dir, isSessionActive: async () => true })
-    expect(live.orphans).toEqual([]) // 有活跃会话 → 不算孤儿
-    const scan = await scanOrphans({ cwd: dir, isSessionActive: async () => false })
-    expect(scan.orphans).toEqual([{ runId: 'run-crash', status: 'active', path: treeA }])
-    expect(scan.lines[0]).toContain('绝不自动删')
-    expect(existsSync(treeA)).toBe(true) // 绝不自动删：树仍在
-    // 正常拆除后同树不再报
-    const st = await readJson(runStatePath(dir))
-    await disposeRunWorktree({ cwd: dir, runId: 'run-crash', expectUpdatedAt: st.updatedAt })
-    const after = await scanOrphans({ cwd: dir, isSessionActive: async () => false })
-    expect(after.orphans).toEqual([])
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
+    const lock = join(dir, 'x.lock')
+    const old = new Date(Date.now() - 120_000)
+    const { open } = await import('node:fs/promises')
+    const fh = await open(lock, 'wx')
+    await fh.close()
+    const { utimes } = await import('node:fs/promises')
+    await utimes(lock, old, old)
+    const r = await withCrossProcessFileLock(lock, async () => 'took-over')
+    expect(r).toBe('took-over')
+  } finally { await rm(dir, { recursive: true, force: true }) }
+})
 
-test('C3 孤儿扫描：权威 run-state 不描述的遗留树按 unknown 报告（不描述 = 按非终态论）', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    await beginTeamRun({ cwd: dir, runId: 'run-old' })
-    // 新 run 覆写权威 run-state（run-old 未收尾 = 崩溃遗留形态；其会话已不在 → 允许覆写）
-    await beginTeamRun({ cwd: dir, runId: 'run-new' })
-    const scan = await scanOrphans({ cwd: dir, isSessionActive: async () => false })
-    // 判据字面语义：两树皆「run-state 非终态（active/unknown）且无活跃会话」→ 均报孤儿候选
-    expect(scan.orphans.map(o => o.runId).sort()).toEqual(['run-new', 'run-old'])
-    expect(scan.orphans.find(o => o.runId === 'run-old').status).toBe('unknown')
-    expect(scan.orphans.find(o => o.runId === 'run-new').status).toBe('active')
-    expect(existsSync(join(dir, '.omd', 'worktrees', 'run-old'))).toBe(true) // 绝不自动删
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
-
-test('begin 拒绝覆写存活 run：前一 run 非终态且会话仍活跃 → 抛错不动 run-state', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    await beginTeamRun({ cwd: dir, runId: 'run-live' })
-    const before = await readJson(runStatePath(dir))
-    await expect(beginTeamRun({ cwd: dir, runId: 'run-other', isSessionActive: async id => id === 'run-live' }))
-      .rejects.toThrow(/拒绝覆写/)
-    expect(await readJson(runStatePath(dir))).toEqual(before)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11：git 子进程链在并行/publish 负载下可超 5s 默认 testTimeout（同 graph-e2e 显式超时先例）
-
-test('IC-23：casWriteRunState 同毫秒双写 token 单调递增——旧 expectUpdatedAt 必然 conflict', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    await beginTeamRun({ cwd: dir, runId: 'run-mono' })
-    const a = await casWriteRunState({ cwd: dir, mutate: s => ({ ...s, note: 1 }) })
-    const b = await casWriteRunState({ cwd: dir, mutate: s => ({ ...s, note: 2 }) })
-    expect(b.updatedAt > a.updatedAt).toBe(true) // 单调严格递增（IC-23 防线）
-    await expect(casWriteRunState({ cwd: dir, expectUpdatedAt: a.updatedAt, mutate: s => s }))
-      .rejects.toThrow(/conflict/)
-    // helper 单测面：prev 非法/缺席按现状；同毫秒 prev 时严格 +1ms
-    expect(monotonicIsoNow('not-a-date')).toMatch(/^\d{4}-/)
-    const pinned = '2026-10-15T00:00:00.000Z'
-    const bumped = monotonicIsoNow(pinned)
-    expect(Date.parse(bumped)).toBeGreaterThan(Date.parse(pinned)) // pinned 在过去 → 现状时间必大于之（确定性）
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11 同款显式超时（fixture 含 git 子进程链）
-
-// ---- EL1-3：dispose/cancel 缺 run-state 自愈（ralplan-u8-2 D4-A；顺序获锁防嵌套自锁、异 runId 拒绝、墓碑幂等） ----
-
-test('EL1-3：缺 run-state.json → dispose 顺序获锁自愈写 disposed 墓碑（version:1 + self-healed-missing-file + warning，无 revokedFrom）+ 删树', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    const { path: tree } = await beginTeamRun({ cwd: dir, runId: 'run-heal' })
-    await rm(runStatePath(dir)) // 模拟并行运行清理单槽（活案例形态）
-    const lines = []
-    const r = await disposeRunWorktree({ cwd: dir, runId: 'run-heal', reason: 'orphan-cleanup', log: l => lines.push(l) })
-    expect(r.removed).toBe(true)
-    expect(existsSync(tree)).toBe(false) // 自愈写成功 → 继续删树（两阶段断言②「写成功才删树」保持）
-    const state = await readJson(runStatePath(dir))
-    expect(state).toMatchObject({ runId: 'run-heal', status: 'disposed', disposedReason: 'self-healed-missing-file', version: 1 })
-    expect(state.revokedFrom).toBeUndefined() // Critic④：revokedFrom 不加
-    expect(state.warning).toContain('自愈写此墓碑') // 留痕三元组之一
-    expect(state.warning).toContain("reason='orphan-cleanup'") // 调用方意图随 warning 保留
-    expect(lines.join('\n')).toContain('自愈写 disposed 墓碑') // warning 行进 log 提示面
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000) // IC-11 同款显式超时（fixture 含 git 子进程链）
-
-test('EL1-3：异 runId 一律拒绝（active 与 disposed incumbent 双形态，无论终态）且未写未删树', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    const { path: treeA } = await beginTeamRun({ cwd: dir, runId: 'run-a' })
-    const before = await readJson(runStatePath(dir))
-    // active incumbent：拒绝、不写 run-state、不删树
-    await expect(disposeRunWorktree({ cwd: dir, runId: 'run-b' })).rejects.toThrow(/异 runId/)
-    expect(existsSync(treeA)).toBe(true)
-    expect(await readJson(runStatePath(dir))).toEqual(before)
-    // disposed incumbent（墓碑形态）仍拒绝（R3'：无论 incumbent 终态）
-    await disposeRunWorktree({ cwd: dir, runId: 'run-a' })
-    expect((await readJson(runStatePath(dir))).status).toBe('disposed')
-    await expect(disposeRunWorktree({ cwd: dir, runId: 'run-b' })).rejects.toThrow(/异 runId/)
-    expect((await readJson(runStatePath(dir))).runId).toBe('run-a') // 墓碑未被 run-b 夺写
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000)
-
-test('EL1-3：同 runId 幂等续行——墓碑（同 runId）存在时重复 dispose 成功（version 递增、树已不在仍收尾）', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    await beginTeamRun({ cwd: dir, runId: 'run-idem' })
-    await rm(runStatePath(dir))
-    const first = await disposeRunWorktree({ cwd: dir, runId: 'run-idem' })
-    expect(first.removed).toBe(true)
-    expect((await readJson(runStatePath(dir))).disposedReason).toBe('self-healed-missing-file')
-    const second = await disposeRunWorktree({ cwd: dir, runId: 'run-idem' }) // 同 runId 幂等续行（R3'）
-    expect(second.removed).toBe(true)
-    const st = await readJson(runStatePath(dir))
-    expect(st.version).toBe(2)
-    expect(st.status).toBe('disposed')
-    expect(st.disposedReason).toBe('verified') // 正常 CAS 续行覆盖调用方 reason
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000)
-
-test('EL1-3：cancel 路径同构——缺 run-state 时 cancelTeamRun 自愈收尾（cancelled 意图留痕 warning + 树删）', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    const { path: tree } = await beginTeamRun({ cwd: dir, runId: 'run-cancel' })
-    await rm(runStatePath(dir))
-    const lines = []
-    const r = await cancelTeamRun({ cwd: dir, runId: 'run-cancel', log: l => lines.push(l) })
-    expect(r.removed).toBe(true)
-    expect(existsSync(tree)).toBe(false)
-    const st = await readJson(runStatePath(dir))
-    expect(st.status).toBe('disposed')
-    expect(st.disposedReason).toBe('self-healed-missing-file')
-    expect(st.warning).toContain("reason='cancelled'")
-    expect(lines.join('\n')).toContain('自愈写 disposed 墓碑') // log 透传（cancel → dispose）
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}, 20_000)
+test('runStatePath：非法 cwd 拒绝（assertSafeCwd 收口）', () => {
+  expect(() => runStatePath('relative/path')).toThrow(/unsafe cwd/)
+  expect(() => runStatePath('C:/ok/dir')).not.toThrow()
+})

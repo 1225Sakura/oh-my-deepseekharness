@@ -173,24 +173,3 @@ test('run-state 不存在 → 明确抛错（先 beginTeamRun）', async () => {
   } finally { await cleanup(dir) }
 })
 
-test('与 beginTeamRun 集成（生产路径）：阶段边界 v1 → 派发前快照写 v2，七字段契约全程成立', async () => {
-  const { dir } = await makeFixtureRepo()
-  try {
-    await beginTeamRun({ cwd: dir, runId: 'run-c6' })
-    const st1 = await readJson(runStatePath(dir))
-    expect(st1.version).toBe(1)
-    const todo = buildTodoSummary({ stats: { working: 1, priority: 0, manual: 0 }, items: { working: ['实现 c6 镜像写入'] } })
-    const r = await writeRunStateMirror({
-      cwd: dir, expectUpdatedAt: st1.updatedAt,
-      patch: buildMirrorPatch({ mode: 'ralph', round: 4, currentStory: 'S6', activeAgents: ['omd-agent-executor'], todo }),
-    })
-    expect(r.ok).toBe(true)
-    expect(assertSevenFields(r.state)).toBe(true)
-    const cur = await readJson(runStatePath(dir))
-    expect(cur).toMatchObject({
-      runId: 'run-c6', status: 'active', version: 2, mode: 'ralph', round: 4, current_story: 'S6',
-      active_agents: ['omd-agent-executor'],
-    })
-    expect(cur.todo).toEqual({ working: 1, priority: 0, manual: 0, firstTitle: '实现 c6 镜像写入' })
-  } finally { await cleanup(dir) }
-})

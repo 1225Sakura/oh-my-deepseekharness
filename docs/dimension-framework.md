@@ -315,7 +315,6 @@
 | `omd:lib/leaf-guard.js` | D5 |
 | omd:lib/leaf-guard.js | D5 |
 | `omd:lib/memory.js` | D4 |
-| `omd:lib/multirepo.js` | D13 |
 | `omd:lib/probe.js` | D10 |
 | `omd:lib/protocol.js` | D10 |
 | `omd:lib/routing.js` | D12 |
