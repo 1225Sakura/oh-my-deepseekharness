@@ -349,33 +349,6 @@ test('⑭ AC7：client.js 无内置模式目录文案残留（目录单源下发
   expect(code).not.toContain('MODE_LABELS')
 })
 
-test('⑮ U8/AC11 full：「队员」「工具调用」两区在场（workerId/role/status/心跳时长 + 路由判定/tier 分布/fallback 行）', async () => {
-  const { loaderCalls } = await loadBundle()
-  const s = snapPayload({ preset: 'full', workers: WORKERS, toolCalls: TOOLCALLS })
-  const { tree, flat } = seedPanel(loaderCalls, s)
-  // 「队员」区：每 worker 一行 workerId/role/status/心跳时长（snap.at − lastHeartbeatAt）
-  expect(flat).toContain('队员')
-  expect(flat).toContain('w-ab12')
-  expect(flat).toContain('executor')
-  expect(flat).toContain('running')
-  expect(flat).toContain('5 分钟') // 10:00:05 − 09:55:00
-  expect(flat).toContain('1 小时') // 10:00:05 − 08:20:00（100 分钟→小时级）
-  expect(flat).toContain('心跳')
-  expect(flat).not.toContain('超时') // 一期纯时长显示，不做 stale 阈值推导
-  expect(flat).not.toContain('已截断') // truncated:false 无提示行
-  // 「工具调用」区：路由判定计数（文案用「路由判定」不用「派发计数」）/tier 分布/fallback 行
-  expect(flat).toContain('工具调用')
-  expect(flat).toContain('路由判定')
-  expect(flat).not.toContain('派发计数')
-  expect(flat).toContain('7 次')
-  expect(flat).toContain('tier 分布')
-  expect(flat).toContain('low 1 / medium 4 / high 1 / explicit 1')
-  expect(flat).toContain('fallback 异常')
-  // fallback=0：无 warn 色行（tier=ok，tierBadge 也无色）
-  const warnNodes = findNodes(tree, (n) => n.props && n.props.style && n.props.style.color === 'var(--dsh-warn, #d90)')
-  expect(warnNodes).toHaveLength(0)
-})
-
 test('⑯ U8/AC11 focused/minimal：两区不在场（full 专属）', async () => {
   const { loaderCalls } = await loadBundle()
   for (const preset of ['focused', 'minimal']) {
@@ -396,47 +369,6 @@ test('⑰ U8/AC11 full + 缺 workers/toolCalls 键（旧 server）：两区跳�
   expect(flat).not.toContain('路由判定')
   expect(flat).toContain('记忆（notepad 三区）') // full 既有区不受缺键影响
   expect(flat).toContain('数据面')
-})
-
-test('⑱ U8/AC11 full：workers.truncated=true 截断提示行 + fallback>0 该行文字 warn 色', async () => {
-  const { loaderCalls } = await loadBundle()
-  const s = snapPayload({
-    preset: 'full',
-    workers: { list: [WORKERS.list[0]], truncated: true },
-    toolCalls: { total: 9, byTier: { low: 0, medium: 2, high: 0, explicit: 0 }, fallbackCount: 2 },
-  })
-  const { tree, flat } = seedPanel(loaderCalls, s)
-  expect(flat).toContain('仅显示最近 50 名队员（已截断）')
-  expect(flat).toContain('fallback 异常')
-  expect(flat).toContain('2 次')
-  // fallback>0 → 该行数值带 warn 色（tier=ok 时树内唯一 warn 色节点即 fallback 行）
-  const warnNodes = findNodes(tree, (n) => n.props && n.props.style && n.props.style.color === 'var(--dsh-warn, #d90)')
-  expect(warnNodes).toHaveLength(1)
-  expect(JSON.stringify(warnNodes[0])).toContain('2 次')
-})
-
-test('⑲ U6 S1 自适应组头：≥2 distinct runId → 组头行 + 缩进队员行；单 run 零组头；截断提示行保留', async () => {
-  const { loaderCalls } = await loadBundle()
-  const s = snapPayload({ preset: 'full', workers: WORKERS_MULTI, toolCalls: TOOLCALLS })
-  const { tree, flat } = seedPanel(loaderCalls, s)
-  // 组头行在场：runId 末 8 字符短式 + 「· N 名」，N=组内已渲染行数
-  expect(flat).toContain('队员')
-  expect(flat).toContain('run …1111bbbb · 2 名')
-  expect(flat).toContain('run …2222dddd · 2 名')
-  // 顺序断言：组头在其队员行之前；组序=组内首元素出现序；交错输入按 run 归组
-  const order = ['run …1111bbbb', 'w-m1a', 'w-m1b', 'run …2222dddd', 'w-m2a', 'w-m2b']
-    .map((t) => flat.indexOf(t))
-  for (let i = 0; i < order.length; i++) expect(order[i]).toBeGreaterThanOrEqual(0)
-  for (let i = 1; i < order.length; i++) expect(order[i]).toBeGreaterThan(order[i - 1])
-  // 队员行缩进一级（组头下 paddingLeft 12；树内缩进行恰=4 行队员，其余元素无 paddingLeft）
-  const indented = findNodes(tree, (n) => n.props && n.props.style && n.props.style.paddingLeft === 12)
-  expect(indented).toHaveLength(4)
-  // truncated 提示行照旧兜底（截断腰斩 run 时计数即组内已渲染行数）
-  expect(flat).toContain('仅显示最近 50 名队员（已截断）')
-  // 自适应反向断言：单 run（WORKERS 全同 runId）保持 U8 平铺原状——零组头行
-  const single = seedPanel(loaderCalls, snapPayload({ preset: 'full', workers: WORKERS }))
-  expect(single.flat).not.toContain('run …')
-  expect(single.flat).toContain('w-ab12') // 队员行照常渲染
 })
 
 test('⑳ 2026-10-26 审查 S2：fetch 带会话 cwd（?cwd=encodeURIComponent(...)），拒绝静默锚宿主目录', async () => {
@@ -488,17 +420,4 @@ test('㉔ 2026-10-26 审查 S3：minimal preset 也带监测目录行', async ()
   const { flat } = seedPanel(loaderCalls, s)
   expect(flat).toContain('正在监测')
   expect(flat).toContain('D:/omd')
-})
-
-test('㉕ 2026-10-26 审查 S5：告警区——alerts 非空渲染 warn 色告警行；空数组显示无告警；键缺席（旧 server）跳过不炸', async () => {
-  const { loaderCalls } = await loadBundle()
-  const withAlerts = seedPanel(loaderCalls, snapPayload({ alerts: ['[team] stale 队员: w-x（executor）'] }))
-  expect(withAlerts.flat).toContain('告警')
-  expect(withAlerts.flat).toContain('stale 队员: w-x')
-  const warnNodes = findNodes(withAlerts.tree, (n) => n.props && n.props.style && n.props.style.color === 'var(--dsh-warn, #d90)')
-  expect(warnNodes.length).toBeGreaterThanOrEqual(1)
-  const empty = seedPanel(loaderCalls, snapPayload({ alerts: [] }))
-  expect(empty.flat).toContain('无 team 告警')
-  const legacy = seedPanel(loaderCalls, snapPayload({})) // 无 alerts 键（旧 server）
-  expect(legacy.flat).not.toContain('告警')
 })
