@@ -46,7 +46,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 |---|---|---|
 | **autopilot** | `autopilot 帮我做一个 CLI 字数统计工具` | 自然语言触发，goal 驱动的全流程自动编排（访谈→规划→执行→双评审门→沉淀检查点） |
 | **ralph** | `ralph: 把 README 的测试徽章数字同步到当前实际值` | 显式触发：行首 `ralph:` 或「用 ralph …」（锚定守卫防误触发；`/ralph` 斜杠形态经技能面加载，同效）；PRD + 证据契约的迭代循环，前台阻塞 |
-| **team** | `用 team 调研插件市场生态并出报告` | 无关键词，只能显式调用；五阶段流水线 + 领队运行时（`team_phase_transition` 状态机 / `team_register_worker` 生命周期 / `team_mail_*` 信箱 / `team_heartbeat_scan` / `team_merge_plan`） |
+| **team** | `用 team 调研插件市场生态并出报告` | 无关键词，只能显式调用；五阶段流水线 + 宿主原生协作面（`spawn_teammate` 队员 / `team_task_*` 任务板 / `send_message` 信箱 / `wait_agent` 收变 / `omd_handoff_*` 交接） |
 
 三个斜杠命令与取消/诊断入口：
 
@@ -70,10 +70,10 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 | 角色 | **33** 个委派角色卡（`omd-agent-*`：OMC 19 + OMX 移植 14——api-reviewer / style-reviewer / performance-reviewer / quality-reviewer / quality-strategist / build-fixer / dependency-expert / information-architect / vision / product-analyst / product-manager / ux-researcher / researcher / explore-harness），各带档位（low 5 / medium 17 / high 11）与职责资产 |
 | Skills | **49** 个（中英双语资产）：3 执行模式 + 规划 + 质量 + 研究 + 记忆 + 基础设施与元 + OMX 移植 4（analyze / best-practice-research / design / performance-goal） |
 | 内置工具 | **34** 个（进程内 `ctx.tools.register` 直注册，`omd_` 前缀，无子进程）：`omd_state_*`×5 / `omd_notepad_*`×6 / `omd_prd_*`×4 / `omd_handoff_*`×3 / `omd_events_*`×1/ `omd_trace_*`×4 / `omd_hud_*`×2 / 代码智能×9（`omd_ast_grep_*`×2 + `omd_lsp_*`×7）；`cwd`/`sessionId` 由 `exec.agent` 会话锚自动派生（cwd 可显式覆盖用于多仓/worktree）。graph DAG 运行时已退役——声明式编排直接用宿主 workflow 工具 |
-| Team 运行时 | `lib/team.js`：阶段状态机（team-plan→prd→exec→verify→fix(≤3，状态机强制)→终态）/ 队员 registry（workerId=UUID，runId=owner-epoch，终态不可复活）/ mailbox（in=队员→队长 progress/blocker/done/question，out=队长→队员 nudge/assign/answer）/ heartbeat（`team_heartbeat_scan` 按需扫描 + 插件侧周期检测定时器——检测+呈面，催促归队长模型，绝不自动杀）/ merge 计划（树∩主仓冲突候选 + 建议序，执行归模型） |
+| Team 纪律 | 五阶段流水线（team-plan→prd→exec→verify→fix(≤3)→终态）+ 交接文档契约（`omd_handoff_*` 五段固定格式）；协作/生命周期/任务板由宿主原生 `agentTeams` 承载（`spawn_teammate`/`send_message`/`team_task_*`/`wait_agent`/`interrupt_agent`），大改动用宿主 `worktrees` 工具隔离——`lib/team.js` 领队运行时已退役（二期③） |
 | HUD | 三层承载：web GUI 右侧边栏 `omd-hud` 面板（client half，`lib/client.js`，自适应轮询五要素卡：活跃 5s，空转退避至 ≤30s；full preset 另渲染「队员」「工具调用」两区）/ 数据路由 `GET /oh-my-dsh/hud.json`（loopback 私有面另聚合 team registry 为 `workers`、聚合 `.omd/state/events.jsonl` 派发事件总线为 `toolCalls`）/ 工具面 `omd_hud_render` `omd_hud_summary`（CLI 会话同款摘要） |
 | 代码智能 | `omd_ast_grep_search` / `omd_ast_grep_replace`（结构化语法检索/重写，$VAR/$$$VARS 元变量，dryRun 默认不落盘）；`omd_lsp_start/stop/status/document_symbols/references/definition/diagnostics`（Config `codeIntel.lspServers` 注册表驱动，单实例/崩溃重启 ≤2/随插件卸载回收） |
-| Hook 与定时 | c2 keyword-hook（`agent/pre-step` 原生拦截点，唯一 hook 电线）+ team heartbeat 周期检测定时器（Config `team.heartbeatIntervalMs`，默认 60s，0=关闭） |
+| Hook | c2 keyword-hook（`agent/pre-step` 原生拦截点，唯一 hook 电线）+ 机械 leaf-guard（`agent/created` → leaf 作用域 `tools.restrict` 隐藏编排工具） |
 | 跨会话记忆 | `omd_memory_set/get/list/delete`（宿主 storage domain 承载）+ notepad 三区（priority 永久 / working 7 天 / MANUAL 永不清理）+ autopilot/ralph 收尾沉淀检查点（替代 OMC hook 自动 learner） |
 | 路由 | c3 自适应路由（4 特征 + 表上限钳制 + fallback 审计）+ `omd_delegate` 硬路由工具（tier/model 经 spawn 路径强制生效） |
 
@@ -96,7 +96,6 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 | `autopilot.maxIterations` | 自然数 ≥1，默认 `10` | autopilot 最大轮次（`create_goal` 的 max_goal_rounds 默认值） |
 | `autopilot.maxQaCycles` | 自然数 ≥1，默认 `5` | QA 循环上限 |
 | `autopilot.maxValidationRounds` | 自然数 ≥1，默认 `3` | re-validation 轮次上限 |
-| `team.heartbeatIntervalMs` | 自然数，默认 `60000` | 插件侧 heartbeat 周期检测间隔（0=关闭定时器；`team_heartbeat_scan` 按需扫描仍可用） |
 | `team.staleAfterMs` | 自然数 ≥1，默认 `300000` | 队员无心跳 stale 阈值 |
 | `hudRoute` | 布尔，默认 `true` | HUD 数据路由 `/oh-my-dsh/hud.json` 开关（安全阀：该 loopback 只读路由无鉴权、`?cwd=` 可读任意已存在目录的 `.omd` 摘要——多用户/非可信本机环境可关闭；`omd_hud_render` 不受影响） |
 | `hudPreset` | `'minimal' \| 'focused' \| 'full'`，默认 `'focused'` | HUD 面板预设：minimal=纯卡文本 / focused=主模式卡+告警 / full=追加记忆三区/队员/工具调用/数据面 |
@@ -117,8 +116,6 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
       omd-agent-verifier: deepseek/deepseek-reasoner
     autopilot:
       maxIterations: 15
-    team:
-      heartbeatIntervalMs: 60000
     codeIntel:
       lspServers:
         typescript:
@@ -151,7 +148,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 ```
 .omd/
 ├── state/
-│   ├── sessions/<sessionId>/<mode>-state.json   # 每会话每模式状态（active/phase/iteration）
+│   │   （mode-state 已迁宿主 storageDomain 域——此处仅剩 run-state.json 审计面）
 │   ├── run-state.json                           # c6 七字段镜像（CAS，队长独占写）
 │   ├── boulder.json                             # ralph 进度石
 │   └── events.jsonl                             # U8 派发事件总线（route/fallback，append-only，读面尾部窗口 64 KiB；写面 ≥1MiB 轮转单档 events.jsonl.1——.1 归档不进读面/聚合）
@@ -159,9 +156,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 ├── specs/          # 规格文档
 ├── prd/            # ralph PRD（JSON + reconciliation.jsonl 台账）
 ├── handoffs/       # team 阶段交接（五段固定格式）
-├── team/<runId>/   # team 运行时：phase.json / registry.json / mailbox/{in,out}/*.jsonl
 ├── trace/          # trace 时间线（<traceId>.jsonl，append-only；读面 8MiB 上限——超限策略性拒绝，引导另开新 trace）
-├── worktrees/      # c5 team 运行树（gitignored，两阶段拆除）
 ├── checkpoints/    # 恢复快照
 ├── logs/
 ├── wiki/           # LLM Wiki 知识库（index.md + log.md + 分类页）
@@ -175,7 +170,7 @@ pwsh scripts/install-local.ps1   # npm pack → 装进 profile → 按提示重�
 ## 降级与依赖边界 / Graceful Degradation
 
 - **零第三方 dsh 插件依赖**：不依赖任何非 `@deepseek-ai/*` 官方插件。
-- 启动时能力探测与注册结果汇总渲染进系统提示词的能力矩阵（其中 core/storage 两项由 probe.js 实测探测；skills/stateTools/delegate/keywordHook/teamHeartbeat/hudRoute/codeIntel/memoryTools/commands 九项为 apply 注册结果的追加记录——「注册成功」不等于「探测通过」），降级时协议指导模型走文件直读兜底：
+- 启动时能力探测与注册结果汇总渲染进系统提示词的能力矩阵（其中 core/storage 两项由 probe.js 实测探测；skills/stateTools/delegate/keywordHook/leafGuard/hudRoute/codeIntel/memoryTools/commands 九项为 apply 注册结果的追加记录——「注册成功」不等于「探测通过」），降级时协议指导模型走文件直读兜底：
   - 核心 inject 服务（tools/skills/systemPrompt/commands）缺失 → 插件启动即报错（唯一硬依赖）；
   - `storage` 缺失 → 记忆工具不注册；
   - 状态工具注册失败（probe 记 `stateTools: failure`）→ `omd_state_*`/`omd_notepad_*`/`omd_prd_*`/`omd_handoff_*`/`omd_trace_*`/`omd_hud_*` 不可用，协议降级为直接读写 `.omd/` 文件；

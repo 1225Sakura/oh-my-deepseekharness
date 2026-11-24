@@ -50,11 +50,9 @@ Config 写在 **profile 目录的 `cordis.patch.yml`**（Windows 如 `C:\Users\<
 | `roleOverrides` | `{}` | 角色级覆盖（优先于 tiers），如 `{ "omd-agent-code-reviewer": "provider/model" }` |
 | `routing.defaultTier` | `medium` | 表外角色 fallback 落档（run-state.json 记 fallback 审计） |
 | `stateDir` | `.omd` | 项目状态目录名（改名注意：协议/技能文档多处按 `.omd/` 举例，改名后文档示例同步失效，非必要不建议改） |
-| `team.heartbeatIntervalMs` | `60000` | team heartbeat 周期检测间隔（0=关闭定时器，按需扫描仍可用） |
 | `team.staleAfterMs` | `300000` | 队员无心跳 stale 阈值 |
 | `hudRoute` | `true` | HUD 数据路由开关（false=不注册 loopback 只读路由） |
 | `hudPreset` | `focused` | HUD 面板预设：`minimal` / `focused` / `full` |
-| `graph.stalledAfterMs` | `600000` | graph run 停滞告警阈值（HUD 告警面扫描用） |
 | `codeIntel.astGrep` | `true` | ast_grep_* 开关（@ast-grep/napi 缺席时工具显式报错） |
 | `codeIntel.lspServers` | `{}` | LSP 注册表：`{ <名>: { command, args?, languages?, env? } }`，语言服务器本体由用户环境提供 |
 | `autopilot.maxIterations` | `10` | autopilot goal 轮数上限（即 `create_goal` 的 `max_goal_rounds`） |

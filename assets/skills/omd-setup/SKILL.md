@@ -48,7 +48,6 @@ All keys with defaults:
 | `roleOverrides` | `{}` | Per-role override (beats tiers), e.g. `{ "omd-agent-code-reviewer": "provider/model" }` |
 | `routing.defaultTier` | `medium` | Fallback tier for off-table roles (audited as fallback in run-state.json) |
 | `stateDir` | `.omd` | Project state directory name (renaming caveat: protocol/skill docs use `.omd/` in examples throughout; rename only if you must) |
-| `team.heartbeatIntervalMs` | `60000` | team heartbeat scan interval (0 = timer off; on-demand scan still works) |
 | `team.staleAfterMs` | `300000` | Worker no-heartbeat stale threshold |
 | `codeIntel.astGrep` | `true` | ast_grep_* switch (tool errors explicitly when @ast-grep/napi is absent) |
 | `codeIntel.lspServers` | `{}` | LSP registry: `{ <name>: { command, args?, languages?, env? } }`; servers themselves come from the user environment |
